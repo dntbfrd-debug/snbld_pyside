@@ -233,7 +233,7 @@ Item {
                         }
 
                         Text {
-                            text: "github.com/dntbfrd-debug/snbld_pyside"
+                            text: "github.com/dntbfrd-debug"
                             color: "#4CAF50"
                             font.pointSize: 9
                             font.bold: true
@@ -242,7 +242,7 @@ Item {
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: Qt.openUrlExternally("https://github.com/dntbfrd-debug/snbld_pyside")
+                                onClicked: Qt.openUrlExternally("https://github.com/dntbfrd-debug")
                             }
                         }
 
