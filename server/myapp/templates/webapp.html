@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>snbld resvap - Личный кабинет</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --accent: #fd79a8;
+            --accent-glow: rgba(253, 121, 168, 0.15);
+            --bg-top: rgba(25, 25, 25, 0.98);
+            --bg-mid: rgba(28, 28, 28, 0.98);
+            --bg-bottom: rgba(20, 20, 20, 0.98);
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --card-border: rgba(255, 255, 255, 0.15);
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --text-primary: #ffffff;
+            --text-secondary: #c2c2c2;
+            --success: #4caf50;
+            --error: #f44336;
+        }
+        
+        /* Убираем анимацию градиента */
+        html, body {
+            animation: none !important;
+        }
+        
+        /* Убираем CSS overlay - используем только Telegram API */
+        /* Перекрываем синий заголовок Telegram */
+        /* body:before_removed { ... } - убрали, чтобы не перекрывать видео */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        html, body {
+            height: 100%;
+            min-height: 100vh;
+            background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 50%, var(--bg-bottom) 100%);
+            background-attachment: fixed;
+            animation: gradientPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes gradientPulse {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.15); }
+        }
+        
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-primary);
+            padding: 4px;
+            position: relative;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        /* Видео фон с fallback на градиент */
+        .bg-video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1000;
+        }
+
+        .container {
+            max-width: 375px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1001;
+        }
+
+        /* Карточки как в программе (SettingGroup) */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 1px solid var(--card-border);
+            transition: all 0.2s ease;
+            animation: fadeInUp 0.4s ease forwards;
+            opacity: 0;
+            transform: translateY(20px);
+            z-index: 1002;
+        }
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+        .card:nth-child(4) { animation-delay: 0.4s; }
+
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        /* Заголовки как в программе - белые */
+        .card h2 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .card h2 i {
+            color: var(--accent);
+            font-size: 0.9rem;
+        }
+
+        .card p {
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .key {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: var(--input-bg);
+            padding: 8px 10px;
+            border-radius: 6px;
+            word-break: break-all;
+            font-size: 0.75rem;
+            margin: 8px 0;
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            letter-spacing: 1px;
+        }
+
+        /* Кнопки как в программе (BaseButton style) */
+        .menu-btn {
+            position: relative;
+            background: #252525;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            color: #c2c2c2;
+            padding: 5px 8px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            width: 100%;
+            margin-top: 3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transform: scale(1);
+            transition: all 0.2s ease;
+            z-index: 2;
+            /* InnerShadow эффект "впалой" кнопки */
+            box-shadow: inset 3px 3px 12px rgba(0, 0, 0, 0.6),
+                        inset -1px -1px 4px rgba(255, 255, 255, 0.05);
+        }
+
+        .menu-btn i {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .menu-btn span {
+            font-size: 0.75rem;
+        }
+
+        /* Glow эффект при наведении - 8 слоёв box-shadow как в QML */
+        .menu-btn:hover {
+            color: #ffffff;
+            border-color: rgba(253, 121, 168, 0.3);
+            background: #2a2a2a;
+            transform: translateY(-1px);
+            /* 8 слоёв box-shadow как в BaseButton - мягкое свечение снаружи */
+            box-shadow:
+                0 0 6px rgba(253, 121, 168, 0.12),
+                0 0 10px rgba(253, 121, 168, 0.09),
+                0 0 15px rgba(253, 121, 168, 0.065),
+                0 0 20px rgba(253, 121, 168, 0.045),
+                0 0 25px rgba(253, 121, 168, 0.03),
+                0 0 30px rgba(253, 121, 168, 0.022),
+                0 0 35px rgba(253, 121, 168, 0.015),
+                0 0 40px rgba(253, 121, 168, 0.008),
+                /* Сохраняем inner shadow */
+                inset 3px 3px 12px rgba(0, 0, 0, 0.6),
+                inset -1px -1px 4px rgba(255, 255, 255, 0.05);
+        }
+
+        .menu-btn:hover i {
+            opacity: 1;
+        }
+
+        .menu-btn:active {
+            transform: scale(0.9);
+            transition: transform 0.1s ease;
+            /* Усиливаем впалость при нажатии */
+            box-shadow:
+                inset 4px 4px 16px rgba(0, 0, 0, 0.8),
+                inset -1px -1px 4px rgba(255, 255, 255, 0.03);
+        }
+
+        .menu-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .menu-btn:disabled:hover {
+            border-color: #3a3a3a;
+            background: #252525;
+            box-shadow: inset 3px 3px 12px rgba(0, 0, 0, 0.6),
+                        inset -1px -1px 4px rgba(255, 255, 255, 0.05);
+        }
+
+        .menu-btn span,
+        .menu-btn i {
+            position: relative;
+            z-index: 3;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border: 1px solid var(--card-border);
+            background: var(--input-bg);
+            color: var(--text-primary);
+            font-size: 0.75rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input::placeholder {
+            color: #6a6a6a;
+            font-size: 0.8rem;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .status-badge {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 10px;
+            border-radius: 6px;
+            display: inline-block;
+            font-size: 0.8rem;
+            margin-top: 3px;
+            color: var(--text-secondary);
+            border: 1px solid var(--card-border);
+        }
+
+        .success-badge {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            color: #6dd56d;
+        }
+
+        .error-badge {
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            color: #ff6b6b;
+        }
+
+        .hidden { display: none; }
+
+        @media (max-width: 480px) {
+            body { padding: 4px; }
+            .card { padding: 8px; }
+            .menu-btn { padding: 8px 10px; }
+        }
+
+        /* Футер Telegram Mini App - полупрозрачный тёмный */
+        .tgme_page_footer {
+            background: rgba(20, 20, 30, 0.95) !important;
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 8px !important;
+        }
+
+        .tgme_page_footer a {
+            color: #c2c2c2 !important;
+            font-size: 0.75rem !important;
+        }
+
+        .tgme_page_footer_icon {
+            display: none !important;
+        }
+    </style>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>"></head>
+<body>
+    <!-- Видео фон -->
+    <video id="bgVideo" class="bg-video" muted loop playsinline>
+        <source src="/video_bg_webm" type="video/webm">
+    </video>
+
+        <div class="container">
+        <!-- Карточка ключа -->
+        <div class="card">
+            <h2><i class="fas fa-key"></i> Мой ключ</h2>
+            <div id="keyDisplay" class="key">Загрузка...</div>
+            <button class="menu-btn" id="copyBtn"><i class="fas fa-copy"></i><span>Копировать ключ</span></button>
+        </div>
+
+        <!-- Карточка подписки -->
+        <div class="card">
+            <h2><i class="fas fa-star"></i> Подписка</h2>
+            <div id="status" class="status-badge">Проверка...</div>
+            <button class="menu-btn" id="buyBtn"><i class="fas fa-shopping-cart"></i><span>Купить подписку</span></button>
+        </div>
+
+        <!-- Карточка активации -->
+        <div class="card" id="activationCard">
+            <h2><i class="fas fa-rocket"></i> Активация программы</h2>
+            <p style="margin-bottom: 8px; font-size: 0.8rem; color: var(--text-secondary);">
+                Введите ключ активации и скачайте программу
+            </p>
+            <input type="text" id="manualKeyInput" placeholder="Введите ключ активации">
+            <button class="menu-btn" id="downloadBtn"><i class="fas fa-download"></i><span>✅ СКАЧАТЬ ПРОГРАММУ</span></button>
+            <div id="activationStatus" class="status-badge hidden"></div>
+        </div>
+
+        <!-- Карточка ссылок -->
+        <div class="card">
+            <h2><i class="fas fa-link"></i> Полезные ссылки</h2>
+            <button class="menu-btn" id="groupBtn"><i class="fas fa-users"></i><span>Вступить в группу</span></button>
+            <button class="menu-btn" id="supportBtn"><i class="fas fa-headset"></i><span>Поддержка</span></button>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        
+        // Telegram Mini App настройка фона через SDK
+        document.addEventListener('DOMContentLoaded', () => {
+            tg.expand();
+            tg.ready();
+            
+            // Установить цвет фона через Telegram API
+            try {
+                if (typeof tg.setHeaderColor === 'function') {
+                    tg.setHeaderColor('#1a1a1a');
+                }
+                if (typeof tg.setBackgroundColor === 'function') {
+                    tg.setBackgroundColor('#121212');
+                }
+                tg.ready();
+            } catch(e) {
+                console.log('Telegram background API not available');
+            }
+
+            // Попробовать запустить видео
+            const video = document.getElementById('bgVideo');
+            if (video) {
+                const tryPlayVideo = () => {
+                    video.play()
+                        .then(() => console.log('Video playing'))
+                        .catch(e => {
+                            console.log('Video autoplay blocked, trying fullscreen');
+                            // Попробовать запросить fullscreen для разрешения autoplay
+                            try {
+                                tg.requestFullscreen();
+                                setTimeout(() => video.play().catch(() => {}), 500);
+                            } catch(err) {}
+                        });
+                };
+                
+                // Запустить с небольшой задержкой
+                video.muted = true;
+            video.playsInline = true;
+            video.preload = 'auto';
+            
+            // Играем через Telegram API для мобильных
+            try {
+                tg.isClosingConfirmationEnabled = false;
+                tg.HapticFeedback.impactOccurred('light');
+            } catch(e) {}
+            
+            setTimeout(() => {
+                video.play().catch(() => {
+                    // Если не получилось играть — просто скрываем видео
+                    video.style.display = 'none';
+                });
+            }, 200);
+            }
+        });
+
+        let savedKey = localStorage.getItem('snbld_key') || null;
+        let telegramId = null;
+        let isActivated = false;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const keyFromUrl = urlParams.get('key');
+
+        if (keyFromUrl) {
+            localStorage.setItem('snbld_key', keyFromUrl);
+            savedKey = keyFromUrl;
+        }
+
+        const initData = tg.initData;
+        if (initData) {
+            fetch('/api/auth', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({initData: initData})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.telegram_id) {
+                    telegramId = data.telegram_id;
+                    localStorage.setItem('telegram_id', telegramId);
+                    fetch('/api/get_key_by_telegram', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({telegram_id: telegramId})
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.key) {
+                            localStorage.setItem('snbld_key', data.key);
+                            savedKey = data.key;
+                            displayKey();
+                            updateStatus();
+                        }
+                    })
+                    .catch(console.error);
+                }
+            })
+            .catch(console.error);
+        }
+
+        function displayKey() {
+            const el = document.getElementById('keyDisplay');
+            if (savedKey) {
+                el.innerText = savedKey;
+                document.getElementById('copyBtn').style.display = 'flex';
+            } else {
+                el.innerText = 'Нет активного ключа';
+                document.getElementById('copyBtn').style.display = 'none';
+            }
+        }
+
+        function updateStatus() {
+            if (!savedKey) {
+                document.getElementById('status').innerHTML = '❌ Подписка не активна';
+                document.getElementById('status').classList.remove('success-badge', 'error-badge');
+                return;
+            }
+            fetch('/api/check_key', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({key: savedKey})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.valid) {
+                    let expiry = data.expires_at ? new Date(data.expires_at).toLocaleDateString() : 'бессрочно';
+                    document.getElementById('status').innerHTML = `✅ Активна (${data.key_type})<br>📅 Действует до: ${expiry}`;
+                    document.getElementById('status').classList.add('success-badge');
+                    document.getElementById('status').classList.remove('error-badge');
+
+                    if (data.activated) {
+                        isActivated = true;
+                        showActivationStatus('✅ Программа активирована', 'success');
+                    }
+                } else {
+                    document.getElementById('status').innerHTML = '❌ Ключ недействителен или истёк';
+                    document.getElementById('status').classList.add('error-badge');
+                    document.getElementById('status').classList.remove('success-badge');
+                    localStorage.removeItem('snbld_key');
+                    savedKey = null;
+                    displayKey();
+                }
+            })
+            .catch(() => {
+                document.getElementById('status').innerHTML = '⚠️ Ошибка проверки';
+                document.getElementById('status').classList.remove('success-badge', 'error-badge');
+            });
+        }
+
+        function showActivationStatus(message, type) {
+            const el = document.getElementById('activationStatus');
+            el.innerText = message;
+            el.classList.remove('hidden', 'success-badge', 'error-badge');
+            if (type === 'success') {
+                el.classList.add('success-badge');
+            } else {
+                el.classList.add('error-badge');
+            }
+        }
+
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            if (savedKey) {
+                navigator.clipboard.writeText(savedKey);
+                showActivationStatus('✅ Ключ скопирован в буфер обмена!', 'success');
+            }
+        });
+
+        document.getElementById('buyBtn').addEventListener('click', () => {
+            tg.openLink('https://t.me/snbld_bot?start=buy');
+        });
+
+        document.getElementById('groupBtn').addEventListener('click', () => {
+            tg.openLink('https://t.me/snbldEP');
+        });
+
+        document.getElementById('supportBtn').addEventListener('click', () => {
+            tg.openLink('https://t.me/rtmnklvch');
+        });
+
+        // Убраны старые обработчики
+
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const manualKey = document.getElementById('manualKeyInput').value.trim().toUpperCase();
+            
+            if (!manualKey || manualKey.length < 10) {
+                showActivationStatus('❌ Введите корректный ключ активации', 'error');
+                return;
+            }
+            
+            // ✅ СНАЧАЛА ПРОВЕРЯЕМ КЛЮЧ НА ВАЛИДНОСТЬ
+            showActivationStatus('🔍 Проверка ключа...', 'info');
+            
+            fetch('/api/check_key', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({key: manualKey})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.valid) {
+                    savedKey = manualKey;
+                    localStorage.setItem('snbld_key', savedKey);
+                    displayKey();
+                    updateStatus();
+                    
+                    showActivationStatus('✅ Ключ действителен! Загрузка...', 'success');
+                    
+                    setTimeout(() => {
+                        updateStatus();
+                        window.location.href = '/download/' + savedKey;
+                    }, 1000);
+                } else {
+                    showActivationStatus('❌ Ключ недействителен, истёк или заблокирован', 'error');
+                }
+            })
+            .catch(() => {
+                showActivationStatus('❌ Ошибка проверки ключа', 'error');
+            });
+        });
+
+        displayKey();
+        
+        // ✅ Всегда пытаемся получить ключ по telegram_id в первую очередь
+        if (!savedKey && telegramId) {
+            // Пытаемся получить ключ из бэкенда
+            fetch('/api/get_key_by_telegram', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({telegram_id: telegramId})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.key) {
+                    localStorage.setItem('snbld_key', data.key);
+                    sessionStorage.setItem('snbld_key', data.key);
+                    savedKey = data.key;
+                    displayKey();
+                    updateStatus();
+                    document.getElementById('activationCard').classList.add('hidden');
+                } else {
+                    // Если ключа нет — показываем активацию
+                    document.getElementById('status').innerHTML = '❌ Ключ не активирован';
+                    document.getElementById('activationCard').classList.remove('hidden');
+                }
+            })
+            .catch(() => {
+                // Если ошибка — показываем активацию
+                document.getElementById('status').innerHTML = '❌ Ключ не активирован';
+                document.getElementById('activationCard').classList.remove('hidden');
+            });
+        } else if (savedKey) {
+            updateStatus();
+            // ✅ Оставляем кнопку скачать всегда видимой
+        } else {
+            document.getElementById('status').innerHTML = '❌ Ключ не активирован';
+            document.getElementById('activationCard').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

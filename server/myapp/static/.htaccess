@@ -1,0 +1,8 @@
+AddType video/mp4 .mp4
+AddType video/webm .webm
+
+# Разрешить доступ к видео файлам
+<FilesMatch "\.(mp4|webm)$">
+    Order allow,deny
+    Allow from all
+</FilesMatch>

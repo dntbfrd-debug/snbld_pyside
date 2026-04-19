@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+    <meta charset="UTF-8">
+    <title>Админ-панель - Ключи</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --accent: #fd79a8;
+            --accent-glow: rgba(253, 121, 168, 0.15);
+            --bg-top: rgba(25, 25, 25, 0.98);
+            --bg-mid: rgba(28, 28, 28, 0.98);
+            --bg-bottom: rgba(20, 20, 20, 0.98);
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --card-border: rgba(255, 255, 255, 0.15);
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --text-primary: #ffffff;
+            --text-secondary: #c2c2c2;
+            --success: #4caf50;
+            --error: #f44336;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        html, body {
+            min-height: 100vh;
+            background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 50%, var(--bg-bottom) 100%);
+            background-attachment: fixed;
+        }
+        
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-primary);
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 img.logo {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        h1 i {
+            color: var(--accent);
+        }
+        
+        .nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 10px 16px;
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            background: var(--card-bg);
+            transition: all 0.2s ease;
+        }
+        
+        .nav a:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+        
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            border: 1px solid var(--card-border);
+        }
+        
+        .card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 10px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--card-border);
+        }
+        
+        th {
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        
+        .btn {
+            padding: 6px 12px;
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.8rem;
+            margin-right: 5px;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-block {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            border-color: rgba(231, 76, 60, 0.3);
+        }
+        
+        .btn-unblock {
+            background: rgba(39, 174, 96, 0.2);
+            color: #27ae60;
+            border-color: rgba(39, 174, 96, 0.3);
+        }
+        
+        .btn-reset {
+            background: rgba(243, 156, 18, 0.2);
+            color: #f39c12;
+            border-color: rgba(243, 156, 18, 0.3);
+        }
+        
+        .btn-delete {
+            background: rgba(192, 57, 43, 0.2);
+            color: #c0392b;
+            border-color: rgba(192, 57, 43, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: #1a1a2e;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        
+        .btn-primary:hover {
+            background: #e84393;
+            border-color: #e84393;
+        }
+        
+        .status-active {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        .status-inactive {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .key-code {
+            font-family: monospace;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: var(--accent);
+        }
+        
+        .generate-form {
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .generate-form select {
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--card-border);
+            background: #1a1a1a;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            min-width: 150px;
+            cursor: pointer;
+        }
+        
+        .generate-form select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .generate-form select option {
+            background: #1a1a1a;
+            color: var(--text-primary);
+            padding: 8px;
+        }
+        
+        .empty {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        
+        .text-muted {
+            color: var(--text-secondary);
+        }
+        
+        .tooltip {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💀  <i class="fas fa-key"></i> Админ-панель - Ключи</h1>
+        
+        <div class="nav">
+            <a href="/admin?pwd={{ pwd }}"><i class="fas fa-users"></i> Пользователи</a>
+            <a href="/admin/keys?pwd={{ pwd }}"><i class="fas fa-key"></i> Ключи</a>
+        </div>
+
+        <div class="section">
+            <div class="card">
+                <h2><i class="fas fa-gift"></i> Сгенерировать подарочный ключ</h2>
+                <form class="generate-form" action="/admin/generate_gift_key?pwd={{ pwd }}" method="POST">
+                    <select name="key_type" required>
+                        <option value="test">Тестовый (1 день)</option>
+                        <option value="30d">30 дней</option>
+                        <option value="180d">180 дней</option>
+                        <option value="365d">365 дней</option>
+                        <option value="permanent">Навсегда</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Создать ключ</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="card">
+                <h2><i class="fas fa-key"></i> Ключи активации ({{ keys|length }})</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Ключ</th>
+                            <th>Тип</th>
+                            <th>Source</th>
+                            <th>Activat.</th>
+                            <th>Expires</th>
+                            <th>Used By</th>
+                            <th>Downloads</th>
+                            <th>Status</th>
+                            <th>Purchaser</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key in keys %}
+                        <tr>
+                            <td>{{ key.id }}</td>
+                            <td><span class="key-code">{{ key.key }}</span></td>
+                            <td>{{ key.key_type }}</td>
+                            <td>{{ key.source }}</td>
+                            <td>{{ key.activated_at.strftime('%Y-%m-%d') if key.activated_at else '<span class="text-muted">-</span>' }}</td>
+                            <td>{{ key.expires_at.strftime('%Y-%m-%d') if key.expires_at else '∞' }}</td>
+                            <td title="{{ key.used_by if key.used_by else '' }}">
+                                {% if key.used_by %}
+                                <span class="tooltip">{{ key.used_by[:16] + '...' if key.used_by|length > 16 else key.used_by }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ key.download_count }}</td>
+                            <td class="{{ 'status-active' if key.is_active else 'status-inactive' }}">
+                                {{ '✅ Активен' if key.is_active else '❌ Заблок.' }}
+                            </td>
+                            <td>{{ key.purchaser_username or key.purchaser_tg_id or '-' }}</td>
+                            <td>
+                                {% if key.is_active %}
+                                    <a href="/admin/key/block/{{ key.id }}?pwd={{ pwd }}" class="btn btn-block">Блок</a>
+                                {% else %}
+                                    <a href="/admin/key/unblock/{{ key.id }}?pwd={{ pwd }}" class="btn btn-unblock">Разблок</a>
+                                {% endif %}
+                                {% if key.activated_at %}
+                                    <a href="/admin/key/reset_activation/{{ key.id }}?pwd={{ pwd }}" class="btn btn-reset" onclick="return confirm('Сбросить активацию? Пользователю придётся активировать заново.')">Сброс</a>
+                                {% endif %}
+                                <a href="/admin/key/delete/{{ key.id }}?pwd={{ pwd }}" class="btn btn-delete" onclick="return confirm('Удалить ключ?')">Удалить</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
