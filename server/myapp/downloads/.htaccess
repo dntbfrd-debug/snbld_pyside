@@ -1,9 +1,0 @@
-# Allow .exe and .json files
-<FilesMatch "\.(exe|json)$">
-    Order Allow,Deny
-    Allow from all
-</FilesMatch>
-
-# Force download
-ForceType application/octet-stream
-Header set Content-Disposition attachment
