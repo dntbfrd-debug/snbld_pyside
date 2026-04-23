@@ -1,105 +1,53 @@
-# ==============================================
-# snbld_pyside .gitignore - правильный и чистый
-# ==============================================
-
+```
 # Python
 __pycache__/
-*.py[cod]
-*.egg-info/
-dist/
-build/
-*.egg
 *.pyc
-
-# Виртуальные окружения
+*.pyo
+*.pyd
+.Python
+env/
 venv/
 .venv/
-env/
+.venv*/
+lib/
+lib64/
+bin/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
 
-# IDE и редакторы
+# Environment
+.env
+.env.local
+.env.*
+!requirements.txt
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
+*.tmp
+
+# OS
 .DS_Store
 Thumbs.db
 
-# Секреты и настройки
-.env
-.env.local
-.env.enc
-*.key
-settings.json
-session.json
-activation_key.txt
-*.pem
-*.pub
-
-# Персональные данные пользователей
-profiles/
-macros.json
-user_settings.json
-
-# Логи
-logs/
-*.log
-debug.log
-session_*.jsonl
-
-# Бинарники и сборки
-*.exe
-*.msi
-*.dll
-*.zip
-*.rar
-*.7z
-dist_installers/
-dist_standalone/
-_clean_release/
-build_*.log
-
-# Временные и отладочные файлы
-*.tmp
-*.bak
-*.orig
-launch_output.txt
-error_check.txt
-debug_*.py
-test_*.py
-fix_*.py
-*.tmp.py
-
-# Тестирование
-tests/
-test/
-.coverage
-.pytest_cache/
-
-# Большие медиа файлы
-*.mp4
-*.avi
-*.mkv
-*.mov
-*.zip
-*.tar.gz
-
-# Служебные файлы
-cache/
-tmp/
-temp/
-_archive*/
-*.old
-*.bak
-
-# Оптимизация и временные docs
-OPTIMIZATION_*.md
-RELEASE_*.md
-
-# Скрипты для внутреннего пользования
-deploy_*.bat
-upload_*.py
-server_app.py
-CLAUDE.md
-AGENTS.md
-*.md.tmp
+# Build and distribution artifacts
+dist/
+build/
+*.egg-info/
+.sconsign.dblite
+.pip-delete-this-directory.txt
+.pydevproject
+```
