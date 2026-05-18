@@ -289,6 +289,7 @@ ApplicationWindow {
                             isActive: true
                             enabled: backend && backend.isActivated
                             opacity: enabled ? 1.0 : 0.3
+                            iconOnly: !root.isMenuExpanded
                             onClicked: {
                                 if (!enabled) return
                                 if (submenuVisible) closeSubmenu()
@@ -368,6 +369,7 @@ ApplicationWindow {
                         isActive: false
                         enabled: backend && backend.isActivated
                         opacity: enabled ? 1.0 : 0.3
+                        iconOnly: !root.isMenuExpanded
                         onClicked: {
                             if (!enabled) return
                             closeSubmenu()
@@ -384,6 +386,7 @@ ApplicationWindow {
                         isActive: false
                         enabled: backend && backend.isActivated
                         opacity: enabled ? 1.0 : 0.3
+                        iconOnly: !root.isMenuExpanded
                         onClicked: {
                             if (!enabled) return
                             closeSubmenu()
@@ -398,6 +401,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 50
                         isActive: false
+                        iconOnly: !root.isMenuExpanded
                         onClicked: {
                             closeSubmenu()
                             mainMenuIndicator.setActive(subscriptionBtn)
@@ -411,6 +415,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 50
                         isActive: true
+                        iconOnly: !root.isMenuExpanded
                         onClicked: {
                             closeSubmenu()
                             mainMenuIndicator.setActive(helpBtn)
@@ -424,6 +429,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 50
                         isActive: false
+                        iconOnly: !root.isMenuExpanded
                         onClicked: {
                             closeSubmenu()
                             mainMenuIndicator.setActive(debugBtn)
@@ -440,29 +446,31 @@ ApplicationWindow {
                         RowLayout {
                             anchors.fill: parent
                             spacing: 12
-                            ActionButton {
-                                id: startAllBtn
-                                text: "Старт"
-                                iconSource: "../icons/play.png"
-                                isActive: (backend && !backend.global_stopped)
-                                enabled: backend && backend.isActivated
-                                opacity: enabled ? 1.0 : 0.3
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 50
+                        ActionButton {
+                            id: startAllBtn
+                            text: "Старт"
+                            iconSource: "../icons/play.png"
+                            isActive: (backend && !backend.global_stopped)
+                            enabled: backend && backend.isActivated
+                            opacity: enabled ? 1.0 : 0.3
+                            iconOnly: !root.isMenuExpanded
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 50
                                 onClicked: {
                                     if (!enabled) return
                                     backend.start_all_macros()
                                 }
                             }
-                            ActionButton {
-                                id: stopAllBtn
-                                text: "Стоп"
-                                iconSource: "../icons/stop.png"
-                                isActive: (backend && backend.global_stopped)
-                                enabled: backend && backend.isActivated
-                                opacity: enabled ? 1.0 : 0.3
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 50
+                        ActionButton {
+                            id: stopAllBtn
+                            text: "Стоп"
+                            iconSource: "../icons/stop.png"
+                            isActive: (backend && backend.global_stopped)
+                            enabled: backend && backend.isActivated
+                            opacity: enabled ? 1.0 : 0.3
+                            iconOnly: !root.isMenuExpanded
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 50
                                 onClicked: {
                                     if (!enabled) return
                                     backend.stop_all_macros()

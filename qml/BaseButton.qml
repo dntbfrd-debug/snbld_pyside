@@ -13,6 +13,7 @@ Button {
     property real pressScale: 0.98
     property color accentColor: backend && backend.settings && backend.settings.accent_color !== undefined && backend.settings.accent_color !== null ? backend.settings.accent_color : "#7793a1"
     property bool isActive: false
+    property bool iconOnly: false
 
     property real currentScale: 1.0
     Behavior on currentScale {
@@ -163,19 +164,27 @@ Button {
 
     contentItem: RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
-        spacing: 8
+        anchors.leftMargin: control.iconOnly ? 0 : 12
+        anchors.rightMargin: control.iconOnly ? 0 : 12
+        spacing: control.iconOnly ? 0 : 8
         z: 2
 
-        Image {
-            width: control.iconSize
-            height: control.iconSize
-            source: control.iconSource
-            fillMode: Image.PreserveAspectFit
-            opacity: control.isActive ? 1.0 : 0.7
-            visible: control.iconSource !== ""
+        Item {
+            Layout.fillWidth: control.iconOnly
+            Layout.fillHeight: control.iconOnly
             Layout.alignment: Qt.AlignVCenter
+            Layout.preferredWidth: control.iconOnly ? parent.height - 8 : control.iconSize
+            Layout.preferredHeight: control.iconOnly ? parent.height - 8 : control.iconSize
+            visible: control.iconSource !== ""
+
+            Image {
+                anchors.centerIn: parent
+                width: Math.min(parent.width, parent.height)
+                height: Math.min(parent.width, parent.height)
+                source: control.iconSource
+                fillMode: Image.PreserveAspectFit
+                opacity: control.isActive ? 1.0 : 0.7
+            }
         }
 
         Text {
@@ -185,6 +194,7 @@ Button {
             horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter
+            visible: !control.iconOnly
         }
     }
 
