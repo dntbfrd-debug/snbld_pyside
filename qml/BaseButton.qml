@@ -13,6 +13,7 @@ Button {
     property real pressScale: 0.98
     property color accentColor: backend && backend.settings && backend.settings.accent_color !== undefined && backend.settings.accent_color !== null ? backend.settings.accent_color : "#7793a1"
     property bool isActive: false
+    property bool iconOnly: false
 
     property real currentScale: 1.0
     Behavior on currentScale {
@@ -163,9 +164,9 @@ Button {
 
     contentItem: RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
-        spacing: 8
+        anchors.leftMargin: control.iconOnly ? 0 : 12
+        anchors.rightMargin: control.iconOnly ? 0 : 12
+        spacing: control.iconOnly ? 0 : 8
         z: 2
 
         Image {
@@ -185,6 +186,7 @@ Button {
             horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter
+            visible: !control.iconOnly
         }
     }
 

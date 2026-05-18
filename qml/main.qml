@@ -289,6 +289,7 @@ ApplicationWindow {
                             isActive: true
                             enabled: backend && backend.isActivated
                             opacity: enabled ? 1.0 : 0.3
+                            iconOnly: !root.isMenuExpanded
 
                             onClicked: {
                                 if (!enabled) return
@@ -369,6 +370,7 @@ ApplicationWindow {
                         isActive: false
                         enabled: backend && backend.isActivated
                         opacity: enabled ? 1.0 : 0.3
+                        iconOnly: !root.isMenuExpanded
 
                         onClicked: {
                             if (!enabled) return
@@ -386,6 +388,7 @@ ApplicationWindow {
                         isActive: false
                         enabled: backend && backend.isActivated
                         opacity: enabled ? 1.0 : 0.3
+                        iconOnly: !root.isMenuExpanded
 
                         onClicked: {
                             if (!enabled) return
@@ -401,6 +404,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 50
                         isActive: false
+                        iconOnly: !root.isMenuExpanded
 
                         onClicked: {
                             closeSubmenu()
@@ -415,6 +419,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 50
                         isActive: true
+                        iconOnly: !root.isMenuExpanded
 
                         onClicked: {
                             closeSubmenu()
@@ -429,6 +434,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 50
                         isActive: false
+                        iconOnly: !root.isMenuExpanded
 
                         onClicked: {
                             closeSubmenu()
@@ -453,7 +459,7 @@ ApplicationWindow {
                             isActive: (backend && !backend.global_stopped)
                             enabled: backend && backend.isActivated
                             opacity: enabled ? 1.0 : 0.3
-
+                            iconOnly: !root.isMenuExpanded
                             Layout.fillWidth: true
                             Layout.preferredHeight: 50
                                 onClicked: {
@@ -468,7 +474,7 @@ ApplicationWindow {
                             isActive: (backend && backend.global_stopped)
                             enabled: backend && backend.isActivated
                             opacity: enabled ? 1.0 : 0.3
-
+                            iconOnly: !root.isMenuExpanded
                             Layout.fillWidth: true
                             Layout.preferredHeight: 50
                                 onClicked: {
