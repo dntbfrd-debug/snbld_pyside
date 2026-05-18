@@ -224,80 +224,75 @@ ScrollView {
         }
 
         // ========== ПЛИТКА: ЛОГИ ==========
-        // Бегущая волна по верхней границе плитки (при отправке)
-        Item {
-            anchors.top: logsGroupBox.top
-            anchors.left: logsGroupBox.left
-            anchors.right: logsGroupBox.right
-            height: 3
-            clip: true
-            visible: backend.isSendingLogs
-            z: 10
-
-            Rectangle {
-                id: logWave1
-                x: -120
-                width: 120
-                height: 3
-                radius: 1.5
-
-                gradient: Gradient {
-                    orientation: Gradient.Horizontal
-                    GradientStop { position: 0.0; color: "transparent" }
-                    GradientStop { position: 0.3; color: settingsDebugPage.accentColor }
-                    GradientStop { position: 0.5; color: Qt.lighter(settingsDebugPage.accentColor, 1.5) }
-                    GradientStop { position: 0.7; color: settingsDebugPage.accentColor }
-                    GradientStop { position: 1.0; color: "transparent" }
-                }
-
-                SequentialAnimation on x {
-                    running: backend.isSendingLogs
-                    loops: Animation.Infinite
-                    NumberAnimation {
-                        from: -120
-                        to: parent.width
-                        duration: 2000
-                        easing.type: Easing.Linear
-                    }
-                }
-            }
-
-            Rectangle {
-                id: logWave2
-                x: -120
-                width: 120
-                height: 3
-                radius: 1.5
-
-                gradient: Gradient {
-                    orientation: Gradient.Horizontal
-                    GradientStop { position: 0.0; color: "transparent" }
-                    GradientStop { position: 0.3; color: settingsDebugPage.accentColor }
-                    GradientStop { position: 0.5; color: Qt.lighter(settingsDebugPage.accentColor, 1.5) }
-                    GradientStop { position: 0.7; color: settingsDebugPage.accentColor }
-                    GradientStop { position: 1.0; color: "transparent" }
-                }
-
-                SequentialAnimation on x {
-                    running: backend.isSendingLogs
-                    loops: Animation.Infinite
-                    PauseAnimation { duration: 1000 }
-                    NumberAnimation {
-                        from: -120
-                        to: parent.width
-                        duration: 2000
-                        easing.type: Easing.Linear
-                    }
-                }
-            }
-        }
-
         GroupBox {
             id: logsGroupBox
             title: "Логи"
             Layout.fillWidth: true
             Layout.preferredHeight: 115
             background: GlassBlurPanel { id: logsBg }
+            clip: true
+
+            Item {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                height: 3
+                visible: backend.isSendingLogs
+                z: 10
+
+                Rectangle {
+                    id: logWave1
+                    x: -120
+                    width: 120
+                    height: 3
+                    radius: 1.5
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: "transparent" }
+                        GradientStop { position: 0.3; color: settingsDebugPage.accentColor }
+                        GradientStop { position: 0.5; color: Qt.lighter(settingsDebugPage.accentColor, 1.5) }
+                        GradientStop { position: 0.7; color: settingsDebugPage.accentColor }
+                        GradientStop { position: 1.0; color: "transparent" }
+                    }
+                    SequentialAnimation on x {
+                        running: backend.isSendingLogs
+                        loops: Animation.Infinite
+                        NumberAnimation {
+                            from: -120
+                            to: parent.width
+                            duration: 2000
+                            easing.type: Easing.Linear
+                        }
+                    }
+                }
+
+                Rectangle {
+                    id: logWave2
+                    x: -120
+                    width: 120
+                    height: 3
+                    radius: 1.5
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: "transparent" }
+                        GradientStop { position: 0.3; color: settingsDebugPage.accentColor }
+                        GradientStop { position: 0.5; color: Qt.lighter(settingsDebugPage.accentColor, 1.5) }
+                        GradientStop { position: 0.7; color: settingsDebugPage.accentColor }
+                        GradientStop { position: 1.0; color: "transparent" }
+                    }
+                    SequentialAnimation on x {
+                        running: backend.isSendingLogs
+                        loops: Animation.Infinite
+                        PauseAnimation { duration: 1000 }
+                        NumberAnimation {
+                            from: -120
+                            to: parent.width
+                            duration: 2000
+                            easing.type: Easing.Linear
+                        }
+                    }
+                }
+            }
 
             contentItem: ColumnLayout {
                 spacing: 6
@@ -393,7 +388,7 @@ ScrollView {
                     }
                     contentItem: Rectangle {
                         radius: 3
-                        color: updateGroup.accentColor
+                        color: settingsDebugPage.accentColor
                         width: updateProgressBar.visualPosition * parent.width
                         height: parent.height
                     }
