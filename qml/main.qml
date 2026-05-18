@@ -224,6 +224,7 @@ ApplicationWindow {
                     implicitHeight: 30
                     iconSource: "../icons/stop.png"
                     iconSize: 14
+                    compactIconSize: 12
                     buttonRadius: 4
                     iconOnly: true
                     isActive: (backend && backend.global_stopped)

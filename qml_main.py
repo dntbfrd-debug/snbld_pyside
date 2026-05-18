@@ -963,6 +963,7 @@ def main():
         os.path.join(app_path, "off.mp3"),
     )
 
+    os.environ["QML_DISABLE_DISK_CACHE"] = "1"
     engine = QQmlApplicationEngine()
 
     backend = Backend()

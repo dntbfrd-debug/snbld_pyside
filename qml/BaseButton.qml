@@ -14,7 +14,7 @@ Button {
     property color accentColor: backend && backend.settings && backend.settings.accent_color !== undefined && backend.settings.accent_color !== null ? backend.settings.accent_color : "#7793a1"
     property bool isActive: false
     property bool iconOnly: false
-    property int compactIconSize: 16
+    property int compactIconSize: 12
 
     property real currentScale: 1.0
     Behavior on currentScale {
