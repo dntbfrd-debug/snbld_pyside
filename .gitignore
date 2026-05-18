@@ -85,6 +85,7 @@ ANALYSIS_REPORT.md
 
 # Утилиты разработчика
 _replace_favicon.ps1
+build.bat
 
 # Сборка updater
 dist_updater/
