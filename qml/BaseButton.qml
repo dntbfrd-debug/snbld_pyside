@@ -148,7 +148,7 @@ Button {
     background: Rectangle {
         id: btnBg
         radius: control.iconOnly ? 6 : control.buttonRadius
-        color: "#ff00ff"
+        color: control.iconOnly ? "transparent" : (control.down ? "#2a1c1c1c" : control.hovered ? "#cc262626" : "#a01c1c1c")
         border.color: control.iconOnly ? "transparent" : "#70454545"
         border.width: control.iconOnly ? 0 : 1
 
@@ -195,14 +195,18 @@ Button {
         spacing: control.iconOnly ? 0 : 8
         z: 2
 
-        Image {
+        Item {
             width: control.iconOnly ? Math.min(control.iconSize, control.compactIconSize) : control.iconSize
             height: control.iconOnly ? Math.min(control.iconSize, control.compactIconSize) : control.iconSize
-            source: control.iconSource
-            fillMode: Image.PreserveAspectFit
-            opacity: control.isActive ? 1.0 : 0.7
             visible: control.iconSource !== ""
             Layout.alignment: Qt.AlignVCenter
+
+            Image {
+                anchors.fill: parent
+                source: control.iconSource
+                fillMode: Image.PreserveAspectFit
+                opacity: control.isActive ? 1.0 : 0.7
+            }
         }
 
         Text {
