@@ -202,37 +202,47 @@ ApplicationWindow {
                 anchors.rightMargin: 12
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 8
-                BaseButton {
+                Button {
                     id: startAllBtn
-                    implicitWidth: 32
-                    implicitHeight: 32
-                    iconSource: "../icons/play.png"
-                    iconSize: 20
-                    compactIconSize: 20
-                    buttonRadius: 4
-                    iconOnly: true
-                    isActive: (backend && !backend.global_stopped)
-                    enabled: backend && backend.isActivated
-                    onClicked: {
-                        if (!enabled) return
-                        backend.start_all_macros()
+                    width: 32
+                    height: 32
+                    focusPolicy: Qt.NoFocus
+                    property bool isActive: (backend && !backend.global_stopped)
+                    background: Rectangle {
+                        color: startAllBtn.hovered ? "#3a3a3a" : "#252525"
+                        radius: 4
                     }
+                    contentItem: Image {
+                        source: "../icons/play.png"
+                        width: 18
+                        height: 18
+                        fillMode: Image.PreserveAspectFit
+                        anchors.centerIn: parent
+                        opacity: startAllBtn.isActive ? 1.0 : 0.7
+                    }
+                    enabled: backend && backend.isActivated
+                    onClicked: { if (!enabled) return; backend.start_all_macros() }
                 }
-                BaseButton {
+                Button {
                     id: stopAllBtn
-                    implicitWidth: 32
-                    implicitHeight: 32
-                    iconSource: "../icons/stop.png"
-                    iconSize: 20
-                    compactIconSize: 20
-                    buttonRadius: 4
-                    iconOnly: true
-                    isActive: (backend && backend.global_stopped)
-                    enabled: backend && backend.isActivated
-                    onClicked: {
-                        if (!enabled) return
-                        backend.stop_all_macros()
+                    width: 32
+                    height: 32
+                    focusPolicy: Qt.NoFocus
+                    property bool isActive: (backend && backend.global_stopped)
+                    background: Rectangle {
+                        color: stopAllBtn.hovered ? "#3a3a3a" : "#252525"
+                        radius: 4
                     }
+                    contentItem: Image {
+                        source: "../icons/stop.png"
+                        width: 18
+                        height: 18
+                        fillMode: Image.PreserveAspectFit
+                        anchors.centerIn: parent
+                        opacity: stopAllBtn.isActive ? 1.0 : 0.7
+                    }
+                    enabled: backend && backend.isActivated
+                    onClicked: { if (!enabled) return; backend.stop_all_macros() }
                 }
                 Item { width: 4; height: 1 }
                 Button {
@@ -305,10 +315,10 @@ ApplicationWindow {
                 ColumnLayout {
                     id: menuLayout
                     anchors.fill: parent
-                    anchors.leftMargin: root.isMenuExpanded ? 15 : 8
-                    anchors.rightMargin: root.isMenuExpanded ? 15 : 10
-                    anchors.topMargin: root.isMenuExpanded ? 15 : 8
-                    anchors.bottomMargin: root.isMenuExpanded ? 15 : 8
+                    anchors.leftMargin: root.isMenuExpanded ? 15 : 5
+                    anchors.rightMargin: root.isMenuExpanded ? 15 : 5
+                    anchors.topMargin: root.isMenuExpanded ? 15 : 5
+                    anchors.bottomMargin: root.isMenuExpanded ? 15 : 5
                     spacing: 15
 
                     // Кнопка "Макросы" с подменю

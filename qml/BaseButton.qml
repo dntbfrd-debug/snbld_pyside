@@ -174,8 +174,8 @@ Button {
         Rectangle {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.min(parent.height, parent.width) - 4
-            height: Math.min(parent.height, parent.width) - 4
+            width: Math.min(parent.height, parent.width) - 5
+            height: Math.min(parent.height, parent.width) - 5
             radius: 6
             color: control.down ? "#2a1c1c1c" : control.hovered ? "#cc262626" : "#a01c1c1c"
             border.color: "#70454545"
