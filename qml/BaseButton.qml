@@ -148,7 +148,7 @@ Button {
     background: Rectangle {
         id: btnBg
         radius: control.iconOnly ? 6 : control.buttonRadius
-        color: control.iconOnly ? "transparent" : (control.down ? "#2a1c1c1c" : control.hovered ? "#cc262626" : "#a01c1c1c")
+        color: "#ff00ff"
         border.color: control.iconOnly ? "transparent" : "#70454545"
         border.width: control.iconOnly ? 0 : 1
 
