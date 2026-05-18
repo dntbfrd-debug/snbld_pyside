@@ -537,19 +537,18 @@ exit;
             if sidebar and small:
                 iss_text = ISS_FILE.read_text("utf-8")
                 iss_text = iss_text.replace("WizardStyle=modern", "WizardStyle=modern dark includetitlebar")
-                current_sidebar = None
-                current_small = None
-                for line in iss_text.splitlines():
-                    if line.strip().startswith("WizardImageFile=") and "IS" not in line:
-                        current_sidebar = line.split("=", 1)[1].strip()
-                    if line.strip().startswith("WizardSmallImageFile=") and "IS" not in line:
-                        current_small = line.split("=", 1)[1].strip()
-                if current_sidebar:
-                    iss_text = iss_text.replace(f"WizardImageFile={current_sidebar}", f"WizardImageFile={sidebar}")
-                if current_small:
-                    iss_text = iss_text.replace(f"WizardSmallImageFile={current_small}", f"WizardSmallImageFile={small}")
-                else:
-                    iss_text = iss_text.replace("WizardSmallImageFile=", f"WizardSmallImageFile={small}")
+                iss_text = re.sub(
+                    r'WizardImageFile=.*$',
+                    f'WizardImageFile={sidebar}',
+                    iss_text,
+                    flags=re.MULTILINE
+                )
+                iss_text = re.sub(
+                    r'WizardSmallImageFile=.*$',
+                    f'WizardSmallImageFile={small}',
+                    iss_text,
+                    flags=re.MULTILINE
+                )
                 ISS_FILE.write_text(iss_text, "utf-8")
                 emit("   [OK] ISS обновлён (тёмная тема + кастомные BMP)")
             else:
