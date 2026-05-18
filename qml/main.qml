@@ -204,12 +204,12 @@ ApplicationWindow {
                 spacing: 8
                 BaseButton {
                     id: startAllBtn
-                    implicitWidth: 28
-                    implicitHeight: 28
-                    text: ""
+                    implicitWidth: 30
+                    implicitHeight: 30
                     iconSource: "../icons/play.png"
-                    iconSize: 12
+                    iconSize: 14
                     buttonRadius: 4
+                    iconOnly: true
                     isActive: (backend && !backend.global_stopped)
                     enabled: backend && backend.isActivated
                     onClicked: {
@@ -219,12 +219,12 @@ ApplicationWindow {
                 }
                 BaseButton {
                     id: stopAllBtn
-                    implicitWidth: 28
-                    implicitHeight: 28
-                    text: ""
+                    implicitWidth: 30
+                    implicitHeight: 30
                     iconSource: "../icons/stop.png"
-                    iconSize: 12
+                    iconSize: 14
                     buttonRadius: 4
+                    iconOnly: true
                     isActive: (backend && backend.global_stopped)
                     enabled: backend && backend.isActivated
                     onClicked: {
