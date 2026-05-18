@@ -54,9 +54,11 @@ Item {
                 }
 
                 // Цветовая сетка
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    blurRadius: 20
+                    glassOpacity: 0.12
 
                     GridLayout {
                         anchors.fill: parent
@@ -113,9 +115,11 @@ Item {
                 }
 
                 // Окно предпросмотра
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 240
+                    blurRadius: 20
+                    glassOpacity: 0.12
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -186,9 +190,11 @@ Item {
                 }
 
                 // Информация
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    blurRadius: 20
+                    glassOpacity: 0.12
 
                     ColumnLayout {
                         anchors.fill: parent
