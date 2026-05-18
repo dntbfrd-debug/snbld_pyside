@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 
 BUILD_DIR = Path("dist_standalone")
-VERSION = "1.3.49"
+VERSION = "1.3.50"
 
 def get_base_dir():
     return Path(__file__).parent

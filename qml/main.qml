@@ -28,6 +28,7 @@ ApplicationWindow {
 
     // Получаем акцентный цвет
     property string accentColor: backend && backend.settings && backend.settings.accent_color !== undefined && backend.settings.accent_color !== null ? backend.settings.accent_color : "#7793a1"
+    property Item backgroundSource: rightColumnBackground
 
     // Убираем titleTextColor — используем градиент titleBar
 

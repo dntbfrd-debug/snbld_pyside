@@ -2,24 +2,49 @@ import QtQuick 2.15
 import Qt5Compat.GraphicalEffects
 
 Item {
-    id: glass
+    id: root
 
-    property Item sourceLayer: null
-    property real blurRadius: 8
-    property real glassOpacity: 0.08
-    property real borderOpacity: 0.15
+    property real blurRadius: 16
+    property real glassOpacity: 0.15
+    property real borderOpacity: 0.12
     property real glassRadius: 12
     property bool hoverEnabled: false
+    property color tintColor: Qt.rgba(0.08, 0.08, 0.12, glassOpacity)
     property color accentColor: backend && backend.settings && backend.settings.accent_color !== undefined && backend.settings.accent_color !== null ? backend.settings.accent_color : "#7793a1"
 
-    Rectangle {
-        id: overlay
+    readonly property Item __bgSource: {
+        var w = Window.window
+        return w && w.backgroundSource ? w.backgroundSource : null
+    }
+
+    ShaderEffectSource {
+        id: bgCapture
+        sourceItem: root.__bgSource
+        sourceRect: {
+            var pos = root.mapToItem(root.__bgSource, 0, 0)
+            return Qt.rect(pos.x, pos.y, root.width, root.height)
+        }
+        live: true
+        hideSource: false
+        visible: root.__bgSource !== null
+    }
+
+    FastBlur {
+        id: blurEffect
         anchors.fill: parent
-        radius: glass.glassRadius
-        color: Qt.rgba(1.0, 1.0, 1.0, glass.glassOpacity)
-        border.color: mouseArea.containsMouse && glass.hoverEnabled ? glass.accentColor : Qt.rgba(1.0, 1.0, 1.0, glass.borderOpacity)
+        source: bgCapture
+        radius: root.blurRadius
+        transparentBorder: true
+        visible: root.__bgSource !== null
+    }
+
+    Rectangle {
+        id: tintOverlay
+        anchors.fill: parent
+        radius: root.glassRadius
+        color: root.tintColor
+        border.color: mouseArea.containsMouse && root.hoverEnabled ? root.accentColor : Qt.rgba(1.0, 1.0, 1.0, root.borderOpacity)
         border.width: 1
-        z: 2
 
         Behavior on border.color {
             ColorAnimation { duration: 150; easing.type: Easing.InOutQuad }
@@ -29,35 +54,30 @@ Item {
     MouseArea {
         id: mouseArea
         anchors.fill: parent
-        hoverEnabled: glass.hoverEnabled
+        hoverEnabled: root.hoverEnabled
         acceptedButtons: Qt.NoButton
-        z: 3
-    }
-
-    ShaderEffectSource {
-        id: bgCapture
-        sourceItem: glass.sourceLayer
-        live: true
-        recursive: false
-        hideSource: false
-        z: 0
-    }
-
-    GaussianBlur {
-        id: blurEffect
-        anchors.fill: parent
-        source: bgCapture
-        radius: glass.blurRadius
-        samples: Math.max(3, Math.round(glass.blurRadius * 2 + 1))
-        z: 1
     }
 
     layer.enabled: true
     layer.effect: OpacityMask {
         maskSource: Rectangle {
-            width: glass.width
-            height: glass.height
-            radius: glass.glassRadius
+            width: root.width
+            height: root.height
+            radius: root.glassRadius
+        }
+    }
+
+    Rectangle {
+        id: fallbackBg
+        anchors.fill: parent
+        radius: root.glassRadius
+        color: Qt.rgba(0.1, 0.1, 0.15, 0.75)
+        border.color: mouseArea.containsMouse && root.hoverEnabled ? root.accentColor : Qt.rgba(1.0, 1.0, 1.0, root.borderOpacity)
+        border.width: 1
+        visible: root.__bgSource === null
+
+        Behavior on border.color {
+            ColorAnimation { duration: 150; easing.type: Easing.InOutQuad }
         }
     }
 }
