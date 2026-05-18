@@ -202,45 +202,27 @@ ApplicationWindow {
                 anchors.rightMargin: 12
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 8
-                Button {
+                BaseButton {
                     id: startAllBtn
-                    width: 32
-                    height: 32
-                    focusPolicy: Qt.NoFocus
-                    property bool isActive: (backend && !backend.global_stopped)
-                    background: Rectangle {
-                        color: startAllBtn.hovered ? "#3a3a3a" : "#252525"
-                        radius: 4
-                    }
-                    contentItem: Image {
-                        source: "../icons/play.png"
-                        width: 18
-                        height: 18
-                        fillMode: Image.PreserveAspectFit
-                        anchors.centerIn: parent
-                        opacity: startAllBtn.isActive ? 1.0 : 0.7
-                    }
+                    implicitHeight: 34
+                    iconSource: "../icons/play.png"
+                    iconSize: 18
+                    text: " Старт"
+                    textSize: 10
+                    buttonRadius: 4
+                    isActive: (backend && !backend.global_stopped)
                     enabled: backend && backend.isActivated
                     onClicked: { if (!enabled) return; backend.start_all_macros() }
                 }
-                Button {
+                BaseButton {
                     id: stopAllBtn
-                    width: 32
-                    height: 32
-                    focusPolicy: Qt.NoFocus
-                    property bool isActive: (backend && backend.global_stopped)
-                    background: Rectangle {
-                        color: stopAllBtn.hovered ? "#3a3a3a" : "#252525"
-                        radius: 4
-                    }
-                    contentItem: Image {
-                        source: "../icons/stop.png"
-                        width: 18
-                        height: 18
-                        fillMode: Image.PreserveAspectFit
-                        anchors.centerIn: parent
-                        opacity: stopAllBtn.isActive ? 1.0 : 0.7
-                    }
+                    implicitHeight: 34
+                    iconSource: "../icons/stop.png"
+                    iconSize: 18
+                    text: " Стоп"
+                    textSize: 10
+                    buttonRadius: 4
+                    isActive: (backend && backend.global_stopped)
                     enabled: backend && backend.isActivated
                     onClicked: { if (!enabled) return; backend.stop_all_macros() }
                 }
@@ -307,9 +289,11 @@ ApplicationWindow {
                 anchors.bottom: parent.bottom
 
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: Qt.rgba(0.15, 0.15, 0.15, 1) }
+                    GradientStop { position: 0.0; color: Qt.rgba(0.18, 0.18, 0.18, 1) }
+                    GradientStop { position: 0.25; color: Qt.rgba(0.18, 0.18, 0.18, 1) }
                     GradientStop { position: 0.5; color: Qt.rgba(0.23, 0.23, 0.23, 1) }
-                    GradientStop { position: 1.0; color: Qt.rgba(0.16, 0.16, 0.16, 1) }
+                    GradientStop { position: 0.75; color: Qt.rgba(0.18, 0.18, 0.18, 1) }
+                    GradientStop { position: 1.0; color: Qt.rgba(0.18, 0.18, 0.18, 1) }
                 }
 
                 ColumnLayout {
