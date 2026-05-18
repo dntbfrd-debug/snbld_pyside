@@ -202,6 +202,37 @@ ApplicationWindow {
                 anchors.rightMargin: 12
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 8
+                BaseButton {
+                    id: startAllBtn
+                    implicitWidth: 28
+                    implicitHeight: 28
+                    text: ""
+                    iconSource: "../icons/play.png"
+                    iconSize: 12
+                    buttonRadius: 4
+                    isActive: (backend && !backend.global_stopped)
+                    enabled: backend && backend.isActivated
+                    onClicked: {
+                        if (!enabled) return
+                        backend.start_all_macros()
+                    }
+                }
+                BaseButton {
+                    id: stopAllBtn
+                    implicitWidth: 28
+                    implicitHeight: 28
+                    text: ""
+                    iconSource: "../icons/stop.png"
+                    iconSize: 12
+                    buttonRadius: 4
+                    isActive: (backend && backend.global_stopped)
+                    enabled: backend && backend.isActivated
+                    onClicked: {
+                        if (!enabled) return
+                        backend.stop_all_macros()
+                    }
+                }
+                Item { width: 4; height: 1 }
                 Button {
                     id: minimizeButton
                     width: 30
@@ -444,46 +475,6 @@ ApplicationWindow {
                     }
 
                     Item { Layout.fillHeight: true }
-
-                    Item {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        id: actionsContainer
-                        RowLayout {
-                            anchors.fill: parent
-                            spacing: 12
-                        ActionButton {
-                            id: startAllBtn
-                            text: "Старт"
-                            iconSource: "../icons/play.png"
-                            isActive: (backend && !backend.global_stopped)
-                            enabled: backend && backend.isActivated
-                            opacity: enabled ? 1.0 : 0.3
-                            iconOnly: !root.isMenuExpanded
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 50
-                                onClicked: {
-                                    if (!enabled) return
-                                    backend.start_all_macros()
-                                }
-                            }
-                        ActionButton {
-                            id: stopAllBtn
-                            text: "Стоп"
-                            iconSource: "../icons/stop.png"
-                            isActive: (backend && backend.global_stopped)
-                            enabled: backend && backend.isActivated
-                            opacity: enabled ? 1.0 : 0.3
-                            iconOnly: !root.isMenuExpanded
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 50
-                                onClicked: {
-                                    if (!enabled) return
-                                    backend.stop_all_macros()
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }
