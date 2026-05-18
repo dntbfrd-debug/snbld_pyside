@@ -66,7 +66,7 @@ Item {
                 layoutDirection: Qt.LeftToRight
                 clip: false
 
-                delegate: GlassPanel {
+                delegate: GlassBlurPanel {
                     id: buffDelegate
                     width: 170
                     height: 90

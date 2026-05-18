@@ -21,7 +21,7 @@ Item {
         formLoader.source = "SimpleEditForm.qml"
     }
 
-    GlassPanel {
+    GlassBlurPanel {
         anchors.fill: parent
         z: 0
     }

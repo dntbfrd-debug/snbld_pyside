@@ -57,7 +57,7 @@ Item {
             spacing: 20
 
             // === Плитка 1: Калибровка OCR ===
-            GlassPanel {
+            GlassBlurPanel {
                 id: ocrTile
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -216,7 +216,7 @@ Item {
             }
 
             // === Плитка 2: Детекция каста ===
-            GlassPanel {
+            GlassBlurPanel {
                 id: castbarTile
                 Layout.fillWidth: true
                 Layout.fillHeight: true

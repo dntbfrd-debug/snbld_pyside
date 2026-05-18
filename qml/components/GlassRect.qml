@@ -1,10 +1,10 @@
-GlassPanel {
+GlassBlurPanel {
     id: glass
 
     property real blur: 6.0
-    property real opacity: 0.08
-    property real borderOpacity: 0.15
 
-    glassOpacity: opacity
+    glassOpacity: 0.08
+    borderOpacity: 0.15
+    blurRadius: blur
     radius: 8
 }

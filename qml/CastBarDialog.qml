@@ -115,7 +115,7 @@ Window {
                 spacing: 10
 
                 // Что такое кастбар?
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     height: 70
 
@@ -142,7 +142,7 @@ Window {
                 }
 
                 // Зачем калибровать?
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     height: 55
 
@@ -169,7 +169,7 @@ Window {
                 }
 
                 // Как калибровать?
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     height: 80
 
@@ -226,7 +226,7 @@ Window {
                 spacing: 15
 
                 // Индикатор ожидания
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.alignment: Qt.AlignHCenter
                     width: 220
                     height: 110
@@ -262,7 +262,7 @@ Window {
                 }
 
                 // Инструкция
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     height: 100
 
@@ -344,7 +344,7 @@ Window {
                 }
 
                 // Предпросмотр цвета
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     height: 70
                     radius: 8
@@ -387,7 +387,7 @@ Window {
                 }
 
                 // Описание действий
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     height: 50
 

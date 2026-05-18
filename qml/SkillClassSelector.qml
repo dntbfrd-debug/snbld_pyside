@@ -75,7 +75,7 @@ Item {
             rowSpacing: 12
 
             // Маг
-            GlassPanel {
+            GlassBlurPanel {
                 id: mageClass
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -190,7 +190,7 @@ Item {
             }
 
             // Лучник
-            GlassPanel {
+            GlassBlurPanel {
                 id: archerClass
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -305,7 +305,7 @@ Item {
             }
 
             // Жрец
-            GlassPanel {
+            GlassBlurPanel {
                 id: priestClass
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -421,7 +421,7 @@ Item {
         
 
             // Друид
-            GlassPanel {
+            GlassBlurPanel {
                 id: друидClass
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -529,7 +529,7 @@ Item {
 
 
             // Жнец
-            GlassPanel {
+            GlassBlurPanel {
                 id: жнецClass
                 Layout.fillWidth: true
                 Layout.fillHeight: true

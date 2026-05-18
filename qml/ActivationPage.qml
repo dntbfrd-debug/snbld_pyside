@@ -36,7 +36,7 @@ Page {
         // backend.activateWithKey(key)
     }
     
-    GlassPanel {
+    GlassBlurPanel {
         anchors.fill: parent
         
         ColumnLayout {
@@ -81,7 +81,7 @@ Page {
             }
             
             // Поле ввода ключа
-            GlassPanel {
+            GlassBlurPanel {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 50
                 border.color: activationKey.length > 0 ? accentColor : "#333"

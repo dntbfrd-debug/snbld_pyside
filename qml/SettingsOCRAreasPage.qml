@@ -100,7 +100,7 @@ Item {
             spacing: 15
 
             // Плитка 1: Область моба
-            GlassPanel {
+            GlassBlurPanel {
                 id: mobTile
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -197,7 +197,7 @@ Item {
             }
 
             // Плитка 2: Область игрока
-            GlassPanel {
+            GlassBlurPanel {
                 id: playerTile
                 Layout.fillWidth: true
                 Layout.fillHeight: true

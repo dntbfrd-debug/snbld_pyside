@@ -57,7 +57,7 @@ Item {
                 title: "Привязка к окну"
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
-                background: GlassPanel {}
+                background: GlassBlurPanel {}
                 contentItem: ColumnLayout {
                     spacing: 12
 

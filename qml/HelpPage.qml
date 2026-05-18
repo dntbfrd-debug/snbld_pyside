@@ -29,7 +29,7 @@ Item {
         }
 
         // ==================== БЫСТРЫЙ СТАРТ ====================
-        GlassPanel {
+        GlassBlurPanel {
             id: quickStartBlock
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -169,7 +169,7 @@ Item {
             spacing: 12
 
             // ЛЕВАЯ — Открытый код
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     border.color: "#50ffffff"
@@ -256,7 +256,7 @@ Item {
             spacing: 12
 
             // ЛЕВАЯ — Пользовательское соглашение
-            GlassPanel {
+            GlassBlurPanel {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 border.color: "#50ffffff"
@@ -305,7 +305,7 @@ Item {
             }
 
             // ПРАВАЯ — Политика конфиденциальности
-            GlassPanel {
+            GlassBlurPanel {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 border.color: "#50ffffff"

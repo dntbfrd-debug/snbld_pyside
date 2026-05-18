@@ -25,7 +25,7 @@ ScrollView {
             title: "Горячие клавиши Старт / Стоп"
             Layout.fillWidth: true
             Layout.preferredHeight: 100
-            background: GlassPanel {}
+            background: GlassBlurPanel {}
 
             contentItem: RowLayout {
                 anchors.margins: 10
@@ -162,7 +162,7 @@ ScrollView {
             title: "Диагностика мониторов и окон"
             Layout.fillWidth: true
             Layout.preferredHeight: 155
-            background: GlassPanel {}
+            background: GlassBlurPanel {}
 
             contentItem: ColumnLayout {
                 spacing: 5
@@ -297,7 +297,7 @@ ScrollView {
             title: "Логи"
             Layout.fillWidth: true
             Layout.preferredHeight: 115
-            background: GlassPanel { id: logsBg }
+            background: GlassBlurPanel { id: logsBg }
 
             contentItem: ColumnLayout {
                 spacing: 6
@@ -338,7 +338,7 @@ ScrollView {
             title: "Обновления"
             Layout.fillWidth: true
             Layout.preferredHeight: updateProgressBar.visible ? 175 : 140
-            background: GlassPanel {}
+            background: GlassBlurPanel {}
 
             contentItem: ColumnLayout {
                 spacing: 6

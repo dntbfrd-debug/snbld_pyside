@@ -77,7 +77,7 @@ Item {
                 title: "Обнаружение после движения"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                background: GlassPanel {}
+                background: GlassBlurPanel {}
                 contentItem: ColumnLayout {
                     spacing: 12
 
@@ -266,7 +266,7 @@ Item {
                 title: "Проверка дистанции (OCR)"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                background: GlassPanel {}
+                background: GlassBlurPanel {}
                 contentItem: ColumnLayout {
                     spacing: 12
 

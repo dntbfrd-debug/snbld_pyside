@@ -33,7 +33,7 @@ Item {
                     id: macrosRepeater
                     model: backend.macros
 
-                    delegate: GlassPanel {
+                    delegate: GlassBlurPanel {
                         width: 160
                         height: 160
                         glassOpacity: 0.6
@@ -217,7 +217,7 @@ Item {
         visible: _showDeleteConfirm
         z: 100
 
-        GlassPanel {
+        GlassBlurPanel {
             anchors.centerIn: parent
             width: 360
             height: 200

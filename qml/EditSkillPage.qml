@@ -27,7 +27,7 @@ Item {
         }
     }
 
-    GlassPanel {
+    GlassBlurPanel {
         anchors.fill: parent
         z: 0
     }

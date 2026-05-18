@@ -142,7 +142,7 @@ Item {
                 spacing: 10
 
                 // Информация
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
 
@@ -275,7 +275,7 @@ Item {
                 spacing: 10
 
                 // Калибровка цвета
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
 
@@ -341,7 +341,7 @@ Item {
                             }
 
                             // Предпросмотр захваченного цвета
-                            GlassPanel {
+                            GlassBlurPanel {
                                 id: colorPreviewRect
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 60

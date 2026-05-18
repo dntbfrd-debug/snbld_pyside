@@ -111,7 +111,7 @@ Window {
                 spacing: 10
 
                 // Что такое точка клика?
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.preferredHeight: whatPointLayout.implicitHeight + 20
 
@@ -139,7 +139,7 @@ Window {
                 }
 
                 // Где выбирать точку?
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.preferredHeight: wherePointLayout.implicitHeight + 20
 
@@ -167,7 +167,7 @@ Window {
                 }
 
                 // Как калибровать?
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.preferredHeight: howCalibrateLayout.implicitHeight + 20
 
@@ -195,7 +195,7 @@ Window {
                 }
 
                 // Текущая точка
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     height: 40
 
@@ -250,7 +250,7 @@ Window {
                 spacing: 15
 
                 // Индикатор ожидания
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.alignment: Qt.AlignHCenter
                     width: 220
                     height: 110
@@ -286,7 +286,7 @@ Window {
                 }
 
                 // Инструкция
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.preferredHeight: waitingHintLayout.implicitHeight + 20
 
@@ -363,7 +363,7 @@ Window {
                 }
 
                 // Предпросмотр координат
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     height: 70
 
@@ -389,7 +389,7 @@ Window {
                 }
 
                 // Описание действий
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     height: 50
 

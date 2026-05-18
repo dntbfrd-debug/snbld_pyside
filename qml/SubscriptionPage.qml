@@ -37,7 +37,7 @@ Item {
         }
 
         // ========== БЛОК: ФОРМА АКТИВАЦИИ (если НЕ активирована) ==========
-        GlassPanel {
+        GlassBlurPanel {
             id: activationPanel
             Layout.fillWidth: true
             Layout.preferredHeight: activationLayout.implicitHeight + 30
@@ -231,7 +231,7 @@ Item {
         }
 
         // ========== БЛОК: СТАТУС ПОДПИСКИ (показываем всегда) ==========
-        GlassPanel {
+        GlassBlurPanel {
             Layout.fillWidth: true
             Layout.preferredHeight: 120
             border.width: 1
@@ -317,7 +317,7 @@ Item {
 
 
         // Информация
-        GlassPanel {
+        GlassBlurPanel {
             Layout.fillWidth: true
             Layout.preferredHeight: infoLayout.implicitHeight + 30
             glassOpacity: 0

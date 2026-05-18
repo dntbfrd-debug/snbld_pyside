@@ -7,8 +7,10 @@ Item {
     property real blurRadius: 16
     property real glassOpacity: 0.15
     property real borderOpacity: 0.12
-    property real glassRadius: 12
+    property real radius: 12
     property bool hoverEnabled: false
+    property bool clip: false
+    property alias border: tintOverlay.border
     property color tintColor: Qt.rgba(0.08, 0.08, 0.12, glassOpacity)
     property color accentColor: backend && backend.settings && backend.settings.accent_color !== undefined && backend.settings.accent_color !== null ? backend.settings.accent_color : "#7793a1"
 
@@ -41,7 +43,7 @@ Item {
     Rectangle {
         id: tintOverlay
         anchors.fill: parent
-        radius: root.glassRadius
+        radius: root.radius
         color: root.tintColor
         border.color: mouseArea.containsMouse && root.hoverEnabled ? root.accentColor : Qt.rgba(1.0, 1.0, 1.0, root.borderOpacity)
         border.width: 1
@@ -63,21 +65,17 @@ Item {
         maskSource: Rectangle {
             width: root.width
             height: root.height
-            radius: root.glassRadius
+            radius: root.radius
         }
     }
 
     Rectangle {
         id: fallbackBg
         anchors.fill: parent
-        radius: root.glassRadius
+        radius: root.radius
         color: Qt.rgba(0.1, 0.1, 0.15, 0.75)
-        border.color: mouseArea.containsMouse && root.hoverEnabled ? root.accentColor : Qt.rgba(1.0, 1.0, 1.0, root.borderOpacity)
-        border.width: 1
+        border.color: tintOverlay.border.color
+        border.width: tintOverlay.border.width
         visible: root.__bgSource === null
-
-        Behavior on border.color {
-            ColorAnimation { duration: 150; easing.type: Easing.InOutQuad }
-        }
     }
 }

@@ -21,7 +21,7 @@ Item {
         formLoader.source = "ZoneEditForm.qml"
     }
 
-    GlassPanel {
+    GlassBlurPanel {
         anchors.fill: parent
         z: 0
     }

@@ -51,7 +51,7 @@ Item {
             GroupBox {
                 title: "Масштаб распознавания"
                 Layout.fillWidth: true
-                background: GlassPanel {}
+                background: GlassBlurPanel {}
                 contentItem: ColumnLayout {
                     spacing: 12
 
@@ -92,7 +92,7 @@ Item {
             GroupBox {
                 title: "Режим сегментации (PSM)"
                 Layout.fillWidth: true
-                background: GlassPanel {}
+                background: GlassBlurPanel {}
                 contentItem: ColumnLayout {
                     spacing: 12
 
@@ -133,7 +133,7 @@ Item {
             GroupBox {
                 title: "Морфологическая обработка"
                 Layout.fillWidth: true
-                background: GlassPanel {}
+                background: GlassBlurPanel {}
                 contentItem: ColumnLayout {
                     spacing: 12
 

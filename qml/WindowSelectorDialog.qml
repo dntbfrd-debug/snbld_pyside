@@ -103,7 +103,7 @@ Window {
             spacing: 10
 
             // Подсказка
-            GlassPanel {
+            GlassBlurPanel {
                 Layout.fillWidth: true
                 height: 70
                 glassOpacity: 0.6
@@ -122,7 +122,7 @@ Window {
             }
 
             // Список окон
-            GlassPanel {
+            GlassBlurPanel {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 glassOpacity: 0.6

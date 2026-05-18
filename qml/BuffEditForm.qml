@@ -301,7 +301,7 @@ Item {
                     }
                     currentIndex: macroType
                     font.pointSize: 9
-                    popup.background: GlassPanel {
+                    popup.background: GlassBlurPanel {
                     }
                     delegate: ItemDelegate {
                         id: delegateItem
@@ -602,7 +602,7 @@ Item {
                 Layout.fillHeight: true
                 spacing: 6
 
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
 

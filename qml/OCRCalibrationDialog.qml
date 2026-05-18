@@ -150,7 +150,7 @@ Window {
                 visible: calibrationState === "ready"
                 spacing: 12
 
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.preferredHeight: infoLayout.implicitHeight + 20
 
@@ -177,7 +177,7 @@ Window {
                     }
                 }
 
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.preferredHeight: stepsLayout.implicitHeight + 20
 
@@ -228,7 +228,7 @@ Window {
                     }
                 }
 
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     height: 50
 
@@ -299,7 +299,7 @@ Window {
                 visible: calibrationState === "select_mob"
                 spacing: 14
 
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.alignment: Qt.AlignHCenter
                     width: 260
                     height: 80
@@ -324,7 +324,7 @@ Window {
                     }
                 }
 
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.preferredHeight: hintLayout.implicitHeight + 20
 
@@ -412,7 +412,7 @@ Window {
                 visible: calibrationState === "test_mob"
                 spacing: 15
 
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.alignment: Qt.AlignHCenter
                     width: 220
                     height: 100
@@ -445,7 +445,7 @@ Window {
                     }
                 }
 
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     height: 60
 
@@ -490,7 +490,7 @@ Window {
                 }
 
                 // Превью
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 160
 
@@ -506,7 +506,7 @@ Window {
                             Layout.alignment: Qt.AlignHCenter
                         }
 
-                        GlassPanel {
+                        GlassBlurPanel {
                             Layout.alignment: Qt.AlignHCenter
                             Layout.fillWidth: true
                             Layout.preferredHeight: 80
@@ -546,7 +546,7 @@ Window {
                 }
 
                 // Подсказка
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.preferredHeight: hintMobLayout.implicitHeight + 24
 
@@ -615,7 +615,7 @@ Window {
                 visible: calibrationState === "select_player"
                 spacing: 14
 
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.alignment: Qt.AlignHCenter
                     width: 260
                     height: 80
@@ -641,7 +641,7 @@ Window {
                     }
                 }
 
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.preferredHeight: playerHintLayout.implicitHeight + 20
 
@@ -729,7 +729,7 @@ Window {
                 visible: calibrationState === "test_player"
                 spacing: 15
 
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.alignment: Qt.AlignHCenter
                     width: 220
                     height: 100
@@ -763,7 +763,7 @@ Window {
                     }
                 }
 
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     height: 60
                     radius: 8
@@ -809,7 +809,7 @@ Window {
                 }
 
                 // Превью
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 160
                     radius: 8
@@ -826,7 +826,7 @@ Window {
                             Layout.alignment: Qt.AlignHCenter
                         }
 
-                        GlassPanel {
+                        GlassBlurPanel {
                             Layout.alignment: Qt.AlignHCenter
                             Layout.fillWidth: true
                             Layout.preferredHeight: 80
@@ -866,7 +866,7 @@ Window {
                     }
                 }
 
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.preferredHeight: hintPlayerLayout.implicitHeight + 24
 
@@ -977,7 +977,7 @@ Window {
                 }
 
                 // Итог
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.preferredHeight: resultLayout.implicitHeight + 20
 

@@ -906,7 +906,7 @@ ApplicationWindow {
         Behavior on opacity { PropertyAnimation { duration: 300 } }
 
         // Центральная карточка
-        GlassPanel {
+        GlassBlurPanel {
             id: licenseCard
             anchors.centerIn: parent
             width: 360

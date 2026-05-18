@@ -47,7 +47,7 @@ Item {
                 title: "Фиксированные задержки"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                background: GlassPanel {}
+                background: GlassBlurPanel {}
                 
                 contentItem: ColumnLayout {
                     spacing: 8
@@ -163,7 +163,7 @@ Item {
                 title: "Авто задержки (пинг)"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                background: GlassPanel {}
+                background: GlassBlurPanel {}
                 
                 contentItem: ColumnLayout {
                     spacing: 8
@@ -298,7 +298,7 @@ Item {
             title: "Защита от быстрых и случайных нажатий"
             Layout.fillWidth: true
             Layout.preferredHeight: 160
-            background: GlassPanel {}
+            background: GlassBlurPanel {}
 
             contentItem: ColumnLayout {
                 spacing: 8

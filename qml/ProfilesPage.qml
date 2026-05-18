@@ -16,7 +16,7 @@ Item {
         
         property color accentColor: backend && backend.settings && backend.settings.accent_color ? backend.settings.accent_color : "#7793a1"
 
-        GlassPanel {
+        GlassBlurPanel {
             anchors.centerIn: parent
             width: 380
             height: 180
@@ -93,7 +93,7 @@ Item {
         property color accentColor: backend && backend.settings && backend.settings.accent_color ? backend.settings.accent_color : "#7793a1"
         property string oldName: ""
 
-        GlassPanel {
+        GlassBlurPanel {
             anchors.centerIn: parent
             width: 380
             height: 180
@@ -169,7 +169,7 @@ Item {
         
         property color accentColor: backend && backend.settings && backend.settings.accent_color ? backend.settings.accent_color : "#7793a1"
 
-        GlassPanel {
+        GlassBlurPanel {
             anchors.centerIn: parent
             width: 380
             height: 180
@@ -246,7 +246,7 @@ Item {
         
         property color accentColor: backend && backend.settings && backend.settings.accent_color ? backend.settings.accent_color : "#7793a1"
 
-        GlassPanel {
+        GlassBlurPanel {
             anchors.centerIn: parent
             width: 380
             height: 180
@@ -331,7 +331,7 @@ Item {
         
         property color accentColor: "#e74c3c"
 
-        GlassPanel {
+        GlassBlurPanel {
             anchors.centerIn: parent
             width: 380
             height: 180
@@ -586,7 +586,7 @@ Item {
                 contentItem.x: 5
                 contentItem.y: 5
 
-                delegate: GlassPanel {
+                delegate: GlassBlurPanel {
                     id: profileTile
                     width: 220
                     height: 85

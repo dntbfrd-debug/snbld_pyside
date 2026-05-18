@@ -99,7 +99,7 @@ Item {
                 layoutDirection: Qt.LeftToRight
                 clip: false
 
-                delegate: GlassPanel {
+                delegate: GlassBlurPanel {
                     id: skillDelegate
                     width: 170
                     height: 90

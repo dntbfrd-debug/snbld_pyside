@@ -398,7 +398,7 @@ Item {
                     GroupBox {
                         title: "Привязка к окну"
                         Layout.fillWidth: true
-                        background: GlassPanel { glassOpacity: 0.125; borderOpacity: 0.25 }
+                        background: GlassBlurPanel { glassOpacity: 0.125; borderOpacity: 0.25 }
                         contentItem: ColumnLayout {
                             spacing: 8
 

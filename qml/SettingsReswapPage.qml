@@ -53,7 +53,7 @@ Item {
                 title: "Кнопки смены сетов"
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
-                background: GlassPanel {}
+                background: GlassBlurPanel {}
                 contentItem: ColumnLayout {
                     spacing: 12
 

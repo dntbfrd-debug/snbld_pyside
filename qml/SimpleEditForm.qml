@@ -344,7 +344,7 @@ Item {
                 Layout.fillHeight: true
                 spacing: 6
 
-                GlassPanel {
+                GlassBlurPanel {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
 
