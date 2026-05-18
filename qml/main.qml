@@ -273,7 +273,7 @@ ApplicationWindow {
                     id: menuLayout
                     anchors.fill: parent
                     anchors.margins: root.isMenuExpanded ? 15 : 5
-                    spacing: root.isMenuExpanded ? 15 : 6
+                    spacing: 15
 
                     // Кнопка "Макросы" с подменю
                     ColumnLayout {
@@ -451,7 +451,7 @@ ApplicationWindow {
                         id: actionsContainer
                         RowLayout {
                             anchors.fill: parent
-                            spacing: root.isMenuExpanded ? 12 : 4
+                            spacing: 12
                         ActionButton {
                             id: startAllBtn
                             text: "Старт"
