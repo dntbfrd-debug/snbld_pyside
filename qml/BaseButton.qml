@@ -190,7 +190,7 @@ Button {
 
     contentItem: RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: control.iconOnly ? Math.max(0, (Math.min(control.width, control.height) - 8 - control.iconSize) / 2) : 12
+        anchors.leftMargin: control.iconOnly ? Math.max(0, (Math.min(control.width, control.height) - 5 - control.iconSize) / 2) : 12
         anchors.rightMargin: control.iconOnly ? 0 : 12
         spacing: control.iconOnly ? 0 : 8
         z: 2

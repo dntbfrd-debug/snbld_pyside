@@ -202,27 +202,61 @@ ApplicationWindow {
                 anchors.rightMargin: 12
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 8
-                BaseButton {
+                Button {
                     id: startAllBtn
-                    implicitHeight: 34
-                    iconSource: "../icons/play.png"
-                    iconSize: 18
-                    text: " Старт"
-                    textSize: 10
-                    buttonRadius: 4
-                    isActive: (backend && !backend.global_stopped)
+                    implicitWidth: 80
+                    implicitHeight: 32
+                    focusPolicy: Qt.NoFocus
+                    property bool isActive: (backend && !backend.global_stopped)
+                    background: Rectangle {
+                        color: startAllBtn.hovered ? "#3a3a3a" : "#252525"
+                        radius: 4
+                    }
+                    contentItem: Row {
+                        spacing: 4
+                        anchors.centerIn: parent
+                        Image {
+                            source: "../icons/play.png"
+                            width: 16
+                            height: 16
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            text: "Старт"
+                            color: "#c2c2c2"
+                            font.pointSize: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
                     enabled: backend && backend.isActivated
                     onClicked: { if (!enabled) return; backend.start_all_macros() }
                 }
-                BaseButton {
+                Button {
                     id: stopAllBtn
-                    implicitHeight: 34
-                    iconSource: "../icons/stop.png"
-                    iconSize: 18
-                    text: " Стоп"
-                    textSize: 10
-                    buttonRadius: 4
-                    isActive: (backend && backend.global_stopped)
+                    implicitWidth: 80
+                    implicitHeight: 32
+                    focusPolicy: Qt.NoFocus
+                    property bool isActive: (backend && backend.global_stopped)
+                    background: Rectangle {
+                        color: stopAllBtn.hovered ? "#3a3a3a" : "#252525"
+                        radius: 4
+                    }
+                    contentItem: Row {
+                        spacing: 4
+                        anchors.centerIn: parent
+                        Image {
+                            source: "../icons/stop.png"
+                            width: 16
+                            height: 16
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            text: "Стоп"
+                            color: "#c2c2c2"
+                            font.pointSize: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
                     enabled: backend && backend.isActivated
                     onClicked: { if (!enabled) return; backend.stop_all_macros() }
                 }
