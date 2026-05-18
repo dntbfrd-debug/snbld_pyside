@@ -190,24 +190,21 @@ Button {
 
     contentItem: RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: control.iconOnly ? Math.max(0, (Math.min(control.width, control.height) - 5 - control.iconSize) / 2) : 12
+        anchors.leftMargin: control.iconOnly ? Math.max(0, (Math.min(control.width, control.height) - 5 - Math.min(control.iconSize, control.compactIconSize)) / 2) : 12
         anchors.rightMargin: control.iconOnly ? 0 : 12
         spacing: control.iconOnly ? 0 : 8
         z: 2
 
         Image {
-            width: control.iconSize
-            height: control.iconSize
+            width: control.iconOnly ? Math.min(control.iconSize, control.compactIconSize) : control.iconSize
+            height: control.iconOnly ? Math.min(control.iconSize, control.compactIconSize) : control.iconSize
             source: control.iconSource
             fillMode: Image.PreserveAspectFit
             opacity: control.isActive ? 1.0 : 0.7
             visible: control.iconSource !== ""
             Layout.alignment: Qt.AlignVCenter
-            scale: control.iconOnly ? (Math.min(control.compactIconSize, control.iconSize) / control.iconSize) : 1.0
-            transformOrigin: Item.Center
-            Behavior on scale {
-                NumberAnimation { duration: 80; easing.type: Easing.InOutQuad }
-            }
+            Behavior on width { NumberAnimation { duration: 80; easing.type: Easing.InOutQuad } }
+            Behavior on height { NumberAnimation { duration: 80; easing.type: Easing.InOutQuad } }
         }
 
         Text {
