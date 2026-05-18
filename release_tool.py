@@ -536,7 +536,8 @@ exit;
             sidebar, small = self._generate_dark_bmps(version)
             if sidebar and small:
                 iss_text = ISS_FILE.read_text("utf-8")
-                iss_text = iss_text.replace("WizardStyle=modern", "WizardStyle=modern dark includetitlebar")
+                if "WizardStyle=modern dark" not in iss_text:
+                    iss_text = iss_text.replace("WizardStyle=modern", "WizardStyle=modern dark includetitlebar")
                 iss_text = re.sub(
                     r'WizardImageFile=.*$',
                     lambda m: f'WizardImageFile={sidebar}',
