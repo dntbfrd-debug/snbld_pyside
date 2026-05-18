@@ -254,16 +254,89 @@ def get_inno_setup_path():
             return path
     return None
 
+def generate_dark_wizard_bmp(base_dir):
+    print("\n   [ГЕНЕРАЦИЯ] Тёмные изображения установщика...")
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        print("   [SKIP] Pillow не найден, использую стандартные изображения")
+        return None, None
+
+    out_dir = base_dir / "dist_installers"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    sidebar_path = out_dir / "wizard_sidebar.bmp"
+    small_path = out_dir / "wizard_small.bmp"
+
+    bg_dark = (18, 18, 30)
+    accent = (80, 140, 255)
+
+    img = Image.new("RGB", (164, 314), bg_dark)
+    draw = ImageDraw.Draw(img)
+    for y in range(314):
+        t = y / 314
+        r = int(bg_dark[0] + (30 - bg_dark[0]) * t)
+        g = int(bg_dark[1] + (40 - bg_dark[1]) * t)
+        b = int(bg_dark[2] + (60 - bg_dark[2]) * t)
+        draw.line([(0, y), (163, y)], fill=(r, g, b))
+    for y in range(0, 314, 6):
+        alpha = max(0, 20 - y // 20)
+        if alpha > 0:
+            draw.line([(0, y), (163, y)], fill=(accent[0], accent[1], accent[2], alpha))
+    logo_path = base_dir / "logo.png"
+    if logo_path.exists():
+        logo = Image.open(logo_path).convert("RGBA")
+        logo.thumbnail((80, 80), Image.LANCZOS)
+        lx = (164 - logo.width) // 2
+        ly = 30
+        if logo.mode == "RGBA":
+            img.paste(logo, (lx, ly), logo)
+        else:
+            img.paste(logo, (lx, ly))
+    try:
+        font = ImageFont.truetype("arial.ttf", 11)
+        draw.text((82, 160), "snbld resvap", fill=(180, 180, 200), font=font, anchor="mt")
+        font_small = ImageFont.truetype("arial.ttf", 9)
+        draw.text((82, 175), "v" + VERSION, fill=(120, 120, 140), font=font_small, anchor="mt")
+    except Exception:
+        pass
+    img.save(sidebar_path, "BMP")
+    print(f"   [OK] {sidebar_path.name} ({img.size[0]}x{img.size[1]})")
+
+    small = Image.new("RGB", (55, 55), bg_dark)
+    sdraw = ImageDraw.Draw(small)
+    for y in range(55):
+        t = y / 55
+        r = int(bg_dark[0] + (accent[0] * 0.3 - bg_dark[0]) * t)
+        g = int(bg_dark[1] + (accent[1] * 0.3 - bg_dark[1]) * t)
+        b = int(bg_dark[2] + (accent[2] * 0.3 - bg_dark[2]) * t)
+        sdraw.line([(0, y), (54, y)], fill=(r, g, b))
+    if logo_path.exists():
+        logo_small = Image.open(logo_path).convert("RGBA")
+        logo_small.thumbnail((40, 40), Image.LANCZOS)
+        slx = (55 - logo_small.width) // 2
+        sly = (55 - logo_small.height) // 2
+        if logo_small.mode == "RGBA":
+            small.paste(logo_small, (slx, sly), logo_small)
+        else:
+            small.paste(logo_small, (slx, sly))
+    small.save(small_path, "BMP")
+    print(f"   [OK] {small_path.name} ({small.size[0]}x{small.size[1]})")
+
+    return str(sidebar_path), str(small_path)
+
 def build_installer(base_dir):
     print("\n[4/5] Подготовка Inno Installer...")
 
-    inno_path = get_inno_setup_path()
-    if inno_path:
-        wizard_image = str(inno_path / "WizClassicImage-IS.bmp")
-        wizard_small = str(inno_path / "WizClassicSmallImage-IS.bmp")
-    else:
-        wizard_image = r"{pf}\Inno Setup 6\WizClassicImage-IS.bmp"
-        wizard_small = r"{pf}\Inno Setup 6\WizClassicSmallImage-IS.bmp"
+    wizard_image, wizard_small = generate_dark_wizard_bmp(base_dir)
+    if not wizard_image:
+        inno_path = get_inno_setup_path()
+        if inno_path:
+            wizard_image = str(inno_path / "WizClassicImage-IS.bmp")
+            wizard_small = str(inno_path / "WizClassicSmallImage-IS.bmp")
+        else:
+            wizard_image = r"{pf}\Inno Setup 6\WizClassicImage-IS.bmp"
+            wizard_small = r"{pf}\Inno Setup 6\WizClassicSmallImage-IS.bmp"
 
     DATA_DIR = r"{localappdata}\snbld_resvap\data"
     DATA_EXE = DATA_DIR + r"\qml_main.exe"
@@ -294,7 +367,7 @@ SetupIconFile=123.ico
 UninstallDisplayIcon=DATAEXE
 Compression=lzma2/ultra64
 SolidCompression=yes
-WizardStyle=modern
+WizardStyle=modern dark includetitlebar
 WizardSizePercent=120,120
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
