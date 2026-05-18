@@ -269,18 +269,18 @@ def generate_dark_wizard_bmp(base_dir):
     small_path = out_dir / "wizard_small.bmp"
 
     bg_dark = (18, 18, 30)
-    accent = (80, 140, 255)
+    accent = (230, 100, 140)
 
     img = Image.new("RGB", (164, 314), bg_dark)
     draw = ImageDraw.Draw(img)
     for y in range(314):
         t = y / 314
-        r = int(bg_dark[0] + (30 - bg_dark[0]) * t)
-        g = int(bg_dark[1] + (40 - bg_dark[1]) * t)
-        b = int(bg_dark[2] + (60 - bg_dark[2]) * t)
+        r = int(accent[0] * 0.08 + bg_dark[0] * (1 - t * 0.15))
+        g = int(accent[1] * 0.05 + bg_dark[1] * (1 - t * 0.15))
+        b = int(accent[2] * 0.05 + bg_dark[2] * (1 - t * 0.15))
         draw.line([(0, y), (163, y)], fill=(r, g, b))
-    for y in range(0, 314, 6):
-        alpha = max(0, 20 - y // 20)
+    for y in range(0, 314, 8):
+        alpha = max(0, 25 - y * 120 // 314)
         if alpha > 0:
             draw.line([(0, y), (163, y)], fill=(accent[0], accent[1], accent[2], alpha))
     logo_path = base_dir / "logo.png"
@@ -307,9 +307,9 @@ def generate_dark_wizard_bmp(base_dir):
     sdraw = ImageDraw.Draw(small)
     for y in range(55):
         t = y / 55
-        r = int(bg_dark[0] + (accent[0] * 0.3 - bg_dark[0]) * t)
-        g = int(bg_dark[1] + (accent[1] * 0.3 - bg_dark[1]) * t)
-        b = int(bg_dark[2] + (accent[2] * 0.3 - bg_dark[2]) * t)
+        r = int(bg_dark[0] + accent[0] * 0.25 * t)
+        g = int(bg_dark[1] + accent[1] * 0.25 * t)
+        b = int(bg_dark[2] + accent[2] * 0.25 * t)
         sdraw.line([(0, y), (54, y)], fill=(r, g, b))
     if logo_path.exists():
         logo_small = Image.open(logo_path).convert("RGBA")
