@@ -15,7 +15,6 @@ Button {
     property bool isActive: false
     property bool iconOnly: false
     property int compactIconSize: 16
-    readonly property int effectiveIconSize: iconOnly ? Math.min(iconSize, compactIconSize) : iconSize
 
     property real currentScale: 1.0
     Behavior on currentScale {
@@ -191,14 +190,14 @@ Button {
 
     contentItem: RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: control.iconOnly ? Math.max(0, (Math.min(control.width, control.height) - 8 - control.effectiveIconSize) / 2) : 12
+        anchors.leftMargin: control.iconOnly ? Math.max(0, (Math.min(control.width, control.height) - 8 - Math.min(control.iconSize, control.compactIconSize)) / 2) : 12
         anchors.rightMargin: control.iconOnly ? 0 : 12
         spacing: control.iconOnly ? 0 : 8
         z: 2
 
         Image {
-            width: control.effectiveIconSize
-            height: control.effectiveIconSize
+            width: control.iconOnly ? Math.min(control.iconSize, control.compactIconSize) : control.iconSize
+            height: control.iconOnly ? Math.min(control.iconSize, control.compactIconSize) : control.iconSize
             source: control.iconSource
             fillMode: Image.PreserveAspectFit
             opacity: control.isActive ? 1.0 : 0.7
