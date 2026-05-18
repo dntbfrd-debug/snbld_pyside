@@ -208,7 +208,7 @@ ApplicationWindow {
                     implicitHeight: 32
                     iconSource: "../icons/play.png"
                     iconSize: 20
-                    compactIconSize: 16
+                    compactIconSize: 20
                     buttonRadius: 4
                     iconOnly: true
                     isActive: (backend && !backend.global_stopped)
@@ -224,7 +224,7 @@ ApplicationWindow {
                     implicitHeight: 32
                     iconSource: "../icons/stop.png"
                     iconSize: 20
-                    compactIconSize: 16
+                    compactIconSize: 20
                     buttonRadius: 4
                     iconOnly: true
                     isActive: (backend && backend.global_stopped)
