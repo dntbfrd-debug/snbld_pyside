@@ -1,0 +1,9 @@
+{
+  "latest_version": "1.3.49",
+  "download_url": "https://snbld.ru/downloads/download_update.php?file=update_1.3.49.zip",
+  "download_zip_url": "https://snbld.ru/downloads/download_update.php?file=update_1.3.49.zip",
+  "release_notes": "Версия 1.3.43\n\nНовые возможности:\n- Звуковые уведомления (MP3 старт/стоп макросов)\n- Новая модульная архитектура backend (mixins)\n- Переработан установщик (данные в LocalAppData)\n- Новая стеклянная тема (Glass) для QML\n- Система блокировки ввода (WH_KEYBOARD/MOUSE_LL)\n- Замена keyboard library на чистую WinAPI\n\nИсправления:\n- Оптимизация сборки Nuitka\n- Удалён мёртвый код\n- Улучшена стабильность программы",
+  "release_date": "2026-05-18",
+  "min_version": "1.0.0",
+  "install_type": "installer"
+}
