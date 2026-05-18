@@ -15,7 +15,7 @@ Button {
     property bool isActive: false
     property bool iconOnly: false
     property int compactIconSize: 16
-    readonly property int effectiveIconSize: iconOnly ? compactIconSize : iconSize
+    readonly property int effectiveIconSize: iconOnly ? Math.min(iconSize, compactIconSize) : iconSize
 
     property real currentScale: 1.0
     Behavior on currentScale {

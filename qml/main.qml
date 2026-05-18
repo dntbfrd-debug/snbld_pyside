@@ -208,6 +208,7 @@ ApplicationWindow {
                     implicitHeight: 30
                     iconSource: "../icons/play.png"
                     iconSize: 14
+                    compactIconSize: 12
                     buttonRadius: 4
                     iconOnly: true
                     isActive: (backend && !backend.global_stopped)
