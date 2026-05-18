@@ -456,6 +456,16 @@ end;
         print(f"   [INFO] Запустите вручную: iscc.exe snbld_resvap.iss")
         return True
 
+    dist_installers = base_dir / "dist_installers"
+    if dist_installers.exists():
+        for f in dist_installers.iterdir():
+            if f.suffix == ".exe":
+                try:
+                    f.unlink()
+                    print(f"   [DEL] {f.name} (старый установщик)")
+                except Exception as e:
+                    print(f"   [WARN] Не удалось удалить {f.name}: {e}")
+
     print(f"   [5/5] Компиляция Inno Setup...")
     for attempt in range(1, 4):
         proc = subprocess.Popen(

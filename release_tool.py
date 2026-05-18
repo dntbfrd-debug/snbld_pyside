@@ -454,12 +454,107 @@ exit;
         )
         thread.start()
 
+    def _generate_dark_bmps(self, version):
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+        except ImportError:
+            return None, None
+
+        out_dir = BASE_DIR / "dist_installers"
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        sidebar_path = out_dir / "wizard_sidebar.bmp"
+        small_path = out_dir / "wizard_small.bmp"
+        bg_dark = (18, 18, 30)
+        accent = (80, 140, 255)
+
+        img = Image.new("RGB", (164, 314), bg_dark)
+        draw = ImageDraw.Draw(img)
+        for y in range(314):
+            t = y / 314
+            r = int(bg_dark[0] + (30 - bg_dark[0]) * t)
+            g = int(bg_dark[1] + (40 - bg_dark[1]) * t)
+            b = int(bg_dark[2] + (60 - bg_dark[2]) * t)
+            draw.line([(0, y), (163, y)], fill=(r, g, b))
+        logo_path = BASE_DIR / "logo.png"
+        if logo_path.exists():
+            logo = Image.open(logo_path).convert("RGBA")
+            logo.thumbnail((80, 80), Image.LANCZOS)
+            lx = (164 - logo.width) // 2
+            ly = 30
+            if logo.mode == "RGBA":
+                img.paste(logo, (lx, ly), logo)
+            else:
+                img.paste(logo, (lx, ly))
+        try:
+            font = ImageFont.truetype("arial.ttf", 11)
+            draw.text((82, 160), "snbld resvap", fill=(180, 180, 200), font=font, anchor="mt")
+            font_small = ImageFont.truetype("arial.ttf", 9)
+            draw.text((82, 175), "v" + version, fill=(120, 120, 140), font=font_small, anchor="mt")
+        except Exception:
+            pass
+        img.save(sidebar_path, "BMP")
+        self.log_signal.emit(f"   [OK] {sidebar_path.name} ({img.size[0]}x{img.size[1]})")
+
+        small = Image.new("RGB", (55, 55), bg_dark)
+        sdraw = ImageDraw.Draw(small)
+        for y in range(55):
+            t = y / 55
+            r = int(bg_dark[0] + (accent[0] * 0.3 - bg_dark[0]) * t)
+            g = int(bg_dark[1] + (accent[1] * 0.3 - bg_dark[1]) * t)
+            b = int(bg_dark[2] + (accent[2] * 0.3 - bg_dark[2]) * t)
+            sdraw.line([(0, y), (54, y)], fill=(r, g, b))
+        if logo_path.exists():
+            logo_small = Image.open(logo_path).convert("RGBA")
+            logo_small.thumbnail((40, 40), Image.LANCZOS)
+            slx = (55 - logo_small.width) // 2
+            sly = (55 - logo_small.height) // 2
+            if logo_small.mode == "RGBA":
+                small.paste(logo_small, (slx, sly), logo_small)
+            else:
+                small.paste(logo_small, (slx, sly))
+        small.save(small_path, "BMP")
+        self.log_signal.emit(f"   [OK] {small_path.name} ({small.size[0]}x{small.size[1]})")
+        return str(sidebar_path), str(small_path)
+
     def _build_installer_thread(self, iscc, version):
         def emit(msg):
             self.log_signal.emit(msg)
 
         try:
             emit(f"ISCC: {iscc}")
+
+            if DIST_INSTALLERS.exists():
+                for f in DIST_INSTALLERS.iterdir():
+                    if f.suffix == ".exe":
+                        try:
+                            f.unlink()
+                            emit(f"   [DEL] {f.name}")
+                        except Exception as e:
+                            emit(f"   [WARN] Не удалось удалить {f.name}: {e}")
+
+            sidebar, small = self._generate_dark_bmps(version)
+            if sidebar and small:
+                iss_text = ISS_FILE.read_text("utf-8")
+                iss_text = iss_text.replace("WizardStyle=modern", "WizardStyle=modern dark includetitlebar")
+                current_sidebar = None
+                current_small = None
+                for line in iss_text.splitlines():
+                    if line.strip().startswith("WizardImageFile=") and "IS" not in line:
+                        current_sidebar = line.split("=", 1)[1].strip()
+                    if line.strip().startswith("WizardSmallImageFile=") and "IS" not in line:
+                        current_small = line.split("=", 1)[1].strip()
+                if current_sidebar:
+                    iss_text = iss_text.replace(f"WizardImageFile={current_sidebar}", f"WizardImageFile={sidebar}")
+                if current_small:
+                    iss_text = iss_text.replace(f"WizardSmallImageFile={current_small}", f"WizardSmallImageFile={small}")
+                else:
+                    iss_text = iss_text.replace("WizardSmallImageFile=", f"WizardSmallImageFile={small}")
+                ISS_FILE.write_text(iss_text, "utf-8")
+                emit("   [OK] ISS обновлён (тёмная тема + кастомные BMP)")
+            else:
+                emit("   [SKIP] Pillow не найден, ISS без изменений")
+
             proc = subprocess.Popen(
                 [iscc, str(ISS_FILE)],
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
