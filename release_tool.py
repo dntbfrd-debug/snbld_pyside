@@ -539,13 +539,13 @@ exit;
                 iss_text = iss_text.replace("WizardStyle=modern", "WizardStyle=modern dark includetitlebar")
                 iss_text = re.sub(
                     r'WizardImageFile=.*$',
-                    f'WizardImageFile={sidebar}',
+                    lambda m: f'WizardImageFile={sidebar}',
                     iss_text,
                     flags=re.MULTILINE
                 )
                 iss_text = re.sub(
                     r'WizardSmallImageFile=.*$',
-                    f'WizardSmallImageFile={small}',
+                    lambda m: f'WizardSmallImageFile={small}',
                     iss_text,
                     flags=re.MULTILINE
                 )
