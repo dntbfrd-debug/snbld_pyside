@@ -14,7 +14,6 @@ Button {
     property color accentColor: backend && backend.settings && backend.settings.accent_color !== undefined && backend.settings.accent_color !== null ? backend.settings.accent_color : "#7793a1"
     property bool isActive: false
     property bool iconOnly: false
-    property int compactIconSize: 12
 
     property real currentScale: 1.0
     Behavior on currentScale {
@@ -172,11 +171,8 @@ Button {
         }
 
         Rectangle {
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            width: Math.min(parent.height, parent.width) - 5
-            height: Math.min(parent.height, parent.width) - 5
-            radius: 6
+            anchors.fill: parent
+            radius: control.buttonRadius
             color: control.down ? "#2a1c1c1c" : control.hovered ? "#cc262626" : "#a01c1c1c"
             border.color: "#70454545"
             border.width: 1
@@ -190,21 +186,19 @@ Button {
 
     contentItem: RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: control.iconOnly ? Math.max(0, (Math.min(control.width, control.height) - 5 - Math.min(control.iconSize, control.compactIconSize)) / 2) : 12
+        anchors.leftMargin: control.iconOnly ? Math.max(0, 22.5 - control.iconSize / 2) : 12
         anchors.rightMargin: control.iconOnly ? 0 : 12
         spacing: control.iconOnly ? 0 : 8
         z: 2
 
         Image {
-            width: control.iconOnly ? Math.min(control.iconSize, control.compactIconSize) : control.iconSize
-            height: control.iconOnly ? Math.min(control.iconSize, control.compactIconSize) : control.iconSize
+            width: control.iconSize
+            height: control.iconSize
             source: control.iconSource
             fillMode: Image.PreserveAspectFit
             opacity: control.isActive ? 1.0 : 0.7
             visible: control.iconSource !== ""
             Layout.alignment: Qt.AlignVCenter
-            Behavior on width { NumberAnimation { duration: 80; easing.type: Easing.InOutQuad } }
-            Behavior on height { NumberAnimation { duration: 80; easing.type: Easing.InOutQuad } }
         }
 
         Text {
