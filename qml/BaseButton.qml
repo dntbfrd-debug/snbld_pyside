@@ -43,6 +43,7 @@ Button {
         color: control.accentColor
         opacity: (control.hovered || control.isActive) ? waveOpacity(0.02, 0, control.hoverPulse, 0.6) : 0.0
         z: 0
+        visible: !control.iconOnly
         Behavior on opacity {
             NumberAnimation { duration: 300; easing.type: Easing.InOutQuad }
         }
@@ -56,6 +57,7 @@ Button {
         color: control.accentColor
         opacity: (control.hovered || control.isActive) ? waveOpacity(0.04, 1, control.hoverPulse, 0.6) : 0.0
         z: 0
+        visible: !control.iconOnly
         Behavior on opacity {
             NumberAnimation { duration: 350; easing.type: Easing.InOutQuad }
         }
@@ -69,6 +71,7 @@ Button {
         color: control.accentColor
         opacity: (control.hovered || control.isActive) ? waveOpacity(0.06, 2, control.hoverPulse, 0.6) : 0.0
         z: 0
+        visible: !control.iconOnly
         Behavior on opacity {
             NumberAnimation { duration: 400; easing.type: Easing.InOutQuad }
         }
@@ -82,6 +85,7 @@ Button {
         color: control.accentColor
         opacity: (control.hovered || control.isActive) ? waveOpacity(0.09, 3, control.hoverPulse, 0.6) : 0.0
         z: 0
+        visible: !control.iconOnly
         Behavior on opacity {
             NumberAnimation { duration: 450; easing.type: Easing.InOutQuad }
         }
@@ -95,6 +99,7 @@ Button {
         color: control.accentColor
         opacity: (control.hovered || control.isActive) ? waveOpacity(0.13, 4, control.hoverPulse, 0.6) : 0.0
         z: 0
+        visible: !control.iconOnly
         Behavior on opacity {
             NumberAnimation { duration: 500; easing.type: Easing.InOutQuad }
         }
@@ -108,6 +113,7 @@ Button {
         color: control.accentColor
         opacity: (control.hovered || control.isActive) ? waveOpacity(0.18, 5, control.hoverPulse, 0.6) : 0.0
         z: 0
+        visible: !control.iconOnly
         Behavior on opacity {
             NumberAnimation { duration: 550; easing.type: Easing.InOutQuad }
         }
@@ -121,6 +127,7 @@ Button {
         color: control.accentColor
         opacity: (control.hovered || control.isActive) ? waveOpacity(0.25, 6, control.hoverPulse, 0.6) : 0.0
         z: 0
+        visible: !control.iconOnly
         Behavior on opacity {
             NumberAnimation { duration: 600; easing.type: Easing.InOutQuad }
         }
@@ -134,14 +141,15 @@ Button {
         color: control.accentColor
         opacity: (control.hovered || control.isActive) ? waveOpacity(0.35, 7, control.hoverPulse, 0.6) : 0.0
         z: 0
+        visible: !control.iconOnly
     }
 
     background: Rectangle {
         id: btnBg
-        radius: control.buttonRadius
-        color: control.down ? "#2a1c1c1c" : control.hovered ? "#cc262626" : "#a01c1c1c"
-        border.color: "#70454545"
-        border.width: 1
+        radius: control.iconOnly ? 6 : control.buttonRadius
+        color: control.iconOnly ? "transparent" : (control.down ? "#2a1c1c1c" : control.hovered ? "#cc262626" : "#a01c1c1c")
+        border.color: control.iconOnly ? "transparent" : "#70454545"
+        border.width: control.iconOnly ? 0 : 1
 
         transform: Scale { origin.x: width/2; origin.y: height/2; xScale: control.currentScale; yScale: control.currentScale }
         z: 1
@@ -152,12 +160,28 @@ Button {
 
         Rectangle {
             anchors.fill: parent
-            radius: control.buttonRadius
+            radius: parent.radius
             gradient: Gradient {
                 GradientStop { position: 0.0; color: "#60000000" }
                 GradientStop { position: 0.35; color: "#30000000" }
                 GradientStop { position: 0.7; color: "#10000000" }
                 GradientStop { position: 1.0; color: "#00000000" }
+            }
+            visible: !control.iconOnly
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: parent.height - 14
+            height: parent.height - 14
+            radius: 6
+            color: control.down ? "#2a1c1c1c" : control.hovered ? "#cc262626" : "#a01c1c1c"
+            border.color: "#70454545"
+            border.width: 1
+            visible: control.iconOnly
+
+            Behavior on color {
+                ColorAnimation { duration: 80; easing.type: Easing.InOutQuad }
             }
         }
     }
