@@ -204,11 +204,11 @@ ApplicationWindow {
                 spacing: 8
                 BaseButton {
                     id: startAllBtn
-                    implicitWidth: 30
-                    implicitHeight: 30
+                    implicitWidth: 32
+                    implicitHeight: 32
                     iconSource: "../icons/play.png"
-                    iconSize: 14
-                    compactIconSize: 12
+                    iconSize: 20
+                    compactIconSize: 16
                     buttonRadius: 4
                     iconOnly: true
                     isActive: (backend && !backend.global_stopped)
@@ -220,11 +220,11 @@ ApplicationWindow {
                 }
                 BaseButton {
                     id: stopAllBtn
-                    implicitWidth: 30
-                    implicitHeight: 30
+                    implicitWidth: 32
+                    implicitHeight: 32
                     iconSource: "../icons/stop.png"
-                    iconSize: 14
-                    compactIconSize: 12
+                    iconSize: 20
+                    compactIconSize: 16
                     buttonRadius: 4
                     iconOnly: true
                     isActive: (backend && backend.global_stopped)
@@ -305,7 +305,10 @@ ApplicationWindow {
                 ColumnLayout {
                     id: menuLayout
                     anchors.fill: parent
-                    anchors.margins: root.isMenuExpanded ? 15 : 5
+                    anchors.leftMargin: root.isMenuExpanded ? 15 : 8
+                    anchors.rightMargin: root.isMenuExpanded ? 15 : 10
+                    anchors.topMargin: root.isMenuExpanded ? 15 : 8
+                    anchors.bottomMargin: root.isMenuExpanded ? 15 : 8
                     spacing: 15
 
                     // Кнопка "Макросы" с подменю
