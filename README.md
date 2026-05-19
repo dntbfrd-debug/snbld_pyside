@@ -102,6 +102,13 @@ snbld_pyside/
 │   ├── HelpPage.qml          # Помощь
 │   ├── DebugPage.qml         # Отладка
 │   ├── Edit*.qml             # Формы редактирования макросов
+│   ├── IconStrip.qml         # Боковая навигационная панель
+│   ├── SlideMenu.qml         # Выдвижное меню
+│   ├── StripIcon.qml         # Элемент навигации
+│   ├── SkillClassSelector.qml / SkillSelectionDialog.qml  # Выбор скилла
+│   ├── OCROptionsSelector.qml  # Панель калибровки OCR
+│   ├── OCRCalibrationDialog.qml / CastBarDialog.qml / BuffCalibrationDialog.qml  # Калибровка
+│   ├── AddStepDialog.qml / WindowSelectorDialog.qml  # Вспомогательные диалоги
 │   └── components/           # UI компоненты (Glass тема)
 │
 ├── icons/                    # Иконки интерфейса
