@@ -3,154 +3,157 @@ import QtQuick.Controls.Basic 2.15
 import QtQuick.Layouts 1.15
 import "components"
 
-ScrollView {
+Item {
     id: settingsDebugPage
-    clip: true
-    ScrollBar.vertical: GlassScrollBar { policy: ScrollBar.AlwaysOff }
-    contentWidth: width
-    contentHeight: mainColumn.height
 
     property color accentColor: backend && backend.settings && backend.settings.accent_color ? backend.settings.accent_color : "#7793a1"
 
     ColumnLayout {
-        id: mainColumn
-        width: settingsDebugPage.width - 40
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.fill: parent
+        anchors.margins: 20
         spacing: 15
-        anchors.top: parent.top
-        anchors.topMargin: 15
 
         // ========== ПЛИТКА: ГОРЯЧИЕ КЛАВИШИ СТАРТ/СТОП ==========
-        GroupBox {
-            title: "Горячие клавиши Старт / Стоп"
+        GlassBlurPanel {
             Layout.fillWidth: true
             Layout.preferredHeight: 100
-            background: GlassBlurPanel {}
 
-            contentItem: RowLayout {
-                anchors.margins: 10
-                anchors.leftMargin: 15
-                anchors.rightMargin: 15
-                spacing: 20
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 15
+                spacing: 6
 
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 5
-
-                    Text { text: "Запуск макросов:"; color: "#a0a0a0"; font.pointSize: 9 }
-                    TextField {
-                        id: startHotkeyField
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 28
-                        placeholderText: "Нажмите клавишу"
-                        font.pointSize: 10
-                        horizontalAlignment: Text.AlignHCenter
-                        background: Rectangle { radius: 4; color: "#40ffffff" }
-                        text: backend && backend.settings ? (backend.settings.start_all_hotkey || "") : ""
-                        Keys.onPressed: {
-                            event.accepted = true
-                            if (event.key === Qt.Key_Backspace) { text = ""; backend.set_setting("start_all_hotkey", ""); return }
-                            if (event.key === Qt.Key_Escape) { return }
-                            var modifiers = []
-                            var keyName = ""
-                            if (event.modifiers & Qt.ControlModifier) modifiers.push("ctrl")
-                            if (event.modifiers & Qt.AltModifier) modifiers.push("alt")
-                            if (event.modifiers & Qt.ShiftModifier) modifiers.push("shift")
-                            var key = event.key
-                            if (key >= Qt.Key_F1 && key <= Qt.Key_F12) { keyName = "f" + (key - Qt.Key_F1 + 1) }
-                            else if (key >= Qt.Key_A && key <= Qt.Key_Z) { keyName = String.fromCharCode(key).toLowerCase() }
-                            else if (key >= Qt.Key_0 && key <= Qt.Key_9) {
-                                keyName = (event.modifiers & Qt.ShiftModifier) ? ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")"][key - Qt.Key_0] : String.fromCharCode(key)
-                            }
-                            else if (key === Qt.Key_Minus || key === Qt.Key_Hyphen) keyName = event.modifiers & Qt.ShiftModifier ? "_" : "-"
-                            else if (key === Qt.Key_Equal || key === Qt.Key_Plus) keyName = event.modifiers & Qt.ShiftModifier ? "+" : "="
-                            else if (key === Qt.Key_BracketLeft) keyName = event.modifiers & Qt.ShiftModifier ? "{" : "["
-                            else if (key === Qt.Key_BracketRight) keyName = event.modifiers & Qt.ShiftModifier ? "}" : "]"
-                            else if (key === Qt.Key_Backslash) keyName = event.modifiers & Qt.ShiftModifier ? "|" : "\\"
-                            else if (key === Qt.Key_Semicolon) keyName = event.modifiers & Qt.ShiftModifier ? ":" : ";"
-                            else if (key === Qt.Key_Apostrophe) keyName = event.modifiers & Qt.ShiftModifier ? '"' : "'"
-                            else if (key === Qt.Key_Comma) keyName = event.modifiers & Qt.ShiftModifier ? "<" : ","
-                            else if (key === Qt.Key_Period) keyName = event.modifiers & Qt.ShiftModifier ? ">" : "."
-                            else if (key === Qt.Key_Slash) keyName = event.modifiers & Qt.ShiftModifier ? "?" : "/"
-                            else if (key === Qt.Key_QuoteLeft) keyName = event.modifiers & Qt.ShiftModifier ? "~" : "`"
-                            else if (key === Qt.Key_Space) keyName = "space"
-                            else if (key === Qt.Key_Tab) keyName = "tab"
-                            else if (key === Qt.Key_Return || key === Qt.Key_Enter) keyName = "enter"
-                            else if (key === Qt.Key_Delete) keyName = "delete"
-                            else if (key === Qt.Key_Up) keyName = "up"
-                            else if (key === Qt.Key_Down) keyName = "down"
-                            else if (key === Qt.Key_Left) keyName = "left"
-                            else if (key === Qt.Key_Right) keyName = "right"
-                            else if (key === Qt.Key_Home) keyName = "home"
-                            else if (key === Qt.Key_End) keyName = "end"
-                            else if (key === Qt.Key_PageUp) keyName = "page up"
-                            else if (key === Qt.Key_PageDown) keyName = "page down"
-                            else if (key === Qt.Key_Insert) keyName = "insert"
-                            else if (key === Qt.Key_CapsLock) keyName = "caps lock"
-                            else { keyName = "key_" + key; return }
-                            text = modifiers.length > 0 ? modifiers.join("+") + "+" + keyName : keyName
-                            backend.set_setting("start_all_hotkey", text)
-                        }
-                    }
+                Text {
+                    text: "Горячие клавиши Старт / Стоп"
+                    color: "#c2c2c2"
+                    font.pointSize: 10
+                    font.bold: true
                 }
 
-                ColumnLayout {
+                RowLayout {
                     Layout.fillWidth: true
-                    spacing: 5
+                    Layout.fillHeight: true
+                    spacing: 20
 
-                    Text { text: "Остановка макросов:"; color: "#a0a0a0"; font.pointSize: 9 }
-                    TextField {
-                        id: stopHotkeyField
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 28
-                        placeholderText: "Нажмите клавишу"
-                        font.pointSize: 10
-                        horizontalAlignment: Text.AlignHCenter
-                        background: Rectangle { radius: 4; color: "#40ffffff" }
-                        text: backend && backend.settings ? (backend.settings.stop_all_hotkey || "") : ""
-                        Keys.onPressed: {
-                            event.accepted = true
-                            if (event.key === Qt.Key_Backspace) { text = ""; backend.set_setting("stop_all_hotkey", ""); return }
-                            if (event.key === Qt.Key_Escape) { return }
-                            var modifiers = []
-                            var keyName = ""
-                            if (event.modifiers & Qt.ControlModifier) modifiers.push("ctrl")
-                            if (event.modifiers & Qt.AltModifier) modifiers.push("alt")
-                            if (event.modifiers & Qt.ShiftModifier) modifiers.push("shift")
-                            var key = event.key
-                            if (key >= Qt.Key_F1 && key <= Qt.Key_F12) { keyName = "f" + (key - Qt.Key_F1 + 1) }
-                            else if (key >= Qt.Key_A && key <= Qt.Key_Z) { keyName = String.fromCharCode(key).toLowerCase() }
-                            else if (key >= Qt.Key_0 && key <= Qt.Key_9) {
-                                keyName = (event.modifiers & Qt.ShiftModifier) ? ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")"][key - Qt.Key_0] : String.fromCharCode(key)
+                        spacing: 5
+
+                        Text { text: "Запуск макросов:"; color: "#a0a0a0"; font.pointSize: 9 }
+                        TextField {
+                            id: startHotkeyField
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 28
+                            placeholderText: "Нажмите клавишу"
+                            font.pointSize: 10
+                            horizontalAlignment: Text.AlignHCenter
+                            background: Rectangle { radius: 4; color: "#40ffffff" }
+                            text: backend && backend.settings ? (backend.settings.start_all_hotkey || "") : ""
+                            Keys.onPressed: {
+                                event.accepted = true
+                                if (event.key === Qt.Key_Backspace) { text = ""; backend.set_setting("start_all_hotkey", ""); return }
+                                if (event.key === Qt.Key_Escape) { return }
+                                var modifiers = []
+                                var keyName = ""
+                                if (event.modifiers & Qt.ControlModifier) modifiers.push("ctrl")
+                                if (event.modifiers & Qt.AltModifier) modifiers.push("alt")
+                                if (event.modifiers & Qt.ShiftModifier) modifiers.push("shift")
+                                var key = event.key
+                                if (key >= Qt.Key_F1 && key <= Qt.Key_F12) { keyName = "f" + (key - Qt.Key_F1 + 1) }
+                                else if (key >= Qt.Key_A && key <= Qt.Key_Z) { keyName = String.fromCharCode(key).toLowerCase() }
+                                else if (key >= Qt.Key_0 && key <= Qt.Key_9) {
+                                    keyName = (event.modifiers & Qt.ShiftModifier) ? ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")"][key - Qt.Key_0] : String.fromCharCode(key)
+                                }
+                                else if (key === Qt.Key_Minus || key === Qt.Key_Hyphen) keyName = event.modifiers & Qt.ShiftModifier ? "_" : "-"
+                                else if (key === Qt.Key_Equal || key === Qt.Key_Plus) keyName = event.modifiers & Qt.ShiftModifier ? "+" : "="
+                                else if (key === Qt.Key_BracketLeft) keyName = event.modifiers & Qt.ShiftModifier ? "{" : "["
+                                else if (key === Qt.Key_BracketRight) keyName = event.modifiers & Qt.ShiftModifier ? "}" : "]"
+                                else if (key === Qt.Key_Backslash) keyName = event.modifiers & Qt.ShiftModifier ? "|" : "\\"
+                                else if (key === Qt.Key_Semicolon) keyName = event.modifiers & Qt.ShiftModifier ? ":" : ";"
+                                else if (key === Qt.Key_Apostrophe) keyName = event.modifiers & Qt.ShiftModifier ? '"' : "'"
+                                else if (key === Qt.Key_Comma) keyName = event.modifiers & Qt.ShiftModifier ? "<" : ","
+                                else if (key === Qt.Key_Period) keyName = event.modifiers & Qt.ShiftModifier ? ">" : "."
+                                else if (key === Qt.Key_Slash) keyName = event.modifiers & Qt.ShiftModifier ? "?" : "/"
+                                else if (key === Qt.Key_QuoteLeft) keyName = event.modifiers & Qt.ShiftModifier ? "~" : "`"
+                                else if (key === Qt.Key_Space) keyName = "space"
+                                else if (key === Qt.Key_Tab) keyName = "tab"
+                                else if (key === Qt.Key_Return || key === Qt.Key_Enter) keyName = "enter"
+                                else if (key === Qt.Key_Delete) keyName = "delete"
+                                else if (key === Qt.Key_Up) keyName = "up"
+                                else if (key === Qt.Key_Down) keyName = "down"
+                                else if (key === Qt.Key_Left) keyName = "left"
+                                else if (key === Qt.Key_Right) keyName = "right"
+                                else if (key === Qt.Key_Home) keyName = "home"
+                                else if (key === Qt.Key_End) keyName = "end"
+                                else if (key === Qt.Key_PageUp) keyName = "page up"
+                                else if (key === Qt.Key_PageDown) keyName = "page down"
+                                else if (key === Qt.Key_Insert) keyName = "insert"
+                                else if (key === Qt.Key_CapsLock) keyName = "caps lock"
+                                else { keyName = "key_" + key; return }
+                                text = modifiers.length > 0 ? modifiers.join("+") + "+" + keyName : keyName
+                                backend.set_setting("start_all_hotkey", text)
                             }
-                            else if (key === Qt.Key_Minus || key === Qt.Key_Hyphen) keyName = event.modifiers & Qt.ShiftModifier ? "_" : "-"
-                            else if (key === Qt.Key_Equal || key === Qt.Key_Plus) keyName = event.modifiers & Qt.ShiftModifier ? "+" : "="
-                            else if (key === Qt.Key_BracketLeft) keyName = event.modifiers & Qt.ShiftModifier ? "{" : "["
-                            else if (key === Qt.Key_BracketRight) keyName = event.modifiers & Qt.ShiftModifier ? "}" : "]"
-                            else if (key === Qt.Key_Backslash) keyName = event.modifiers & Qt.ShiftModifier ? "|" : "\\"
-                            else if (key === Qt.Key_Semicolon) keyName = event.modifiers & Qt.ShiftModifier ? ":" : ";"
-                            else if (key === Qt.Key_Apostrophe) keyName = event.modifiers & Qt.ShiftModifier ? '"' : "'"
-                            else if (key === Qt.Key_Comma) keyName = event.modifiers & Qt.ShiftModifier ? "<" : ","
-                            else if (key === Qt.Key_Period) keyName = event.modifiers & Qt.ShiftModifier ? ">" : "."
-                            else if (key === Qt.Key_Slash) keyName = event.modifiers & Qt.ShiftModifier ? "?" : "/"
-                            else if (key === Qt.Key_QuoteLeft) keyName = event.modifiers & Qt.ShiftModifier ? "~" : "`"
-                            else if (key === Qt.Key_Space) keyName = "space"
-                            else if (key === Qt.Key_Tab) keyName = "tab"
-                            else if (key === Qt.Key_Return || key === Qt.Key_Enter) keyName = "enter"
-                            else if (key === Qt.Key_Delete) keyName = "delete"
-                            else if (key === Qt.Key_Up) keyName = "up"
-                            else if (key === Qt.Key_Down) keyName = "down"
-                            else if (key === Qt.Key_Left) keyName = "left"
-                            else if (key === Qt.Key_Right) keyName = "right"
-                            else if (key === Qt.Key_Home) keyName = "home"
-                            else if (key === Qt.Key_End) keyName = "end"
-                            else if (key === Qt.Key_PageUp) keyName = "page up"
-                            else if (key === Qt.Key_PageDown) keyName = "page down"
-                            else if (key === Qt.Key_Insert) keyName = "insert"
-                            else if (key === Qt.Key_CapsLock) keyName = "caps lock"
-                            else { keyName = "key_" + key; return }
-                            text = modifiers.length > 0 ? modifiers.join("+") + "+" + keyName : keyName
-                            backend.set_setting("stop_all_hotkey", text)
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 5
+
+                        Text { text: "Остановка макросов:"; color: "#a0a0a0"; font.pointSize: 9 }
+                        TextField {
+                            id: stopHotkeyField
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 28
+                            placeholderText: "Нажмите клавишу"
+                            font.pointSize: 10
+                            horizontalAlignment: Text.AlignHCenter
+                            background: Rectangle { radius: 4; color: "#40ffffff" }
+                            text: backend && backend.settings ? (backend.settings.stop_all_hotkey || "") : ""
+                            Keys.onPressed: {
+                                event.accepted = true
+                                if (event.key === Qt.Key_Backspace) { text = ""; backend.set_setting("stop_all_hotkey", ""); return }
+                                if (event.key === Qt.Key_Escape) { return }
+                                var modifiers = []
+                                var keyName = ""
+                                if (event.modifiers & Qt.ControlModifier) modifiers.push("ctrl")
+                                if (event.modifiers & Qt.AltModifier) modifiers.push("alt")
+                                if (event.modifiers & Qt.ShiftModifier) modifiers.push("shift")
+                                var key = event.key
+                                if (key >= Qt.Key_F1 && key <= Qt.Key_F12) { keyName = "f" + (key - Qt.Key_F1 + 1) }
+                                else if (key >= Qt.Key_A && key <= Qt.Key_Z) { keyName = String.fromCharCode(key).toLowerCase() }
+                                else if (key >= Qt.Key_0 && key <= Qt.Key_9) {
+                                    keyName = (event.modifiers & Qt.ShiftModifier) ? ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")"][key - Qt.Key_0] : String.fromCharCode(key)
+                                }
+                                else if (key === Qt.Key_Minus || key === Qt.Key_Hyphen) keyName = event.modifiers & Qt.ShiftModifier ? "_" : "-"
+                                else if (key === Qt.Key_Equal || key === Qt.Key_Plus) keyName = event.modifiers & Qt.ShiftModifier ? "+" : "="
+                                else if (key === Qt.Key_BracketLeft) keyName = event.modifiers & Qt.ShiftModifier ? "{" : "["
+                                else if (key === Qt.Key_BracketRight) keyName = event.modifiers & Qt.ShiftModifier ? "}" : "]"
+                                else if (key === Qt.Key_Backslash) keyName = event.modifiers & Qt.ShiftModifier ? "|" : "\\"
+                                else if (key === Qt.Key_Semicolon) keyName = event.modifiers & Qt.ShiftModifier ? ":" : ";"
+                                else if (key === Qt.Key_Apostrophe) keyName = event.modifiers & Qt.ShiftModifier ? '"' : "'"
+                                else if (key === Qt.Key_Comma) keyName = event.modifiers & Qt.ShiftModifier ? "<" : ","
+                                else if (key === Qt.Key_Period) keyName = event.modifiers & Qt.ShiftModifier ? ">" : "."
+                                else if (key === Qt.Key_Slash) keyName = event.modifiers & Qt.ShiftModifier ? "?" : "/"
+                                else if (key === Qt.Key_QuoteLeft) keyName = event.modifiers & Qt.ShiftModifier ? "~" : "`"
+                                else if (key === Qt.Key_Space) keyName = "space"
+                                else if (key === Qt.Key_Tab) keyName = "tab"
+                                else if (key === Qt.Key_Return || key === Qt.Key_Enter) keyName = "enter"
+                                else if (key === Qt.Key_Delete) keyName = "delete"
+                                else if (key === Qt.Key_Up) keyName = "up"
+                                else if (key === Qt.Key_Down) keyName = "down"
+                                else if (key === Qt.Key_Left) keyName = "left"
+                                else if (key === Qt.Key_Right) keyName = "right"
+                                else if (key === Qt.Key_Home) keyName = "home"
+                                else if (key === Qt.Key_End) keyName = "end"
+                                else if (key === Qt.Key_PageUp) keyName = "page up"
+                                else if (key === Qt.Key_PageDown) keyName = "page down"
+                                else if (key === Qt.Key_Insert) keyName = "insert"
+                                else if (key === Qt.Key_CapsLock) keyName = "caps lock"
+                                else { keyName = "key_" + key; return }
+                                text = modifiers.length > 0 ? modifiers.join("+") + "+" + keyName : keyName
+                                backend.set_setting("stop_all_hotkey", text)
+                            }
                         }
                     }
                 }
@@ -158,17 +161,21 @@ ScrollView {
         }
 
         // ========== ПЛИТКА: ДИАГНОСТИКА МОНИТОРОВ ==========
-        GroupBox {
-            title: "Диагностика мониторов и окон"
+        GlassBlurPanel {
             Layout.fillWidth: true
             Layout.preferredHeight: 155
-            background: GlassBlurPanel {}
 
-            contentItem: ColumnLayout {
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 15
                 spacing: 5
-                anchors.margins: 10
-                anchors.leftMargin: 15
-                anchors.rightMargin: 15
+
+                Text {
+                    text: "Диагностика мониторов и окон"
+                    color: "#c2c2c2"
+                    font.pointSize: 10
+                    font.bold: true
+                }
 
                 GridLayout {
                     columns: 4
@@ -195,6 +202,8 @@ ScrollView {
                     Text { id: targetWindowTitle; text: "-"; color: "#c2c2c2"; font.pointSize: 9; elide: Text.ElideRight; Layout.columnSpan: 3; Layout.fillWidth: true }
                 }
 
+                Item { Layout.fillHeight: true }
+
                 BaseButton {
                     text: "Обновить"
                     implicitWidth: 120
@@ -202,21 +211,19 @@ ScrollView {
                     iconSize: 10
                     textSize: 9
                     Layout.alignment: Qt.AlignHCenter
-                    Layout.topMargin: 7
                     onClicked: {
                         var info = backend.get_window_manager_diagnostic()
                         monitorsCount.text = info.monitors_count
                         currentDpi.text = info.current_dpi + " DPI"
                         monitorResolution.text = (info.monitor_right - info.monitor_left) + "x" + (info.monitor_bottom - info.monitor_top)
                         activeWindowTitle.text = info.foreground_title
-                        
-                        // Если из диагностики не пришло целевое окно — берём напрямую из настроек
+
                         if (info.target_title && info.target_title != "") {
                             targetWindowTitle.text = info.target_title
                         } else {
                             targetWindowTitle.text = backend.settings.target_window_title || "Не выбрано"
                         }
-                        
+
                         lastActivation.text = info.last_activation > 0 ? Math.round((Date.now() / 1000 - info.last_activation)) + " сек назад" : "Никогда"
                     }
                 }
@@ -224,79 +231,14 @@ ScrollView {
         }
 
         // ========== ПЛИТКА: ЛОГИ ==========
-        GroupBox {
-            id: logsGroupBox
-            title: "Логи"
+        GlassBlurPanel {
             Layout.fillWidth: true
             Layout.preferredHeight: 115
-            background: GlassBlurPanel { id: logsBg }
-            clip: true
 
-            Item {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                height: 3
-                visible: backend.isSendingLogs
-                z: 10
-
-                Rectangle {
-                    id: logWave1
-                    x: -120
-                    width: 120
-                    height: 3
-                    radius: 1.5
-                    gradient: Gradient {
-                        orientation: Gradient.Horizontal
-                        GradientStop { position: 0.0; color: "transparent" }
-                        GradientStop { position: 0.3; color: settingsDebugPage.accentColor }
-                        GradientStop { position: 0.5; color: Qt.lighter(settingsDebugPage.accentColor, 1.5) }
-                        GradientStop { position: 0.7; color: settingsDebugPage.accentColor }
-                        GradientStop { position: 1.0; color: "transparent" }
-                    }
-                    SequentialAnimation on x {
-                        running: backend.isSendingLogs
-                        loops: Animation.Infinite
-                        NumberAnimation {
-                            from: -120
-                            to: parent.width
-                            duration: 2000
-                            easing.type: Easing.Linear
-                        }
-                    }
-                }
-
-                Rectangle {
-                    id: logWave2
-                    x: -120
-                    width: 120
-                    height: 3
-                    radius: 1.5
-                    gradient: Gradient {
-                        orientation: Gradient.Horizontal
-                        GradientStop { position: 0.0; color: "transparent" }
-                        GradientStop { position: 0.3; color: settingsDebugPage.accentColor }
-                        GradientStop { position: 0.5; color: Qt.lighter(settingsDebugPage.accentColor, 1.5) }
-                        GradientStop { position: 0.7; color: settingsDebugPage.accentColor }
-                        GradientStop { position: 1.0; color: "transparent" }
-                    }
-                    SequentialAnimation on x {
-                        running: backend.isSendingLogs
-                        loops: Animation.Infinite
-                        PauseAnimation { duration: 1000 }
-                        NumberAnimation {
-                            from: -120
-                            to: parent.width
-                            duration: 2000
-                            easing.type: Easing.Linear
-                        }
-                    }
-                }
-            }
-
-            contentItem: ColumnLayout {
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 15
                 spacing: 6
-                anchors.margins: 10
 
                 Text {
                     text: "Отправить все логи разработчику для анализа"
@@ -314,30 +256,79 @@ ScrollView {
                     Layout.fillWidth: true
                 }
 
+                Item { Layout.fillHeight: true }
+
                 BaseButton {
-                    text: backend.isSendingLogs ? "Отправка..." : "Отправить логи"
+                    text: backend && backend.isSendingLogs ? "Отправка..." : "Отправить логи"
                     implicitWidth: 160
                     implicitHeight: 30
                     iconSize: 12
                     textSize: 9
-                    enabled: !backend.isSendingLogs
+                    enabled: !(backend && backend.isSendingLogs)
                     opacity: enabled ? 1.0 : 0.5
+                    Layout.alignment: Qt.AlignHCenter
                     onClicked: backend.send_logs_to_telegram()
+                }
+            }
+
+            // Анимация — волна бежит слева направо по верхнему краю
+            Item {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 3
+                z: 10
+                clip: true
+                visible: backend && backend.isSendingLogs
+
+                Rectangle {
+                    id: logWave
+                    width: 120
+                    height: 3
+                    radius: 1.5
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: "transparent" }
+                        GradientStop { position: 0.3; color: settingsDebugPage.accentColor }
+                        GradientStop { position: 0.5; color: Qt.lighter(settingsDebugPage.accentColor, 1.5) }
+                        GradientStop { position: 0.7; color: settingsDebugPage.accentColor }
+                        GradientStop { position: 1.0; color: "transparent" }
+                    }
+
+                    SequentialAnimation on x {
+                        id: waveAnim
+                        running: backend && backend.isSendingLogs
+                        loops: Animation.Infinite
+
+                        PropertyAction { target: logWave; property: "x"; value: -logWave.width }
+                        NumberAnimation {
+                            from: -logWave.width
+                            to: logWave.parent ? logWave.parent.width : 400
+                            duration: 2000
+                            easing.type: Easing.Linear
+                        }
+                    }
                 }
             }
         }
 
         // ========== ПЛИТКА: ОБНОВЛЕНИЯ ==========
-        GroupBox {
-            id: updateGroup
-            title: "Обновления"
+        GlassBlurPanel {
+            id: updatePanel
             Layout.fillWidth: true
             Layout.preferredHeight: updateProgressBar.visible ? 175 : 140
-            background: GlassBlurPanel {}
 
-            contentItem: ColumnLayout {
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 15
                 spacing: 6
-                anchors.margins: 10
+
+                Text {
+                    text: "Обновления"
+                    color: "#c2c2c2"
+                    font.pointSize: 10
+                    font.bold: true
+                }
 
                 RowLayout {
                     Layout.fillWidth: true
@@ -348,7 +339,7 @@ ScrollView {
                     }
                     Text {
                         id: currentVersionText
-                        text: backend.get_current_version()
+                        text: backend ? backend.get_current_version() : "..."
                         color: "#c2c2c2"
                         font.pointSize: 10
                         font.bold: true
@@ -551,7 +542,6 @@ ScrollView {
 
     // Обновление информации при открытии страницы
     Component.onCompleted: {
-        // Автоматически заполняем целевой заголовок сразу при открытии
         if (backend && backend.settings) {
             targetWindowTitle.text = backend.settings.target_window_title || "Не выбрано"
             startHotkeyField.text = backend.settings.start_all_hotkey || ""
@@ -564,12 +554,10 @@ ScrollView {
         target: backend
         function onSettingsChanged() {
             settingsDebugPage.accentColor = backend.settings.accent_color !== undefined && backend.settings.accent_color !== null ? backend.settings.accent_color : "#7793a1"
-            
-            // Обновляем целевой заголовок если изменились настройки
+
             if (targetWindowTitle) {
                 targetWindowTitle.text = backend.settings.target_window_title || "Не выбрано"
             }
-            // Синхронизируем поля горячих клавиш
             if (startHotkeyField) {
                 startHotkeyField.text = backend.settings.start_all_hotkey || ""
             }
@@ -578,4 +566,5 @@ ScrollView {
             }
         }
     }
+
 }

@@ -36,7 +36,6 @@ Item {
             Layout.minimumHeight: 260
             Layout.topMargin: 10
             border.color: "#ef4444"
-            border.width: 2
 
             ColumnLayout {
                 id: quickStartLayout
@@ -173,7 +172,6 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     border.color: "#50ffffff"
-                    border.width: 2
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -260,7 +258,6 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 border.color: "#50ffffff"
-                border.width: 2
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -309,7 +306,6 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 border.color: "#50ffffff"
-                border.width: 2
 
                 ColumnLayout {
                     anchors.fill: parent

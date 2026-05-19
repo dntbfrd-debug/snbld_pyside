@@ -23,11 +23,12 @@ Item {
         currentType = type
         editingMacro = macro
         editMode = (macro !== null)
+
+        overlayRect.opacity = 1
         visible = true
 
         if (type === "skill") {
             if (macro) {
-                // Редактирование: сразу переходим к форме редактирования
                 selectedSkill = {
                     id: macro.skill_id,
                     name: macro.name,
@@ -37,14 +38,12 @@ Item {
                     class: ""
                 }
                 selectedSkillClass = macro.skill_class || ""
-                // Очищаем стек и показываем страницу редактирования
                 if (skillMainLoader.item && skillMainLoader.item.skillStackView) {
                     var stack = skillMainLoader.item.skillStackView
                     stack.clear()
                     stack.push(skillEditPageComponent, { skill: selectedSkill, macro: macro })
                 }
             } else {
-                // Новый макрос: начинаем с выбора класса
                 selectedSkillClass = ""
                 selectedSkill = null
                 if (skillMainLoader.item && skillMainLoader.item.skillStackView) {
@@ -59,7 +58,44 @@ Item {
     }
 
     function close() {
-        visible = false
+        closeAnim.start()
+    }
+
+    Rectangle {
+        id: overlayRect
+        anchors.fill: parent
+        color: "#80000000"
+        opacity: 0
+        z: 0
+        anchors.topMargin: -40
+        anchors.leftMargin: -52
+        anchors.rightMargin: -52
+
+        Behavior on opacity { NumberAnimation { duration: 200 } }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: root.close()
+        }
+    }
+
+    Keys.onEscapePressed: root.close()
+
+    SequentialAnimation {
+        id: closeAnim
+        PropertyAnimation {
+            target: overlayRect
+            property: "opacity"
+            to: 0
+            duration: 200
+        }
+        PropertyAction { target: root; property: "visible"; value: false }
+    }
+
+    onVisibleChanged: {
+        if (visible) {
+            focus = true
+        }
     }
 
     Timer {

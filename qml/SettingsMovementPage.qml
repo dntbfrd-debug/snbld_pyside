@@ -101,9 +101,15 @@ Item {
 
                                 CheckBox {
                                     id: movementDelayCheck
-                                    checked: safeSettings.movement_delay_enabled || false
                                     font.pointSize: 11
                                     property string accentColor: settingsMovementPage.accentColor
+
+                                    Binding on checked {
+                                        value: safeSettings.movement_delay_enabled || false
+                                        when: !movementDelayCheck.pressed
+                                    }
+
+                                    onClicked: backend.set_setting("movement_delay_enabled", checked)
                                     indicator: Rectangle {
                                         implicitWidth: 20; implicitHeight: 20; radius: 4
                                         color: movementDelayCheck.checked ? movementDelayCheck.accentColor : "#3a3a3a"
@@ -199,9 +205,22 @@ Item {
 
                                 CheckBox {
                                     id: castbarDetectionCheck
-                                    checked: safeSettings.use_castbar_detection || false
                                     font.pointSize: 11
                                     property string accentColor: settingsMovementPage.accentColor
+
+                                    Binding on checked {
+                                        value: safeSettings.use_castbar_detection || false
+                                        when: !castbarDetectionCheck.pressed
+                                    }
+
+                                    onClicked: {
+                                        if (checked) {
+                                            movementDelayCheck.checked = false
+                                            backend.set_setting("use_castbar_detection", true)
+                                            backend.set_setting("movement_delay_enabled", false)
+                                        }
+                                    }
+
                                     indicator: Rectangle {
                                         implicitWidth: 20; implicitHeight: 20; radius: 4
                                         color: castbarDetectionCheck.checked ? castbarDetectionCheck.accentColor : "#3a3a3a"
@@ -221,14 +240,6 @@ Item {
                                             font.bold: castbarDetectionCheck.checked
                                             verticalAlignment: Text.AlignVCenter
                                             leftPadding: 24
-                                        }
-                                    }
-                                    onCheckStateChanged: {
-                                        if (checked) {
-                                            // Включаем детекцию каста, выключаем задержку
-                                            movementDelayCheck.checked = false
-                                            backend.set_setting("use_castbar_detection", true)
-                                            backend.set_setting("movement_delay_enabled", false)
                                         }
                                     }
                                 }

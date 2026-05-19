@@ -301,7 +301,11 @@ Item {
                     }
                     currentIndex: macroType
                     font.pointSize: 9
-                    popup.background: GlassBlurPanel {
+                    popup.background: Rectangle {
+                        color: "#151515"
+                        radius: 8
+                        border.color: "#70454545"
+                        border.width: 1
                     }
                     delegate: ItemDelegate {
                         id: delegateItem

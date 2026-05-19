@@ -23,10 +23,8 @@ ApplicationWindow {
 
     // Закруглённые края окна
     property int windowRadius: 12
-    // Ширина левой колонки (меню + левая часть заголовка)
-    property int leftColumnWidth: 260
-    property int menuCollapsedWidth: 55
-    property bool isMenuExpanded: true
+    // Ширина левой полосы с иконками
+    property int iconStripWidth: 52
 
     // Получаем акцентный цвет
     property string accentColor: backend && backend.settings && backend.settings.accent_color !== undefined && backend.settings.accent_color !== null ? backend.settings.accent_color : "#7793a1"
@@ -34,8 +32,7 @@ ApplicationWindow {
 
     // Убираем titleTextColor — используем градиент titleBar
 
-    property var mainMenuButtons: [macrosExpandBtn, settingsBtn, profilesBtn, subscriptionBtn, helpBtn, debugBtn]
-    property Item currentActiveButton: helpBtn
+    property string currentActiveButtonId: "help"
     property bool submenuVisible: false
 
     // Функции для работы с подменю (должны быть определены ДО использования)
@@ -48,39 +45,45 @@ ApplicationWindow {
     }
 
     function changeActivePage(pageFile) {
-        isMenuExpanded = false
         closeSubmenu()
+        slideMenu.forceClose()
         if (pageFile === "SettingsPage.qml" || pageFile === "SettingsMainPage.qml") {
             stackView.replace("SettingsMainPage.qml")
-            mainMenuIndicator.setActive(settingsBtn)
+            currentActiveButtonId = "settings"
+            slideMenu.setActiveById("settings")
         } else if (pageFile === "SettingsAppearancePage.qml") {
-            // Страница внешнего вида - открывается через push из SettingsMainPage
             stackView.push(pageFile)
         } else if (pageFile === "MacrosListPage.qml") {
-            mainMenuIndicator.setActive(macrosExpandBtn)
+            currentActiveButtonId = "macros"
+            slideMenu.setActiveById("macros")
             stackView.replace("MacrosListPage.qml")
         } else if (pageFile === "MacrosEditPage.qml") {
-            mainMenuIndicator.setActive(macrosExpandBtn)
+            currentActiveButtonId = "macros"
+            slideMenu.setActiveById("macros")
             stackView.replace("MacrosEditPage.qml")
         } else if (pageFile === "EditSimplePage.qml" || pageFile === "EditZonePage.qml" || pageFile === "EditSkillPage.qml" || pageFile === "EditBuffPage.qml") {
-            // Страницы редактирования - используем push
-            mainMenuIndicator.setActive(macrosExpandBtn)
+            currentActiveButtonId = "macros"
+            slideMenu.setActiveById("macros")
             stackView.push(pageFile)
         } else if (pageFile === "BuffListPage.qml" || pageFile === "BuffEditForm.qml") {
-            // Страницы баффов - используем push
-            mainMenuIndicator.setActive(macrosExpandBtn)
+            currentActiveButtonId = "macros"
+            slideMenu.setActiveById("macros")
             stackView.push(pageFile)
         } else if (pageFile === "ProfilesPage.qml") {
-            mainMenuIndicator.setActive(profilesBtn)
+            currentActiveButtonId = "profiles"
+            slideMenu.setActiveById("profiles")
             stackView.replace(pageFile)
         } else if (pageFile === "SubscriptionPage.qml") {
-            mainMenuIndicator.setActive(subscriptionBtn)
+            currentActiveButtonId = "subscription"
+            slideMenu.setActiveById("subscription")
             stackView.replace(pageFile)
         } else if (pageFile === "HelpPage.qml") {
-            mainMenuIndicator.setActive(helpBtn)
+            currentActiveButtonId = "help"
+            slideMenu.setActiveById("help")
             stackView.replace(pageFile)
         } else if (pageFile === "DebugPage.qml") {
-            mainMenuIndicator.setActive(debugBtn)
+            currentActiveButtonId = "debug"
+            slideMenu.setActiveById("debug")
             stackView.replace(pageFile)
         }
     }
@@ -105,7 +108,7 @@ ApplicationWindow {
         Item {
             id: rightColumnBackground
             anchors.left: parent.left
-            anchors.leftMargin: menuContainer.width
+            anchors.leftMargin: root.iconStripWidth
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             anchors.right: parent.right
@@ -138,26 +141,12 @@ ApplicationWindow {
             }
         }
 
-        // Одна тень на границе меню/контента на всю высоту окна (совпадает с leftMenu.right и правым краем title)
-        LinearGradient {
-            id: menuContentDividerShadow
-            anchors.left: parent.left
-            anchors.leftMargin: menuContainer.width
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: 6
-            start: Qt.point(0, 0)
-            end: Qt.point(width, 0)
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: "#60000000" }
-                GradientStop { position: 1.0; color: "#00000000" }
-            }
-            z: 2
-        }
+        // Тень на границе полосы/контента — удалена, используем DropShadow из IconStrip
 
         Item {
             id: titleBar
             anchors.left: parent.left
+            anchors.leftMargin: root.iconStripWidth
             anchors.right: parent.right
             anchors.top: parent.top
             height: 40
@@ -168,23 +157,6 @@ ApplicationWindow {
                 anchors.fill: parent
                 spacing: 0
 
-                Rectangle {
-                    Layout.preferredWidth: menuContainer.width
-                    Layout.fillHeight: true
-                    color: "#262626"
-
-                    Text {
-                        id: titleText
-                        x: 85
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "snbld resvap"
-                        color: "#c0c0c0"
-                        font.pointSize: 12
-                        font.bold: true
-                        opacity: root.isMenuExpanded ? 1.0 : 0.0
-                        Behavior on opacity { NumberAnimation { duration: 150 } }
-                    }
-                }
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -204,28 +176,54 @@ ApplicationWindow {
                 spacing: 8
                 Button {
                     id: startAllBtn
-                    implicitWidth: 80
+                    implicitWidth: 90
                     implicitHeight: 32
                     focusPolicy: Qt.NoFocus
                     property bool isActive: (backend && !backend.global_stopped)
                     background: Rectangle {
-                        color: startAllBtn.hovered ? "#3a3a3a" : "#252525"
-                        radius: 4
-                    }
-                    contentItem: Row {
-                        spacing: 4
-                        anchors.centerIn: parent
-                        Image {
-                            source: "../icons/play.png"
-                            width: 16
-                            height: 16
-                            anchors.verticalCenter: parent.verticalCenter
+                        radius: 6
+                        border.color: "#70454545"
+                        border.width: 1
+                        color: "#a01c1c1c"
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: parent.radius
+                            color: root.accentColor
+                            opacity: startAllBtn.isActive ? 0.25 : 0.0
+                            border.color: startAllBtn.isActive ? root.accentColor : "transparent"
+                            border.width: startAllBtn.isActive ? 2 : 0
+                            Behavior on opacity { NumberAnimation { duration: 200 } }
+                            Behavior on border.color { ColorAnimation { duration: 200 } }
                         }
-                        Text {
-                            text: "Старт"
-                            color: "#c2c2c2"
-                            font.pointSize: 10
-                            anchors.verticalCenter: parent.verticalCenter
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: parent.radius
+                            color: "#cc262626"
+                            opacity: startAllBtn.hovered ? 1.0 : 0.0
+                            Behavior on opacity { NumberAnimation { duration: 150 } }
+                            z: -1
+                        }
+                    }
+                    contentItem: Item {
+                        Row {
+                            spacing: 6
+                            anchors.centerIn: parent
+                            anchors.horizontalCenterOffset: -6
+                            Image {
+                                source: "../icons/play.png"
+                                width: 16
+                                height: 16
+                                sourceSize.width: 16
+                                sourceSize.height: 16
+                                fillMode: Image.PreserveAspectFit
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: "Старт"
+                                color: startAllBtn.isActive ? "#ffffff" : "#c2c2c2"
+                                font.pointSize: 11
+                                Behavior on color { ColorAnimation { duration: 200 } }
+                            }
                         }
                     }
                     enabled: backend && backend.isActivated
@@ -233,28 +231,54 @@ ApplicationWindow {
                 }
                 Button {
                     id: stopAllBtn
-                    implicitWidth: 80
+                    implicitWidth: 90
                     implicitHeight: 32
                     focusPolicy: Qt.NoFocus
                     property bool isActive: (backend && backend.global_stopped)
                     background: Rectangle {
-                        color: stopAllBtn.hovered ? "#3a3a3a" : "#252525"
-                        radius: 4
-                    }
-                    contentItem: Row {
-                        spacing: 4
-                        anchors.centerIn: parent
-                        Image {
-                            source: "../icons/stop.png"
-                            width: 16
-                            height: 16
-                            anchors.verticalCenter: parent.verticalCenter
+                        radius: 6
+                        border.color: "#70454545"
+                        border.width: 1
+                        color: "#a01c1c1c"
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: parent.radius
+                            color: root.accentColor
+                            opacity: stopAllBtn.isActive ? 0.25 : 0.0
+                            border.color: stopAllBtn.isActive ? root.accentColor : "transparent"
+                            border.width: stopAllBtn.isActive ? 2 : 0
+                            Behavior on opacity { NumberAnimation { duration: 200 } }
+                            Behavior on border.color { ColorAnimation { duration: 200 } }
                         }
-                        Text {
-                            text: "Стоп"
-                            color: "#c2c2c2"
-                            font.pointSize: 10
-                            anchors.verticalCenter: parent.verticalCenter
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: parent.radius
+                            color: "#cc262626"
+                            opacity: stopAllBtn.hovered ? 1.0 : 0.0
+                            Behavior on opacity { NumberAnimation { duration: 150 } }
+                            z: -1
+                        }
+                    }
+                    contentItem: Item {
+                        Row {
+                            spacing: 6
+                            anchors.centerIn: parent
+                            anchors.horizontalCenterOffset: -6
+                            Image {
+                                source: "../icons/stop.png"
+                                width: 16
+                                height: 16
+                                sourceSize.width: 16
+                                sourceSize.height: 16
+                                fillMode: Image.PreserveAspectFit
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: "Стоп"
+                                color: stopAllBtn.isActive ? "#ffffff" : "#c2c2c2"
+                                font.pointSize: 11
+                                Behavior on color { ColorAnimation { duration: 200 } }
+                            }
                         }
                     }
                     enabled: backend && backend.isActivated
@@ -282,270 +306,122 @@ ApplicationWindow {
             }
         }
 
+    // Вертикальная полоса с иконками — на всю высоту окна
+    IconStrip {
+        id: iconStrip
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        z: 20
+        accentColor: root.accentColor
+        currentActiveButtonId: root.currentActiveButtonId
+
+        menuItems: [
+            {
+                btnId: "macros",
+                text: "Макросы",
+                icon: "../icons/macros.png",
+                pageFile: "MacrosListPage.qml",
+                hasSubmenu: true,
+                submenuItems: [
+                    { text: "Список макросов", pageFile: "MacrosListPage.qml" },
+                    { text: "Создание", pageFile: "MacrosEditPage.qml" }
+                ]
+            },
+            {
+                btnId: "settings",
+                text: "Настройки",
+                icon: "../icons/settings.png",
+                pageFile: "SettingsMainPage.qml",
+                hasSubmenu: false
+            },
+            {
+                btnId: "profiles",
+                text: "Профили",
+                icon: "../icons/profiles.png",
+                pageFile: "ProfilesPage.qml",
+                hasSubmenu: false
+            },
+            {
+                btnId: "subscription",
+                text: "Подписка",
+                icon: "../icons/subscription.png",
+                pageFile: "SubscriptionPage.qml",
+                hasSubmenu: false
+            },
+            {
+                btnId: "help",
+                text: "Помощь",
+                icon: "../icons/help.png",
+                pageFile: "HelpPage.qml",
+                hasSubmenu: false
+            },
+            {
+                btnId: "debug",
+                text: "Диагностика",
+                icon: "../icons/calibrate.png",
+                pageFile: "DebugPage.qml",
+                hasSubmenu: false
+            }
+        ]
+
+        onShowMenu: function(show) {
+            slideMenu.onStripHoverChanged(show)
+        }
+    }
+
+    // Выезжающее меню
+    SlideMenu {
+        id: slideMenu
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        z: 15
+        accentColor: root.accentColor
+        currentActiveButtonId: root.currentActiveButtonId
+        iconStripWidth: root.iconStripWidth
+        iconYPositions: iconStrip.iconYPositions
+
+        menuItems: [
+            { btnId: "macros", text: "Макросы", pageFile: "MacrosListPage.qml" },
+            { btnId: "settings", text: "Настройки", pageFile: "SettingsMainPage.qml" },
+            { btnId: "profiles", text: "Профили", pageFile: "ProfilesPage.qml" },
+            { btnId: "subscription", text: "Подписка", pageFile: "SubscriptionPage.qml" },
+            { btnId: "help", text: "Помощь", pageFile: "HelpPage.qml" },
+            { btnId: "debug", text: "Диагностика", pageFile: "DebugPage.qml" }
+        ]
+
+        onItemClicked: function(pageFile) {
+            changeActivePage(pageFile)
+        }
+    }
+
+    Binding {
+        target: iconStrip
+        property: "submenuOffset"
+        value: slideMenu.submenuOffset
+    }
+
     Item {
         id: contentArea
         objectName: "contentArea"
         anchors.top: titleBar.bottom
         anchors.left: parent.left
+        anchors.leftMargin: root.iconStripWidth
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         z: 1
-        // Контейнер левого меню с clip и анимированной шириной
-        Rectangle {
-            id: menuContainer
-            width: root.isMenuExpanded ? root.leftColumnWidth : root.menuCollapsedWidth
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            clip: true
-            z: 2
-            color: "transparent"
-
-            Behavior on width {
-                NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
-            }
-
-            // Следит за выходом курсора из меню (ширина = текущая visible ширина)
-            MouseArea {
-                id: menuHoverArea
-                anchors.fill: parent
-                hoverEnabled: true
-                acceptedButtons: Qt.NoButton
-                onEntered: { menuCollapseTimer.stop() }
-                onExited: { menuCollapseTimer.restart() }
-            }
-
-            Rectangle {
-                id: leftMenu
-                width: root.leftColumnWidth
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-
-                gradient: Gradient {
-                    GradientStop { position: 0.0; color: Qt.rgba(0.18, 0.18, 0.18, 1) }
-                    GradientStop { position: 0.25; color: Qt.rgba(0.18, 0.18, 0.18, 1) }
-                    GradientStop { position: 0.5; color: Qt.rgba(0.23, 0.23, 0.23, 1) }
-                    GradientStop { position: 0.75; color: Qt.rgba(0.18, 0.18, 0.18, 1) }
-                    GradientStop { position: 1.0; color: Qt.rgba(0.18, 0.18, 0.18, 1) }
-                }
-
-                ColumnLayout {
-                    id: menuLayout
-                    anchors.fill: parent
-                    anchors.leftMargin: root.isMenuExpanded ? 15 : 5
-                    anchors.rightMargin: root.isMenuExpanded ? 15 : 5
-                    anchors.topMargin: root.isMenuExpanded ? 15 : 5
-                    anchors.bottomMargin: root.isMenuExpanded ? 15 : 5
-                    spacing: 15
-
-                    // Кнопка "Макросы" с подменю
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 0
-
-                        MenuButton {
-                            id: macrosExpandBtn
-                            text: "Макросы"
-                            iconSource: "../icons/macros.png"
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 50
-                            isActive: true
-                            enabled: backend && backend.isActivated
-                            opacity: enabled ? 1.0 : 0.3
-                            iconOnly: !root.isMenuExpanded
-
-                            onClicked: {
-                                if (!enabled) return
-                                if (submenuVisible) closeSubmenu()
-                                else openSubmenu()
-                                mainMenuIndicator.setActive(macrosExpandBtn)
-                            }
-                        }
-
-                        // Подменю
-                        ColumnLayout {
-                            id: submenu
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: submenuVisible ? 100 : 0
-                            clip: true
-                            visible: submenuVisible
-                            spacing: 0
-                            Behavior on Layout.preferredHeight {
-                                PropertyAnimation { duration: 200; easing.type: Easing.InOutQuad }
-                            }
-
-                            Item {
-                                Layout.fillWidth: true
-                                height: 10
-                            }
-
-                            Item {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 50
-                                MenuButton {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    width: 220
-                                    text: "Список макросов"
-                                    iconSource: "../icons/list.png"
-                                    height: 45
-                                    isActive: false
-                                    enabled: backend && backend.isActivated
-                                    opacity: enabled ? 1.0 : 0.3
-                                    iconSize: 16
-                                    textSize: 10
-                                    onClicked: {
-                                        if (!enabled) return
-                                        changeActivePage("MacrosListPage.qml")
-                                        closeSubmenu()
-                                    }
-                                }
-                            }
-                            Item {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 50
-                                MenuButton {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    width: 220
-                                    text: "Создание"
-                                    iconSource: "../icons/edit.png"
-                                    height: 45
-                                    isActive: false
-                                    enabled: backend && backend.isActivated
-                                    opacity: enabled ? 1.0 : 0.3
-                                    iconSize: 16
-                                    textSize: 10
-                                    onClicked: {
-                                        if (!enabled) return
-                                        changeActivePage("MacrosEditPage.qml")
-                                        closeSubmenu()
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    MenuButton {
-                        id: settingsBtn
-                        text: "Настройки"
-                        iconSource: "../icons/settings.png"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        isActive: false
-                        enabled: backend && backend.isActivated
-                        opacity: enabled ? 1.0 : 0.3
-                        iconOnly: !root.isMenuExpanded
-
-                        onClicked: {
-                            if (!enabled) return
-                            closeSubmenu()
-                            mainMenuIndicator.setActive(settingsBtn)
-                            changeActivePage("SettingsMainPage.qml")
-                        }
-                    }
-                    MenuButton {
-                        id: profilesBtn
-                        text: "Профили"
-                        iconSource: "../icons/profiles.png"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        isActive: false
-                        enabled: backend && backend.isActivated
-                        opacity: enabled ? 1.0 : 0.3
-                        iconOnly: !root.isMenuExpanded
-
-                        onClicked: {
-                            if (!enabled) return
-                            closeSubmenu()
-                            mainMenuIndicator.setActive(profilesBtn)
-                            changeActivePage("ProfilesPage.qml")
-                        }
-                    }
-                    MenuButton {
-                        id: subscriptionBtn
-                        text: "Подписка"
-                        iconSource: "../icons/subscription.png"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        isActive: false
-                        iconOnly: !root.isMenuExpanded
-
-                        onClicked: {
-                            closeSubmenu()
-                            mainMenuIndicator.setActive(subscriptionBtn)
-                            changeActivePage("SubscriptionPage.qml")
-                        }
-                    }
-                    MenuButton {
-                        id: helpBtn
-                        text: "Помощь"
-                        iconSource: "../icons/help.png"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        isActive: true
-                        iconOnly: !root.isMenuExpanded
-
-                        onClicked: {
-                            closeSubmenu()
-                            mainMenuIndicator.setActive(helpBtn)
-                            changeActivePage("HelpPage.qml")
-                        }
-                    }
-                    MenuButton {
-                        id: debugBtn
-                        text: "Диагностика"
-                        iconSource: "../icons/calibrate.png"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        isActive: false
-                        iconOnly: !root.isMenuExpanded
-
-                        onClicked: {
-                            closeSubmenu()
-                            mainMenuIndicator.setActive(debugBtn)
-                            changeActivePage("DebugPage.qml")
-                        }
-                    }
-
-                    Item { Layout.fillHeight: true }
-                }
-            }
-        }
-
-        // Зона захвата hover на левом крае для раскрытия меню
-        MouseArea {
-            id: menuEdgeCatch
-            anchors.left: parent.left
-            width: root.menuCollapsedWidth
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            z: 3
-            hoverEnabled: !root.isMenuExpanded
-            acceptedButtons: Qt.NoButton
-            onEntered: {
-                root.isMenuExpanded = true
-                menuCollapseTimer.stop()
-            }
-        }
-
-        Timer {
-            id: menuCollapseTimer
-            interval: 500
-            onTriggered: {
-                root.isMenuExpanded = false
-                closeSubmenu()
-            }
-        }
 
         // StackView
         StackView {
             id: stackView
-            anchors.left: menuContainer.right
+            anchors.left: parent.left
+            anchors.leftMargin: root.iconStripWidth
             anchors.right: parent.right
+            anchors.rightMargin: root.iconStripWidth
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             initialItem: "HelpPage.qml"
-            clip: true
+            clip: false
             background: null
             z: 1
             pushEnter: Transition {
@@ -575,23 +451,7 @@ ApplicationWindow {
         }
     }
 
-    ButtonGroupWithIndicator {
-        id: mainMenuIndicator
-        buttons: [macrosExpandBtn, settingsBtn, profilesBtn, subscriptionBtn, helpBtn, debugBtn]
-        setActiveCallback: function(activeButton) {
-            for (var i = 0; i < mainMenuButtons.length; ++i) {
-                mainMenuButtons[i].isActive = false
-            }
-            activeButton.isActive = true
-            currentActiveButton = activeButton
-        }
-        Component.onCompleted: {
-            helpBtn.isActive = true
-            mainMenuIndicator.currentIndex = 4  // helpBtn — индекс 4 в массиве buttons
-            init()
-            setActive(helpBtn)
-        }
-    }
+
 
     ButtonGroupWithIndicator {
         id: actionButtonsIndicator
@@ -636,14 +496,20 @@ ApplicationWindow {
         height: 60
         padding: 0
         background: Rectangle {
-            color: "#1a1a1a"
+            color: "#a01c1c1c"
             radius: 10
-            
-            // Градиентный фон
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: "#252525" }
-                GradientStop { position: 1.0; color: "#1a1a1a" }
+            border.color: "#70454545"
+            border.width: 1
+
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#60000000" }
+                    GradientStop { position: 0.35; color: "#30000000" }
+                    GradientStop { position: 0.7; color: "#10000000" }
+                    GradientStop { position: 1.0; color: "#00000000" }
+                }
             }
             
             // Анимированная рамка с акцентным цветом (как у активной плитки)
@@ -877,10 +743,21 @@ ApplicationWindow {
         height: 280
         closePolicy: Popup.NoAutoClose
         background: Rectangle {
-            color: "#2a2a3d"
+            color: "#a01c1c1c"
             radius: 12
-            border.color: "#40ffffff"
+            border.color: "#70454545"
             border.width: 1
+
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#60000000" }
+                    GradientStop { position: 0.35; color: "#30000000" }
+                    GradientStop { position: 0.7; color: "#10000000" }
+                    GradientStop { position: 1.0; color: "#00000000" }
+                }
+            }
         }
 
         property string filePath: ""
@@ -904,8 +781,8 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 24
                 radius: 12
-    color: "#151515"
-                border.color: "#50ffffff"
+                color: "#151515"
+                border.color: "#70454545"
                 border.width: 1
 
                 Rectangle {
@@ -995,20 +872,38 @@ ApplicationWindow {
     Rectangle {
         id: licenseOverlay
         anchors.fill: parent
-        color: "#cc151515"
+        color: "#40000000"
         visible: backend && !backend.isActivated
         z: 100
         Behavior on opacity { PropertyAnimation { duration: 300 } }
 
+        // Блокировка всех кликов под оверлеем (карточка сверху перехватывает свои)
+        MouseArea {
+            anchors.fill: parent
+            onPressed: function(mouse) { mouse.accepted = true }
+        }
+
         // Центральная карточка
-        GlassBlurPanel {
+        Rectangle {
             id: licenseCard
             anchors.centerIn: parent
             width: 360
             height: 180
-            glassOpacity: 0.5
-            border.color: "transparent"
-            border.width: 0
+            radius: 12
+            color: "#a01c1c1c"
+            border.color: "#70454545"
+            border.width: 1
+
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#60000000" }
+                    GradientStop { position: 0.35; color: "#30000000" }
+                    GradientStop { position: 0.7; color: "#10000000" }
+                    GradientStop { position: 1.0; color: "#00000000" }
+                }
+            }
 
             // Контейнер с обрезкой для волны
             Item {
@@ -1098,8 +993,8 @@ ApplicationWindow {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: parent.width
-                    text: backend.activationStatus === "checking" ? "Проверка лицензии..." :
-                          backend.activationStatus === "error" ? "Лицензия не найдена" :
+                    text: backend && backend.activationStatus === "checking" ? "Проверка лицензии..." :
+                          backend && backend.activationStatus === "error" ? "Лицензия не найдена" :
                           "Инициализация..."
                     color: "#ffffff"
                     font.pointSize: 16
@@ -1115,7 +1010,7 @@ ApplicationWindow {
                     text: "Пожалуйста, подождите..."
                     color: "#909090"
                     font.pointSize: 11
-                    visible: backend.activationStatus === "checking"
+                    visible: backend && backend.activationStatus === "checking"
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
                 }
@@ -1126,7 +1021,7 @@ ApplicationWindow {
                     text: "Перейдите в раздел «Подписка» для активации"
                     color: "#ef4444"
                     font.pointSize: 11
-                    visible: backend.activationStatus === "error"
+                    visible: backend && backend.activationStatus === "error"
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
                 }
@@ -1135,7 +1030,7 @@ ApplicationWindow {
                 BaseButton {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "Перейти к подписке"
-                    visible: backend.activationStatus === "error"
+                    visible: backend && backend.activationStatus === "error"
                     implicitWidth: 200
                     implicitHeight: 40
                     onClicked: {
@@ -1146,10 +1041,6 @@ ApplicationWindow {
             }
         }
 
-        MouseArea {
-            anchors.fill: parent
-            enabled: backend.activationStatus === "checking"
-        }
     }
 
     // Очистка при закрытии

@@ -171,8 +171,11 @@ Button {
         }
 
         Rectangle {
-            anchors.fill: parent
-            radius: control.buttonRadius
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            width: parent.height - 12
+            height: parent.height - 12
+            radius: 6
             color: control.down ? "#2a1c1c1c" : control.hovered ? "#cc262626" : "#a01c1c1c"
             border.color: "#70454545"
             border.width: 1
@@ -186,7 +189,7 @@ Button {
 
     contentItem: RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: control.iconOnly ? Math.max(0, 22.5 - control.iconSize / 2) : 12
+        anchors.leftMargin: control.iconOnly ? Math.max(0, (control.height - 12 - control.iconSize) / 2) : 12
         anchors.rightMargin: control.iconOnly ? 0 : 12
         spacing: control.iconOnly ? 0 : 8
         z: 2

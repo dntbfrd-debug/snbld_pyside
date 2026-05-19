@@ -10,8 +10,21 @@ Dialog {
     width: 320
     height: contentCol.implicitHeight + footer.implicitHeight + 40
     background: Rectangle {
-        color: "#3a3a3a"
-        radius: 8
+        color: "#a01c1c1c"
+        radius: 12
+        border.color: "#70454545"
+        border.width: 1
+
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "#60000000" }
+                GradientStop { position: 0.35; color: "#30000000" }
+                GradientStop { position: 0.7; color: "#10000000" }
+                GradientStop { position: 1.0; color: "#00000000" }
+            }
+        }
     }
 
     property string currentType: ""

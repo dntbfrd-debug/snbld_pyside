@@ -30,8 +30,21 @@ Window {
     Rectangle {
         anchors.fill: parent
         radius: 12
-        color: "#2d2d2d"
+        color: "#a01c1c1c"
+        border.color: "#70454545"
+        border.width: 1
         clip: true
+
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "#60000000" }
+                GradientStop { position: 0.35; color: "#30000000" }
+                GradientStop { position: 0.7; color: "#10000000" }
+                GradientStop { position: 1.0; color: "#00000000" }
+            }
+        }
 
         // Заголовок
         Rectangle {
@@ -40,7 +53,8 @@ Window {
             anchors.left: parent.left
             anchors.right: parent.right
             height: 45
-            color: "#2a2a3a"
+            color: "#50000000"
+            radius: 12
 
             Text {
                 anchors.left: parent.left
@@ -84,15 +98,6 @@ Window {
             }
         }
 
-        // Разделитель
-        Rectangle {
-            anchors.top: headerBar.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 1
-            color: "#3a3a4a"
-        }
-
         // Контент
         ColumnLayout {
             anchors.top: headerBar.bottom
@@ -111,7 +116,11 @@ Window {
                 spacing: 10
 
                 // Что такое точка клика?
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     Layout.preferredHeight: whatPointLayout.implicitHeight + 20
 
@@ -139,7 +148,11 @@ Window {
                 }
 
                 // Где выбирать точку?
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     Layout.preferredHeight: wherePointLayout.implicitHeight + 20
 
@@ -167,7 +180,11 @@ Window {
                 }
 
                 // Как калибровать?
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     Layout.preferredHeight: howCalibrateLayout.implicitHeight + 20
 
@@ -195,7 +212,11 @@ Window {
                 }
 
                 // Текущая точка
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     height: 40
 
@@ -250,7 +271,11 @@ Window {
                 spacing: 15
 
                 // Индикатор ожидания
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.alignment: Qt.AlignHCenter
                     width: 220
                     height: 110
@@ -286,7 +311,11 @@ Window {
                 }
 
                 // Инструкция
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     Layout.preferredHeight: waitingHintLayout.implicitHeight + 20
 
@@ -363,7 +392,11 @@ Window {
                 }
 
                 // Предпросмотр координат
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     height: 70
 
@@ -389,7 +422,11 @@ Window {
                 }
 
                 // Описание действий
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     height: 50
 

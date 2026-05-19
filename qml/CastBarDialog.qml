@@ -34,8 +34,21 @@ Window {
     Rectangle {
         anchors.fill: parent
         radius: 12
-        color: "#2d2d2d"
+        color: "#a01c1c1c"
+        border.color: "#70454545"
+        border.width: 1
         clip: true
+
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "#60000000" }
+                GradientStop { position: 0.35; color: "#30000000" }
+                GradientStop { position: 0.7; color: "#10000000" }
+                GradientStop { position: 1.0; color: "#00000000" }
+            }
+        }
 
         // Заголовок
         Rectangle {
@@ -44,7 +57,8 @@ Window {
             anchors.left: parent.left
             anchors.right: parent.right
             height: 45
-            color: "#2a2a3a"
+            color: "#50000000"
+            radius: 12
 
             Text {
                 anchors.left: parent.left
@@ -88,15 +102,6 @@ Window {
             }
         }
 
-        // Разделитель
-        Rectangle {
-            anchors.top: headerBar.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 1
-            color: "#3a3a4a"
-        }
-
         // Контент
         ColumnLayout {
             anchors.top: headerBar.bottom
@@ -115,11 +120,16 @@ Window {
                 spacing: 10
 
                 // Что такое кастбар?
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
-                    height: 70
+                    implicitHeight: contentLayout1.implicitHeight + 20
 
                     ColumnLayout {
+                        id: contentLayout1
                         anchors.fill: parent
                         anchors.margins: 10
                         spacing: 4
@@ -142,11 +152,16 @@ Window {
                 }
 
                 // Зачем калибровать?
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
-                    height: 55
+                    implicitHeight: contentLayout2.implicitHeight + 20
 
                     ColumnLayout {
+                        id: contentLayout2
                         anchors.fill: parent
                         anchors.margins: 10
                         spacing: 4
@@ -169,11 +184,16 @@ Window {
                 }
 
                 // Как калибровать?
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
-                    height: 80
+                    implicitHeight: contentLayout3.implicitHeight + 20
 
                     ColumnLayout {
+                        id: contentLayout3
                         anchors.fill: parent
                         anchors.margins: 10
                         spacing: 4
@@ -226,7 +246,11 @@ Window {
                 spacing: 15
 
                 // Индикатор ожидания
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.alignment: Qt.AlignHCenter
                     width: 220
                     height: 110
@@ -262,11 +286,16 @@ Window {
                 }
 
                 // Инструкция
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
-                    height: 100
+                    implicitHeight: waitingLayout.implicitHeight + 20
 
                     ColumnLayout {
+                        id: waitingLayout
                         anchors.fill: parent
                         anchors.margins: 10
                         spacing: 6
@@ -344,10 +373,13 @@ Window {
                 }
 
                 // Предпросмотр цвета
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 8
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     height: 70
-                    radius: 8
 
                     RowLayout {
                         anchors.centerIn: parent
@@ -387,7 +419,11 @@ Window {
                 }
 
                 // Описание действий
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     height: 50
 

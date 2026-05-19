@@ -10,16 +10,34 @@ Item {
     Rectangle {
         id: createProfileOverlay
         anchors.fill: parent
-        color: "#80000000"
+        color: "#40000000"
         visible: false
         z: 1000
+        anchors.topMargin: -40
+        anchors.leftMargin: -52
+        anchors.rightMargin: -52
         
         property color accentColor: backend && backend.settings && backend.settings.accent_color ? backend.settings.accent_color : "#7793a1"
 
-        GlassBlurPanel {
+        Rectangle {
             anchors.centerIn: parent
             width: 380
             height: 180
+            radius: 12
+            color: "#a01c1c1c"
+            border.color: "#70454545"
+            border.width: 1
+
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#60000000" }
+                    GradientStop { position: 0.35; color: "#30000000" }
+                    GradientStop { position: 0.7; color: "#10000000" }
+                    GradientStop { position: 1.0; color: "#00000000" }
+                }
+            }
 
             ColumnLayout {
                 anchors.fill: parent
@@ -86,17 +104,35 @@ Item {
     Rectangle {
         id: renameProfileOverlay
         anchors.fill: parent
-        color: "#80000000"
+        anchors.topMargin: -40
+        anchors.leftMargin: -52
+        anchors.rightMargin: -52
+        color: "#40000000"
         visible: false
         z: 1000
         
         property color accentColor: backend && backend.settings && backend.settings.accent_color ? backend.settings.accent_color : "#7793a1"
         property string oldName: ""
 
-        GlassBlurPanel {
+        Rectangle {
             anchors.centerIn: parent
             width: 380
             height: 180
+            radius: 12
+            color: "#a01c1c1c"
+            border.color: "#70454545"
+            border.width: 1
+
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#60000000" }
+                    GradientStop { position: 0.35; color: "#30000000" }
+                    GradientStop { position: 0.7; color: "#10000000" }
+                    GradientStop { position: 1.0; color: "#00000000" }
+                }
+            }
 
             ColumnLayout {
                 anchors.fill: parent
@@ -163,16 +199,34 @@ Item {
     Rectangle {
         id: saveProfileOverlay
         anchors.fill: parent
-        color: "#80000000"
+        color: "#40000000"
         visible: false
         z: 1000
+        anchors.topMargin: -40
+        anchors.leftMargin: -52
+        anchors.rightMargin: -52
         
         property color accentColor: backend && backend.settings && backend.settings.accent_color ? backend.settings.accent_color : "#7793a1"
 
-        GlassBlurPanel {
+        Rectangle {
             anchors.centerIn: parent
             width: 380
             height: 180
+            radius: 12
+            color: "#a01c1c1c"
+            border.color: "#70454545"
+            border.width: 1
+
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#60000000" }
+                    GradientStop { position: 0.35; color: "#30000000" }
+                    GradientStop { position: 0.7; color: "#10000000" }
+                    GradientStop { position: 1.0; color: "#00000000" }
+                }
+            }
 
             ColumnLayout {
                 anchors.fill: parent
@@ -240,16 +294,34 @@ Item {
     Rectangle {
         id: loadProfileOverlay
         anchors.fill: parent
-        color: "#80000000"
+        color: "#40000000"
         visible: false
         z: 1000
+        anchors.topMargin: -40
+        anchors.leftMargin: -52
+        anchors.rightMargin: -52
         
         property color accentColor: backend && backend.settings && backend.settings.accent_color ? backend.settings.accent_color : "#7793a1"
 
-        GlassBlurPanel {
+        Rectangle {
             anchors.centerIn: parent
             width: 380
             height: 180
+            radius: 12
+            color: "#a01c1c1c"
+            border.color: "#70454545"
+            border.width: 1
+
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#60000000" }
+                    GradientStop { position: 0.35; color: "#30000000" }
+                    GradientStop { position: 0.7; color: "#10000000" }
+                    GradientStop { position: 1.0; color: "#00000000" }
+                }
+            }
 
             ColumnLayout {
                 anchors.fill: parent
@@ -325,16 +397,34 @@ Item {
     Rectangle {
         id: deleteProfileOverlay
         anchors.fill: parent
-        color: "#80000000"
+        color: "#40000000"
         visible: false
         z: 1000
+        anchors.topMargin: -40
+        anchors.leftMargin: -52
+        anchors.rightMargin: -52
         
         property color accentColor: "#e74c3c"
 
-        GlassBlurPanel {
+        Rectangle {
             anchors.centerIn: parent
             width: 380
             height: 180
+            radius: 12
+            color: "#a01c1c1c"
+            border.color: "#70454545"
+            border.width: 1
+
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#60000000" }
+                    GradientStop { position: 0.35; color: "#30000000" }
+                    GradientStop { position: 0.7; color: "#10000000" }
+                    GradientStop { position: 1.0; color: "#00000000" }
+                }
+            }
 
             ColumnLayout {
                 anchors.fill: parent

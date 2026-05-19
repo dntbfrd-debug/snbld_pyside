@@ -41,8 +41,6 @@ Item {
             id: activationPanel
             Layout.fillWidth: true
             Layout.preferredHeight: activationLayout.implicitHeight + 30
-            border.width: 1
-            border.color: activationError ? "#f44336" : (activationSuccess ? "#4CAF50" : "#50ffffff")
             visible: !subscriptionPage.isActivated
 
             // Бегущая волна по верхней границе (при активации)
@@ -75,7 +73,7 @@ Item {
                         loops: Animation.Infinite
                         NumberAnimation {
                             from: -120
-                            to: parent.width
+                            to: waveBar1.parent.width
                             duration: 2000
                             easing.type: Easing.Linear
                         }
@@ -104,7 +102,7 @@ Item {
                         PauseAnimation { duration: 1000 }
                         NumberAnimation {
                             from: -120
-                            to: parent.width
+                            to: waveBar2.parent.width
                             duration: 2000
                             easing.type: Easing.Linear
                         }
@@ -234,8 +232,7 @@ Item {
         GlassBlurPanel {
             Layout.fillWidth: true
             Layout.preferredHeight: 120
-            border.width: 1
-            border.color: subInfo.valid ? "#4CAF50" : "#FFC107"
+            border.color: subInfo.valid ? "#4CAF50" : "#e74c3c"
 
             ColumnLayout {
                 anchors.fill: parent
@@ -251,7 +248,7 @@ Item {
                     }
                     Text {
                         text: subInfo.valid ? " Активна" : " Неактивна"
-                        color: subInfo.valid ? "#4CAF50" : "#FFC107"
+                        color: subInfo.valid ? "#4CAF50" : "#e74c3c"
                         font.pointSize: 12
                         font.bold: true
                     }
@@ -321,8 +318,6 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: infoLayout.implicitHeight + 30
             glassOpacity: 0
-            border.width: 1
-            border.color: subscriptionPage.accentColor
 
             PageBorder {
                 anchors.fill: parent

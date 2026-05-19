@@ -14,149 +14,159 @@ Item {
         ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.topMargin: 10
             ScrollBar.vertical: GlassScrollBar {}
             ScrollBar.horizontal: GlassScrollBar { policy: ScrollBar.AlwaysOff }
 
-            Item {
-                id: gridWrapper
-                width: Math.max(grid.implicitWidth, macrosListPage.width - 10)
-                height: grid.implicitHeight
+                Item {
+                    id: gridWrapper
+                    width: Math.max(grid.implicitWidth, macrosListPage.width - 10)
+                    height: grid.implicitHeight + 10
 
-                GridLayout {
-                    id: grid
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    columns: 6
-                    columnSpacing: 8
-                    rowSpacing: 8
+                    GridLayout {
+                        id: grid
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        anchors.topMargin: 10
+                        columns: 6
+                        columnSpacing: 8
+                        rowSpacing: 8
 
-                    Repeater {
-                    id: macrosRepeater
-                    model: backend.macros
+                        Repeater {
+                            id: macrosRepeater
+                            model: backend.macros
 
-                    delegate: GlassBlurPanel {
-                        width: 160
-                        height: 160
-                        glassOpacity: 0.6
-                        borderOpacity: 0.3
-                        clip: true
+                            delegate: Item {
+                                id: tileWrapper
+                                implicitWidth: 160
+                                implicitHeight: 160
 
-                        ColumnLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 12
-                            anchors.rightMargin: 12
-                            anchors.topMargin: 10
-                            anchors.bottomMargin: 10
-                            spacing: 4
-
-                            Image {
-                                source: {
-                                    if (!ResourceHelper) return ""
-                                    if (modelData.type === "skill" && modelData.skill_id) {
-                                        return ResourceHelper.get_skill_icon_url(modelData.skill_id)
-                                    }
-                                    if (modelData.type === "buff" && modelData.buff_id) {
-                                        return ResourceHelper.get_skill_icon_url(modelData.buff_id)
-                                    }
-                                    if (modelData.type === "simple") return ResourceHelper.get_icon_url("macros1.png")
-                                    if (modelData.type === "zone") return ResourceHelper.get_icon_url("zone.png")
-                                    if (modelData.type === "skill") return ResourceHelper.get_icon_url("skill.png")
-                                    return ResourceHelper.get_icon_url("buff.png")
-                                }
-                                width: 32
-                                height: 32
-                                fillMode: Image.PreserveAspectFit
-                                Layout.alignment: Qt.AlignHCenter
-                            }
-
-                            Text {
-                                text: modelData.name
-                                font.bold: true
-                                font.pointSize: 8
-                                color: "#c2c2c2"
-                                horizontalAlignment: Text.AlignHCenter
-                                wrapMode: Text.Wrap
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 30
-                                maximumLineCount: 2
-                            }
-
-                            Text {
-                                text: modelData.type === "simple" ? "Простой" :
-                                      modelData.type === "zone" ? "Зональный" :
-                                      modelData.type === "skill" ? "Скилл" : "Бафф"
-                                font.pointSize: 8
-                                color: "#a0a0a0"
-                                horizontalAlignment: Text.AlignHCenter
-                                Layout.fillWidth: true
-                            }
-
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 20
-                                color: backend && !backend.global_stopped ? "#204CAF50" : "#20ffffff"
-                                radius: 4
-
-                                RowLayout {
-                                    anchors.centerIn: parent
-                                    spacing: 4
-                                    Text {
-                                        text: backend && !backend.global_stopped ? "" : ""
-                                        color: backend && !backend.global_stopped ? "#4CAF50" : "#c2c2c2"
-                                        font.pointSize: 10
-                                    }
-                                    Text {
-                                        text: backend && !backend.global_stopped ? "Активен" : "Остановлен"
-                                        color: backend && !backend.global_stopped ? "#4CAF50" : "#c2c2c2"
-                                        font.pointSize: 8
-                                    }
-                                }
-                            }
-
-                            Item { Layout.fillHeight: true }
-
-                            RowLayout {
-                                Layout.alignment: Qt.AlignHCenter
-                                spacing: 4
+                                property bool _tileHovered: tileRoot.hovered || btnEdit.hovered || btnDelete.hovered
 
                                 BaseButton {
-                                    text: "Изменить"
-                                    implicitWidth: 65
-                                    implicitHeight: 28
-                                    iconSize: 10
-                                    textSize: 8
+                                    id: tileRoot
+                                    anchors.fill: parent
+                                    buttonRadius: 12
+                                    iconSource: ""
+                                    text: ""
+
                                     onClicked: {
-                                        console.log("Edit clicked for:", modelData.name, "type:", modelData.type)
                                         backend.set_macro_for_edit(modelData)
-                                        // Открываем соответствующую страницу редактирования
-                                        if (modelData.type === "simple") {
+                                        if (modelData.type === "simple")
                                             backend.pageChangeRequested("EditSimplePage.qml")
-                                        } else if (modelData.type === "zone") {
+                                        else if (modelData.type === "zone")
                                             backend.pageChangeRequested("EditZonePage.qml")
-                                        } else if (modelData.type === "skill") {
+                                        else if (modelData.type === "skill")
                                             backend.pageChangeRequested("EditSkillPage.qml")
-                                        } else if (modelData.type === "buff") {
+                                        else if (modelData.type === "buff")
                                             backend.pageChangeRequested("EditBuffPage.qml")
-                                        } else {
-                                            backend.notification("Редактирование этого типа недоступно", "warning")
+                                    }
+
+                                    contentItem: ColumnLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 12
+                                        anchors.rightMargin: 12
+                                        anchors.topMargin: 10
+                                        anchors.bottomMargin: 10
+                                        spacing: 4
+                                        z: 2
+
+                                        Image {
+                                            source: {
+                                                if (!ResourceHelper) return ""
+                                                if (modelData.type === "skill" && modelData.skill_id)
+                                                    return ResourceHelper.get_skill_icon_url(modelData.skill_id)
+                                                if (modelData.type === "buff" && modelData.buff_id)
+                                                    return ResourceHelper.get_skill_icon_url(modelData.buff_id)
+                                                if (modelData.type === "simple") return ResourceHelper.get_icon_url("macros1.png")
+                                                if (modelData.type === "zone") return ResourceHelper.get_icon_url("zone.png")
+                                                return ResourceHelper.get_icon_url("buff.png")
+                                            }
+                                            width: 32
+                                            height: 32
+                                            fillMode: Image.PreserveAspectFit
+                                            Layout.alignment: Qt.AlignHCenter
+                                        }
+
+                                        Text {
+                                            text: modelData.name
+                                            font.bold: true
+                                            font.pointSize: 8
+                                            color: "#c2c2c2"
+                                            horizontalAlignment: Text.AlignHCenter
+                                            wrapMode: Text.Wrap
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: 30
+                                            maximumLineCount: 2
+                                        }
+
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            height: 20
+                                            color: backend && !backend.global_stopped ? "#204CAF50" : "#20ffffff"
+                                            radius: 4
+
+                                            RowLayout {
+                                                anchors.centerIn: parent
+                                                spacing: 4
+                                                Text {
+                                                    text: backend && !backend.global_stopped ? "\u25cf" : "\u25cb"
+                                                    color: backend && !backend.global_stopped ? "#4CAF50" : "#c2c2c2"
+                                                    font.pointSize: 10
+                                                }
+                                                Text {
+                                                    text: backend && !backend.global_stopped ? "Активен" : "Остановлен"
+                                                    color: backend && !backend.global_stopped ? "#4CAF50" : "#c2c2c2"
+                                                    font.pointSize: 8
+                                                }
+                                            }
+                                        }
+
+                                        Item { Layout.fillHeight: true }
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 4
+                                            opacity: _tileHovered ? 1 : 0
+                                            Behavior on opacity { NumberAnimation { duration: 150 } }
+
+                                            BaseButton {
+                                                id: btnEdit
+                                                text: "Изменить"
+                                                Layout.fillWidth: true
+                                                implicitHeight: 28
+                                                iconSize: 10
+                                                textSize: 8
+                                                onClicked: {
+                                                    backend.set_macro_for_edit(modelData)
+                                                    if (modelData.type === "simple")
+                                                        backend.pageChangeRequested("EditSimplePage.qml")
+                                                    else if (modelData.type === "zone")
+                                                        backend.pageChangeRequested("EditZonePage.qml")
+                                                    else if (modelData.type === "skill")
+                                                        backend.pageChangeRequested("EditSkillPage.qml")
+                                                    else if (modelData.type === "buff")
+                                                        backend.pageChangeRequested("EditBuffPage.qml")
+                                                }
+                                            }
+                                            BaseButton {
+                                                id: btnDelete
+                                                text: "Удалить"
+                                                Layout.fillWidth: true
+                                                implicitHeight: 28
+                                                iconSize: 10
+                                                textSize: 8
+                                                onClicked: {
+                                                    _pendingDeleteName = modelData.name
+                                                    _showDeleteConfirm = true
+                                                }
+                                            }
                                         }
                                     }
                                 }
-                                BaseButton {
-                                    text: "Удалить"
-                                    implicitWidth: 65
-                                    implicitHeight: 28
-                                    iconSize: 10
-                                    textSize: 8
-                                    onClicked: {
-                                        _pendingDeleteName = modelData.name
-                                        _showDeleteConfirm = true
-                                    }
-                                }
                             }
-                        }
                     }
                 }
-            }
             }
         }
 
@@ -200,7 +210,6 @@ Item {
             macrosRepeater.model = backend.macros
         }
         function onMacroStatusChanged() {
-            // Принудительно обновляем модель
             macrosRepeater.model = null
             macrosRepeater.model = backend.macros
         }
@@ -213,15 +222,35 @@ Item {
     Rectangle {
         id: confirmDeleteOverlay
         anchors.fill: parent
-        color: "#80000000"
+        color: "#40000000"
         visible: _showDeleteConfirm
+        anchors.topMargin: -40
+        anchors.leftMargin: -52
+        anchors.rightMargin: -52
+        opacity: _showDeleteConfirm ? 1 : 0
         z: 100
 
-        GlassBlurPanel {
+        Behavior on opacity { NumberAnimation { duration: 200 } }
+
+        Rectangle {
             anchors.centerIn: parent
             width: 360
             height: 200
-            glassOpacity: 0.85
+            radius: 12
+            color: "#a01c1c1c"
+            border.color: "#70454545"
+            border.width: 1
+
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#60000000" }
+                    GradientStop { position: 0.35; color: "#30000000" }
+                    GradientStop { position: 0.7; color: "#10000000" }
+                    GradientStop { position: 1.0; color: "#00000000" }
+                }
+            }
 
             ColumnLayout {
                 anchors.fill: parent

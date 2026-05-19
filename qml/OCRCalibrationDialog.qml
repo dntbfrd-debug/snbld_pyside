@@ -49,8 +49,21 @@ Window {
     Rectangle {
         anchors.fill: parent
         radius: 12
-        color: "#2d2d2d"
+        color: "#a01c1c1c"
+        border.color: "#70454545"
+        border.width: 1
         clip: true
+
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "#60000000" }
+                GradientStop { position: 0.35; color: "#30000000" }
+                GradientStop { position: 0.7; color: "#10000000" }
+                GradientStop { position: 1.0; color: "#00000000" }
+            }
+        }
 
         // Заголовок
         Rectangle {
@@ -59,7 +72,8 @@ Window {
             anchors.left: parent.left
             anchors.right: parent.right
             height: 45
-            color: "#2a2a3a"
+            color: "#50000000"
+            radius: 12
 
             Text {
                 anchors.left: parent.left
@@ -102,14 +116,6 @@ Window {
             }
         }
 
-        Rectangle {
-            anchors.top: headerBar.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 1
-            color: "#3a3a4a"
-        }
-
         // Прогресс-бар
         Rectangle {
             anchors.top: headerBar.bottom
@@ -150,7 +156,11 @@ Window {
                 visible: calibrationState === "ready"
                 spacing: 12
 
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     Layout.preferredHeight: infoLayout.implicitHeight + 20
 
@@ -177,7 +187,11 @@ Window {
                     }
                 }
 
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     Layout.preferredHeight: stepsLayout.implicitHeight + 20
 
@@ -228,7 +242,11 @@ Window {
                     }
                 }
 
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     height: 50
 
@@ -299,7 +317,11 @@ Window {
                 visible: calibrationState === "select_mob"
                 spacing: 14
 
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.alignment: Qt.AlignHCenter
                     width: 260
                     height: 80
@@ -324,7 +346,11 @@ Window {
                     }
                 }
 
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     Layout.preferredHeight: hintLayout.implicitHeight + 20
 
@@ -412,7 +438,11 @@ Window {
                 visible: calibrationState === "test_mob"
                 spacing: 15
 
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.alignment: Qt.AlignHCenter
                     width: 220
                     height: 100
@@ -445,7 +475,11 @@ Window {
                     }
                 }
 
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     height: 60
 
@@ -490,7 +524,11 @@ Window {
                 }
 
                 // Превью
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     Layout.preferredHeight: 160
 
@@ -506,7 +544,11 @@ Window {
                             Layout.alignment: Qt.AlignHCenter
                         }
 
-                        GlassBlurPanel {
+                        Rectangle {
+                            radius: 12
+                            color: "#151515"
+                            border.color: "#70454545"
+                            border.width: 1
                             Layout.alignment: Qt.AlignHCenter
                             Layout.fillWidth: true
                             Layout.preferredHeight: 80
@@ -546,7 +588,11 @@ Window {
                 }
 
                 // Подсказка
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     Layout.preferredHeight: hintMobLayout.implicitHeight + 24
 
@@ -615,11 +661,14 @@ Window {
                 visible: calibrationState === "select_player"
                 spacing: 14
 
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 10
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.alignment: Qt.AlignHCenter
                     width: 260
                     height: 80
-                    radius: 10
 
                     ColumnLayout {
                         anchors.centerIn: parent
@@ -641,7 +690,11 @@ Window {
                     }
                 }
 
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     Layout.preferredHeight: playerHintLayout.implicitHeight + 20
 
@@ -729,11 +782,14 @@ Window {
                 visible: calibrationState === "test_player"
                 spacing: 15
 
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 10
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.alignment: Qt.AlignHCenter
                     width: 220
                     height: 100
-                    radius: 10
 
                     ColumnLayout {
                         anchors.centerIn: parent
@@ -763,10 +819,13 @@ Window {
                     }
                 }
 
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 8
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     height: 60
-                    radius: 8
 
                     Text {
                         anchors.centerIn: parent
@@ -809,10 +868,13 @@ Window {
                 }
 
                 // Превью
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 8
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     Layout.preferredHeight: 160
-                    radius: 8
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -826,11 +888,14 @@ Window {
                             Layout.alignment: Qt.AlignHCenter
                         }
 
-                        GlassBlurPanel {
+                        Rectangle {
+                            radius: 0
+                            color: "#151515"
+                            border.color: "#70454545"
+                            border.width: 1
                             Layout.alignment: Qt.AlignHCenter
                             Layout.fillWidth: true
                             Layout.preferredHeight: 80
-                            radius: 0
 
                             Image {
                                 source: playerPreviewImage
@@ -866,7 +931,11 @@ Window {
                     }
                 }
 
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     Layout.preferredHeight: hintPlayerLayout.implicitHeight + 24
 
@@ -977,7 +1046,11 @@ Window {
                 }
 
                 // Итог
-                GlassBlurPanel {
+                Rectangle {
+                    radius: 12
+                    color: "#151515"
+                    border.color: "#70454545"
+                    border.width: 1
                     Layout.fillWidth: true
                     Layout.preferredHeight: resultLayout.implicitHeight + 20
 
