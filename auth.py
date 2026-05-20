@@ -21,6 +21,7 @@ SESSION_FILE = CACHE_DIR / "session.json"
 KEY_FILE = CACHE_DIR / "activation_key.txt"
 
 logger = get_logger('auth')
+CREATE_NO_WINDOW = 0x08000000
 
 
 def _get_verify_param() -> bool:
