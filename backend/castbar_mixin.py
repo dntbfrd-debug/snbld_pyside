@@ -321,35 +321,35 @@ class CastbarMixin:
             height = 5
             monitor = {"left": left, "top": top, "width": width, "height": height}
             screenshot = sct.grab(monitor)
-                target_r = self.castbar_color[0]
-                target_g = self.castbar_color[1]
-                target_b = self.castbar_color[2]
-                threshold = self.castbar_threshold
-                match_count = 0
-                total_pixels = width * height
-                best_diff = float('inf')
-                for dy in range(height):
-                    for dx in range(width):
-                        idx = (dy * width + dx) * 3
-                        r = screenshot.rgb[idx]
-                        g = screenshot.rgb[idx + 1]
-                        b = screenshot.rgb[idx + 2]
-                        diff = abs(r - target_r) + abs(g - target_g) + abs(b - target_b)
-                        if diff < best_diff:
-                            best_diff = diff
-                        if diff <= threshold:
-                            match_count += 1
-                match_ratio = match_count / total_pixels if total_pixels > 0 else 0
-                is_visible = (match_ratio >= 0.3) or (best_diff <= threshold // 2)
-                if not is_visible and best_diff < threshold * 2:
-                    logger.debug(
-                        f"[CASTBAR] Почти: точка=({x},{y}), match={match_count}/{total_pixels} ({match_ratio:.0%}), "
-                        f"best_diff={best_diff}, порог={threshold}, match_ratio={match_ratio:.0%}"
-                    )
-                with self._castbar_cache_lock:
-                    self._castbar_cache['visible'] = is_visible
-                    self._castbar_cache['timestamp'] = time.time()
-                return is_visible
+            target_r = self.castbar_color[0]
+            target_g = self.castbar_color[1]
+            target_b = self.castbar_color[2]
+            threshold = self.castbar_threshold
+            match_count = 0
+            total_pixels = width * height
+            best_diff = float('inf')
+            for dy in range(height):
+                for dx in range(width):
+                    idx = (dy * width + dx) * 3
+                    r = screenshot.rgb[idx]
+                    g = screenshot.rgb[idx + 1]
+                    b = screenshot.rgb[idx + 2]
+                    diff = abs(r - target_r) + abs(g - target_g) + abs(b - target_b)
+                    if diff < best_diff:
+                        best_diff = diff
+                    if diff <= threshold:
+                        match_count += 1
+            match_ratio = match_count / total_pixels if total_pixels > 0 else 0
+            is_visible = (match_ratio >= 0.3) or (best_diff <= threshold // 2)
+            if not is_visible and best_diff < threshold * 2:
+                logger.debug(
+                    f"[CASTBAR] Почти: точка=({x},{y}), match={match_count}/{total_pixels} ({match_ratio:.0%}), "
+                    f"best_diff={best_diff}, порог={threshold}, match_ratio={match_ratio:.0%}"
+                )
+            with self._castbar_cache_lock:
+                self._castbar_cache['visible'] = is_visible
+                self._castbar_cache['timestamp'] = time.time()
+            return is_visible
         except Exception as e:
             logger.error(f"[CASTBAR] Ошибка проверки: {e}", exc_info=True)
             return False
