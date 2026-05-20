@@ -1,6 +1,5 @@
 import time
 import os
-import logging
 
 from backend.keyboard_shim import hook_key as _hook_key, unhook_key as _unhook_key, unhook_all as _unhook_all
 KEYBOARD_AVAILABLE = True

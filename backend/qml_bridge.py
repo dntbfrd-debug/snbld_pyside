@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import hashlib
 import webbrowser
 import zipfile
 import io
@@ -164,11 +165,12 @@ class QMLBridgeMixin:
                     filename = os.path.basename(log_file)
                     zf.write(log_file, filename)
 
+                key_hash = hashlib.sha256((self._activation_key or "").encode()).hexdigest()[:8]
                 metadata = {
                     "version": self._get_current_version(),
                     "timestamp": datetime.now().isoformat(),
                     "hwid": "",
-                    "user_key": self._activation_key[:16] if self._activation_key else "",
+                    "user_key": key_hash,
                     "is_activated": self._is_activated
                 }
 
@@ -189,8 +191,9 @@ class QMLBridgeMixin:
 
             url = "https://snbld.ru/upload_logs.php"
 
+            key_hash = hashlib.sha256((self._activation_key or "").encode()).hexdigest()[:8]
             data = {
-                "user_key": self._activation_key or "",
+                "user_key": key_hash,
                 "version": self._get_current_version()
             }
 

@@ -1,16 +1,21 @@
 import requests
 import json
-from backend.logger_manager import get_logger
+import subprocess
+import hashlib
+import platform
+import ctypes
+import ctypes.wintypes as wintypes
 import os
 import sys
 import time
-import hashlib
-import ctypes
 from pathlib import Path
 from datetime import datetime
+from functools import lru_cache
+
+from backend.logger_manager import get_logger
 
 API_URL = "https://snbld.ru"
-CACHE_DIR = Path(os.environ.get('APPDATA', '.')) / "snbld_resvap"
+CACHE_DIR = Path(os.environ['APPDATA']) / "snbld_resvap"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 SESSION_FILE = CACHE_DIR / "session.json"
 KEY_FILE = CACHE_DIR / "activation_key.txt"
@@ -20,9 +25,6 @@ logger = get_logger('auth')
 
 def _get_verify_param() -> bool:
     return True
-
-
-import ctypes.wintypes as wintypes
 
 class DATA_BLOB(ctypes.Structure):
     _fields_ = [("cbData", wintypes.DWORD),
@@ -57,7 +59,7 @@ def _encrypt_data(data: bytes) -> bytes:
             raise ctypes.WinError()
     except Exception as e:
         logger.error(f"[AUTH] DPAPI шифрование не удалось: {e}", exc_info=True)
-        return data
+        raise RuntimeError("DPAPI шифрование недоступно") from e
 
 
 def _decrypt_data(data: bytes) -> bytes:
@@ -88,7 +90,7 @@ def _decrypt_data(data: bytes) -> bytes:
             raise ctypes.WinError()
     except Exception as e:
         logger.error(f"[AUTH] DPAPI дешифрование не удалось: {e}", exc_info=True)
-        return data
+        raise RuntimeError("DPAPI дешифрование недоступно") from e
 
 
 def _save_encrypted(file_path: Path, data: dict):
@@ -343,30 +345,7 @@ class HeartbeatManager:
 
 
 
-def _run_wmic(args):
-    import subprocess
-    import os
-    CREATE_NO_WINDOW = 0x08000000
-    try:
-        result = subprocess.run(
-            ['wmic'] + args,
-            capture_output=True, text=True,
-            creationflags=CREATE_NO_WINDOW,
-            timeout=5
-        )
-        for line in result.stdout.split('\n'):
-            line = line.strip()
-            if line and not any(x in line for x in ['ProcessorId', 'SerialNumber', 'Value']):
-                return line
-    except (OSError, subprocess.SubprocessError):
-        pass
-    return None
-
-
 def _run_powershell(script):
-    import subprocess
-    import os
-    CREATE_NO_WINDOW = 0x08000000
     try:
         result = subprocess.run(
             ['powershell', '-NoProfile', '-NonInteractive', '-Command', script],
@@ -380,15 +359,11 @@ def _run_powershell(script):
         return None
 
 
+@lru_cache(maxsize=1)
 def get_hwid():
     try:
-        import hashlib
-        import platform
-
         parts = []
 
-        # PowerShell/CIM сначала — работает на всех версиях Windows (включая 11 24H2+)
-        # wmic — fallback для старых систем
         cpu_id = _run_powershell(
             "(Get-CimInstance Win32_Processor).ProcessorId"
         )
@@ -396,8 +371,6 @@ def get_hwid():
             cpu_id = _run_powershell(
                 "(Get-WmiObject Win32_Processor).ProcessorId"
             )
-        if not cpu_id:
-            cpu_id = _run_wmic(['cpu', 'get', 'processorid'])
         parts.append(cpu_id or platform.processor())
 
         mb_serial = _run_powershell(
@@ -407,8 +380,6 @@ def get_hwid():
             mb_serial = _run_powershell(
                 "(Get-WmiObject Win32_BaseBoard).SerialNumber"
             )
-        if not mb_serial:
-            mb_serial = _run_wmic(['baseboard', 'get', 'serialnumber'])
         parts.append(mb_serial or "unknown_mb")
 
         disk_serial = _run_powershell(
@@ -418,8 +389,6 @@ def get_hwid():
             disk_serial = _run_powershell(
                 "(Get-WmiObject Win32_DiskDrive | Where-Object Index -eq 0).SerialNumber"
             )
-        if not disk_serial:
-            disk_serial = _run_wmic(['diskdrive', 'where', 'index=0', 'get', 'serialnumber'])
         parts.append(disk_serial or "unknown_disk")
 
         hwid_string = "-".join(parts)

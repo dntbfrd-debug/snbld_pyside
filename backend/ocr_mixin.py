@@ -1,5 +1,4 @@
 import time
-import logging
 import threading
 
 from PySide6.QtCore import Slot

@@ -2,7 +2,6 @@ import json
 import os
 import re
 import time
-import logging
 import threading
 
 from PySide6.QtCore import Slot

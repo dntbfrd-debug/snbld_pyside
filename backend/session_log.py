@@ -28,12 +28,13 @@ class SessionLogger:
     def _get_file(self):
         today = datetime.now().strftime("%Y-%m-%d")
         if self._current_date != today:
-            if self._file:
+            if self._file is not None:
                 try:
                     self._file.flush()
                     self._file.close()
                 except Exception:
                     pass
+                self._file = None
             self._current_date = today
             path = os.path.join(self._log_dir, f"session_{today}.jsonl")
             self._file = open(path, "a", encoding="utf-8")

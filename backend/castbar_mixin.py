@@ -1,7 +1,6 @@
 import time
 import os
 import threading
-import logging
 
 from PySide6.QtCore import Slot, QObject
 
@@ -12,8 +11,21 @@ logger = get_logger('castbar')
 try:
     from low_level_hook import MouseHookManager
     LOW_LEVEL_HOOK_AVAILABLE = True
-except Exception:
+except ImportError:
     LOW_LEVEL_HOOK_AVAILABLE = False
+
+
+_sct_instance = None
+_sct_lock = threading.Lock()
+
+def _get_sct():
+    global _sct_instance
+    if _sct_instance is None:
+        with _sct_lock:
+            if _sct_instance is None:
+                import mss
+                _sct_instance = mss.mss()
+    return _sct_instance
 
 
 class CastbarMixin:
@@ -60,27 +72,24 @@ class CastbarMixin:
         return f"{pos[0]},{pos[1]}"
 
     def _capture_pixel_mss(self, x, y, size=1):
-        """Захват цвета пикселя через mss (DXGI) — работает на Windows 7-11, включая GPU-ускоренные окна"""
         try:
-            import mss
             import numpy as np
-            with mss.mss() as sct:
-                half = size // 2
-                monitor = {
-                    "left": max(0, int(x) - half),
-                    "top": max(0, int(y) - half),
-                    "width": size,
-                    "height": size,
-                }
-                img = sct.grab(monitor)
-                img_np = np.array(img)
-                if img_np.size == 0:
-                    return None
-                # Средний цвет пикселей области
-                avg_r = int(np.mean(img_np[:, :, 2]))
-                avg_g = int(np.mean(img_np[:, :, 1]))
-                avg_b = int(np.mean(img_np[:, :, 0]))
-                return (avg_r, avg_g, avg_b)
+            sct = _get_sct()
+            half = size // 2
+            monitor = {
+                "left": max(0, int(x) - half),
+                "top": max(0, int(y) - half),
+                "width": size,
+                "height": size,
+            }
+            img = sct.grab(monitor)
+            img_np = np.array(img)
+            if img_np.size == 0:
+                return None
+            avg_r = int(np.mean(img_np[:, :, 2]))
+            avg_g = int(np.mean(img_np[:, :, 1]))
+            avg_b = int(np.mean(img_np[:, :, 0]))
+            return (avg_r, avg_g, avg_b)
         except Exception:
             return None
 
@@ -292,23 +301,26 @@ class CastbarMixin:
             return False
         with self._castbar_cache_lock:
             age = time.time() - self._castbar_cache['timestamp']
-            if age < 0.010:
+            if age < 0.050:
                 return self._castbar_cache['visible']
         return self._check_castbar_direct()
 
     def _check_castbar_direct(self):
         try:
             logger.debug(f"[CASTBAR DEBUG] _check_castbar_direct: castbar_point='{self.castbar_point}', color={self.castbar_color}")
-            x, y = map(int, self.castbar_point.split(','))
+            try:
+                x, y = map(int, self.castbar_point.split(','))
+            except (ValueError, AttributeError) as e:
+                logger.error(f"[CASTBAR] Неверный формат castbar_point '{self.castbar_point}': {e}")
+                return False
             logger.debug(f"[CASTBAR DEBUG] Parsed coordinates: x={x}, y={y}")
-            import mss
-            with mss.mss() as sct:
-                left = max(0, int(x) - 2)
-                top = max(0, int(y) - 2)
-                width = 5
-                height = 5
-                monitor = {"left": left, "top": top, "width": width, "height": height}
-                screenshot = sct.grab(monitor)
+            sct = _get_sct()
+            left = max(0, int(x) - 2)
+            top = max(0, int(y) - 2)
+            width = 5
+            height = 5
+            monitor = {"left": left, "top": top, "width": width, "height": height}
+            screenshot = sct.grab(monitor)
                 target_r = self.castbar_color[0]
                 target_g = self.castbar_color[1]
                 target_b = self.castbar_color[2]

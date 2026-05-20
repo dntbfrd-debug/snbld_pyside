@@ -102,7 +102,9 @@ class WindowManager:
         if GetForegroundWindow() == hwnd:
             return True
         try:
-            with _attached_thread_input(hwnd):
+            with _attached_thread_input(hwnd) as attached:
+                if not attached:
+                    logger.warning(f"AttachThreadInput не удался (UIPI), использую SetForegroundWindow напрямую: hwnd={hwnd}")
                 SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0,
                             SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW)
                 success = False

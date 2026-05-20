@@ -178,7 +178,9 @@ class InputSystem:
         try:
             if self.target_hwnd:
                 if not get_window_manager().skip_window_activation:
-                    SetForegroundWindow(self.target_hwnd)
+                    fg = SetForegroundWindow(self.target_hwnd)
+                    if not fg:
+                        logger.debug(f"[INPUT] SetForegroundWindow не удался для key_down '{key_name}'")
                     time.sleep(0.01)
             
             inputs = (INPUT * 1)()
@@ -206,7 +208,9 @@ class InputSystem:
         try:
             if self.target_hwnd:
                 if not get_window_manager().skip_window_activation:
-                    SetForegroundWindow(self.target_hwnd)
+                    fg = SetForegroundWindow(self.target_hwnd)
+                    if not fg:
+                        logger.debug(f"[INPUT] SetForegroundWindow не удался для key_up '{key_name}'")
                     time.sleep(0.01)
             
             inputs = (INPUT * 1)()
