@@ -28,7 +28,7 @@ class OCRMixin:
             scale=self._settings.get("ocr_scale", 10),
             psm=self._settings.get("ocr_psm", 7),
             use_morph=self._settings.get("ocr_use_morph", True),
-            check_window=self.is_game_window_active,
+            check_window=lambda: self.is_game_window_active,
         )
         self.target_reader.data_updated.connect(self.on_distance_updated)
         self.target_reader.start()

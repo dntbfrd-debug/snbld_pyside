@@ -19,7 +19,7 @@ class AuthMixin:
     activationResult = Signal(str, str)  # status, message ("success"/"error", details)
     def _check_activation_on_startup(self):
         logger.info("[AUTH] Проверка активации...")
-        from auth import load_session, check_session, check_key, load_key_from_file, extract_key_from_exe, save_key_to_file, get_hwid
+        from auth import load_session, check_session, check_key, load_key_from_file, save_key_to_file, get_hwid
 
         session_data = load_session()
         if session_data and 'session_id' in session_data:
@@ -67,12 +67,6 @@ class AuthMixin:
         if file_key:
             self._activation_key = file_key
             logger.info(f"[AUTH] Ключ найден в файле: {file_key[:4]}...{file_key[-4:]}")
-
-        exe_key = extract_key_from_exe()
-        if exe_key:
-            self._activation_key = exe_key
-            save_key_to_file(exe_key)
-            logger.info(f"[AUTH] Ключ найден в .exe: {exe_key[:4]}...{exe_key[-4:]}")
 
         if self._activation_key:
             hwid = get_hwid()

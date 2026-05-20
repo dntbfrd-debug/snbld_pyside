@@ -343,7 +343,9 @@ class MacroMixin:
                     input_system.set_target(game_hwnd)
                     skip_activation = self._settings.get("window_manager_skip_activation", False)
                     set_skip_window_activation(skip_activation)
-                    logger.info(f"[HWND] Окно игры найдено: hwnd={game_hwnd}, skip_activation={skip_activation}, input_system.target_hwnd установлен")
+                    force_si = self._settings.get("force_sendinput", False)
+                    input_system.set_use_sendinput(force_si)
+                    logger.info(f"[HWND] Окно игры найдено: hwnd={game_hwnd}, skip_activation={skip_activation}, force_sendinput={force_si}")
                 else:
                     logger.warning(f"[HWND] Окно '{self._target_window_title}' не найдено")
             except Exception as e:

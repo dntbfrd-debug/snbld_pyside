@@ -3,6 +3,7 @@ import ctypes
 from ctypes import wintypes
 from backend.logger_manager import get_logger
 from backend.attach_thread import attached_thread_input as _attached_thread_input
+from backend.window_manager import get_window_manager
 from backend.win32_api import (MapVirtualKey, PostMessage, ScreenToClient,
     GetCursorPos, GetForegroundWindow, SetForegroundWindow,
     GetDC, GetDeviceCaps, ReleaseDC,
@@ -67,11 +68,16 @@ class InputSystem:
 
     def __init__(self):
         self.target_hwnd = None
+        self.use_sendinput = False
         self._vk_codes = VIRTUAL_KEYS.copy()
 
     def set_target(self, hwnd: int) -> None:
         self.target_hwnd = hwnd
         logger.info(f"[INPUT]  Целевое окно установлено: hwnd={hwnd}")
+
+    def set_use_sendinput(self, enabled: bool) -> None:
+        self.use_sendinput = bool(enabled)
+        logger.info(f"[INPUT]  Принудительный SendInput: {'ВКЛ' if enabled else 'ВЫКЛ'}")
 
     def _use_sendinput_fallback(self, key_name: str) -> bool:
         """Отправляет клавишу через SendInput (активация окна + глобальный ввод).
@@ -91,6 +97,12 @@ class InputSystem:
             return
 
         try:
+            if self.use_sendinput:
+                self.key_down_sendinput(key_name)
+                time.sleep(0.01)
+                self.key_up_sendinput(key_name)
+                logger.debug(f"[INPUT]  send_key '{key_name}' через SendInput (forced)")
+                return
             with _attached_thread_input(self.target_hwnd) as attached:
                 if not attached:
                     logger.debug(f"[INPUT] AttachThreadInput не удался для '{key_name}', fallback на SendInput")
@@ -103,7 +115,6 @@ class InputSystem:
                 PostMessage(self.target_hwnd, WM_KEYUP, vk, (scan << 16) | 0xC0000001)
                 time.sleep(0.005)
                 logger.debug(f"[INPUT]  send_key '{key_name}' → hwnd={self.target_hwnd}")
-                logger.info(f" Клавиша '{key_name}' отправлена")
         except Exception as e:
             logger.error(f" Ошибка отправки клавиши: {e}")
 
@@ -117,6 +128,9 @@ class InputSystem:
             logger.warning(f" key_down: неизвестная клавиша '{key_name}'")
             return
         try:
+            if self.use_sendinput:
+                self.key_down_sendinput(key_name)
+                return
             with _attached_thread_input(self.target_hwnd) as attached:
                 if not attached:
                     logger.debug(f"[INPUT] AttachThreadInput не удался для key_down '{key_name}', fallback на SendInput")
@@ -139,6 +153,9 @@ class InputSystem:
             logger.debug(f"key_up: неизвестная клавиша '{key_name}', пропускаем")
             return
         try:
+            if self.use_sendinput:
+                self.key_up_sendinput(key_name)
+                return
             with _attached_thread_input(self.target_hwnd) as attached:
                 if not attached:
                     logger.debug(f"[INPUT] AttachThreadInput не удался для key_up '{key_name}', fallback на SendInput")
@@ -160,8 +177,9 @@ class InputSystem:
         
         try:
             if self.target_hwnd:
-                SetForegroundWindow(self.target_hwnd)
-                time.sleep(0.01)
+                if not get_window_manager().skip_window_activation:
+                    SetForegroundWindow(self.target_hwnd)
+                    time.sleep(0.01)
             
             inputs = (INPUT * 1)()
             inputs[0].type = 1
@@ -187,8 +205,9 @@ class InputSystem:
         
         try:
             if self.target_hwnd:
-                SetForegroundWindow(self.target_hwnd)
-                time.sleep(0.01)
+                if not get_window_manager().skip_window_activation:
+                    SetForegroundWindow(self.target_hwnd)
+                    time.sleep(0.01)
             
             inputs = (INPUT * 1)()
             inputs[0].type = 1
@@ -210,18 +229,14 @@ class InputSystem:
             return
 
         try:
+            if self.use_sendinput:
+                self._sendinput_click(0x0002, 0x0004)
+                logger.debug("[INPUT] Левый клик через SendInput (forced)")
+                return
             with _attached_thread_input(self.target_hwnd) as attached:
                 if not attached:
                     logger.debug("[INPUT] AttachThreadInput не удался для click_left, fallback на SendInput")
-                    # Для SendInput клика используем MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_LEFTUP
-                    inputs = (INPUT * 2)()
-                    inputs[0].type = 0  # INPUT_MOUSE
-                    inputs[0].union.mi.dwFlags = 0x0002  # MOUSEEVENTF_LEFTDOWN
-                    inputs[0].union.mi.time = 0
-                    inputs[1].type = 0
-                    inputs[1].union.mi.dwFlags = 0x0004  # MOUSEEVENTF_LEFTUP
-                    inputs[1].union.mi.time = 0
-                    SendInput(2, inputs, ctypes.sizeof(INPUT))
+                    self._sendinput_click(0x0002, 0x0004)
                     return
                 pos = ScreenToClient(self.target_hwnd, GetCursorPos())
                 lparam = (pos[1] << 16) | pos[0]
@@ -232,22 +247,56 @@ class InputSystem:
         except Exception as e:
             logger.error(f" Ошибка левого клика: {e}")
 
+    def _sendinput_click(self, down_flag, up_flag):
+        inputs = (INPUT * 2)()
+        inputs[0].type = 0
+        inputs[0].union.mi.dwFlags = down_flag
+        inputs[0].union.mi.time = 0
+        inputs[1].type = 0
+        inputs[1].union.mi.dwFlags = up_flag
+        inputs[1].union.mi.time = 0
+        SendInput(2, inputs, ctypes.sizeof(INPUT))
+
+    def _sendinput_click_at(self, x, y):
+        if not get_window_manager().skip_window_activation:
+            SetForegroundWindow(self.target_hwnd)
+            time.sleep(0.05)
+        hdc = GetDC(0)
+        if hdc:
+            screen_w = GetDeviceCaps(hdc, 118)
+            screen_h = GetDeviceCaps(hdc, 117)
+            ReleaseDC(0, hdc)
+        else:
+            screen_w, screen_h = 1920, 1080
+        norm_x = int(x * 65535 / screen_w)
+        norm_y = int(y * 65535 / screen_h)
+        inputs = (INPUT * 2)()
+        inputs[0].type = 0
+        inputs[0].union.mi.dx = norm_x
+        inputs[0].union.mi.dy = norm_y
+        inputs[0].union.mi.dwFlags = 0x8000 | 0x0002
+        inputs[0].union.mi.time = 0
+        inputs[1].type = 0
+        inputs[1].union.mi.dx = norm_x
+        inputs[1].union.mi.dy = norm_y
+        inputs[1].union.mi.dwFlags = 0x8000 | 0x0004
+        inputs[1].union.mi.time = 0
+        SendInput(2, inputs, ctypes.sizeof(INPUT))
+        logger.debug(f" Клик AT ({x},{y}) через SendInput")
+
     def click_right(self) -> None:
         if not self.target_hwnd:
             return
 
         try:
+            if self.use_sendinput:
+                self._sendinput_click(0x0008, 0x0010)
+                logger.debug("[INPUT] Правый клик через SendInput (forced)")
+                return
             with _attached_thread_input(self.target_hwnd) as attached:
                 if not attached:
                     logger.debug("[INPUT] AttachThreadInput не удался для click_right, fallback на SendInput")
-                    inputs = (INPUT * 2)()
-                    inputs[0].type = 0
-                    inputs[0].union.mi.dwFlags = 0x0008  # MOUSEEVENTF_RIGHTDOWN
-                    inputs[0].union.mi.time = 0
-                    inputs[1].type = 0
-                    inputs[1].union.mi.dwFlags = 0x0010  # MOUSEEVENTF_RIGHTUP
-                    inputs[1].union.mi.time = 0
-                    SendInput(2, inputs, ctypes.sizeof(INPUT))
+                    self._sendinput_click(0x0008, 0x0010)
                     return
                 pos = ScreenToClient(self.target_hwnd, GetCursorPos())
                 lparam = (pos[1] << 16) | pos[0]
@@ -264,33 +313,13 @@ class InputSystem:
             return
 
         try:
+            if self.use_sendinput:
+                self._sendinput_click_at(x, y)
+                return
             with _attached_thread_input(self.target_hwnd) as attached:
                 if not attached:
                     logger.debug(f"[INPUT] AttachThreadInput не удался для click_at ({x},{y}), fallback на SendInput")
-                    SetForegroundWindow(self.target_hwnd)
-                    time.sleep(0.05)
-                    # MOUSEEVENTF_ABSOLUTE использует нормализованные координаты 0..65535
-                    hdc = GetDC(0)
-                    if hdc:
-                        screen_w = GetDeviceCaps(hdc, 118)  # HORZRES
-                        screen_h = GetDeviceCaps(hdc, 117)  # VERTRES
-                        ReleaseDC(0, hdc)
-                    else:
-                        screen_w, screen_h = 1920, 1080
-                    norm_x = int(x * 65535 / screen_w)
-                    norm_y = int(y * 65535 / screen_h)
-                    inputs = (INPUT * 2)()
-                    inputs[0].type = 0
-                    inputs[0].union.mi.dx = norm_x
-                    inputs[0].union.mi.dy = norm_y
-                    inputs[0].union.mi.dwFlags = 0x8000 | 0x0002  # MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_LEFTDOWN
-                    inputs[0].union.mi.time = 0
-                    inputs[1].type = 0
-                    inputs[1].union.mi.dx = norm_x
-                    inputs[1].union.mi.dy = norm_y
-                    inputs[1].union.mi.dwFlags = 0x8000 | 0x0004  # MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_LEFTUP
-                    inputs[1].union.mi.time = 0
-                    SendInput(2, inputs, ctypes.sizeof(INPUT))
+                    self._sendinput_click_at(x, y)
                     return
                 client_pos = ScreenToClient(self.target_hwnd, (x, y))
                 lparam = (client_pos[1] << 16) | client_pos[0]
@@ -335,3 +364,7 @@ def key_up_sendinput(key):
 
 def click_at_position(x, y):
     input_system.click_at_position(x, y)
+
+
+def set_use_sendinput(enabled: bool):
+    input_system.set_use_sendinput(enabled)

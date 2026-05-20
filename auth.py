@@ -1,5 +1,4 @@
 import requests
-import urllib3
 import json
 from backend.logger_manager import get_logger
 import os
@@ -20,14 +19,6 @@ logger = get_logger('auth')
 
 
 def _get_verify_param() -> bool:
-    if os.environ.get("SNBL_SSL_VERIFY", "").lower() in ("false", "0", "no"):
-        logger.warning(
-            "[SSL] Проверка сертификата ОТКЛЮЧЕНА — приложение уязвимо к MITM. "
-            "Этот режим только для отладки с самоподписанным сертификатом."
-        )
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        return False
-    logger.info("[SSL] Проверка сертификата ВКЛЮЧЕНА")
     return True
 
 
@@ -115,38 +106,6 @@ def _load_encrypted(file_path: Path) -> dict:
 
 
 
-def extract_key_from_exe():
-    try:
-        if getattr(sys, 'frozen', False):
-            exe_path = sys.executable
-        else:
-            return None
-        
-        with open(exe_path, 'rb') as f:
-            f.seek(-200, 2)
-            content = f.read()
-        
-        start_marker = b'__KEY__:'
-        end_marker = b'__END_KEY__'
-        
-        if start_marker in content and end_marker in content:
-            start_idx = content.find(start_marker) + len(start_marker)
-            end_idx = content.find(end_marker)
-            key_bytes = content[start_idx:end_idx].strip()
-            
-            key = key_bytes.decode('utf-8', errors='ignore').strip()
-            
-            if len(key) == 16 and key.isalnum():
-                logger.info(f"[AUTH] Ключ извлечён из .exe: {key[:4]}...{key[-4:]}")
-                return key
-            else:
-                logger.warning(f"[AUTH] Неверный формат ключа: {repr(key)}")
-        
-    except Exception as e:
-        logger.error(f"[AUTH] Ошибка извлечения ключа: {e}", exc_info=True)
-    
-    return None
-
 
 
 def save_session(session_id, key=None, expires_at=None):
@@ -194,27 +153,6 @@ def save_key_to_file(key):
 
 
 def load_key_from_file():
-    try:
-        import sys
-        
-        if hasattr(sys, '_MEIPASS'):
-            exe_dir = os.path.dirname(sys.executable)
-        elif getattr(sys, 'frozen', False):
-            exe_dir = os.path.dirname(sys.executable)
-        else:
-            exe_dir = os.getcwd()
-        
-        exe_key_path = os.path.join(exe_dir, 'activation.key')
-        logger.debug(f"[AUTH] Поиск ключа в: {exe_key_path}")
-        if os.path.exists(exe_key_path):
-            with open(exe_key_path, 'r', encoding='utf-8') as f:
-                key = f.read().strip()
-            if key and len(key) >= 10:
-                logger.info(f"[AUTH] Ключ загружен из activation.key (рядом с exe): {key[:4]}...{key[-4:]}")
-                return key
-    except Exception as e:
-        logger.debug(f"[AUTH] Ошибка чтения activation.key: {e}")
-    
     try:
         file_path = CACHE_DIR / "activation_key.enc"
         if file_path.exists():

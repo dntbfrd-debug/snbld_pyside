@@ -1,3 +1,4 @@
+import ctypes
 import threading
 import time
 
@@ -7,6 +8,9 @@ from backend.logger_manager import get_logger
 logger = get_logger('low_level_hook')
 
 
+_VK_LBUTTON = 0x01
+
+
 class MouseHookManager:
 
     def __init__(self, on_click_callback):
@@ -14,27 +18,22 @@ class MouseHookManager:
         self.on_click_callback = on_click_callback
         self.running = False
         self.thread = None
-        self._hook_handle = None
         self._stop_event = threading.Event()
+        self._prev_state = False
         logger.info("MouseHookManager.__init__: ГОТОВО")
 
-    def _on_mouse_event(self, event):
-        if not self.running:
-            return
+    def _poll_once(self):
+        state = ctypes.windll.user32.GetAsyncKeyState(_VK_LBUTTON)
+        pressed = (state & 0x8000) != 0
 
-        if not hasattr(event, 'event_type'):
-            return
-
-        if event.event_type == 'down' and event.button == 'left':
-            logger.info("mouse_hook: ЛКМ нажата!")
-
+        if pressed and not self._prev_state:
+            logger.info("mouse_poll: ЛКМ нажата!")
             if self.on_click_callback:
                 try:
-                    result = self.on_click_callback()
-                    if result:
-                        logger.info("mouse_hook: Клик заблокирован (калибровка)")
+                    self.on_click_callback()
                 except Exception as e:
-                    logger.error(f"mouse_hook: Ошибка в callback: {e}", exc_info=True)
+                    logger.error(f"mouse_poll: Ошибка в callback: {e}", exc_info=True)
+        self._prev_state = pressed
 
     def start(self):
         logger.info("MouseHookManager.start: ВЫЗОВ")
@@ -44,32 +43,21 @@ class MouseHookManager:
             logger.warning("MouseHookManager.start: Уже запущен, останавливаем старый поток")
             self.stop()
 
-        self._hook_handle = None
         self.running = True
         self.thread = threading.Thread(target=self._hook_thread, daemon=True)
         self.thread.start()
 
         logger.info(f"MouseHookManager.start: Поток запущен, alive={self.thread.is_alive()}")
 
-        for i in range(20):
-            if self._hook_handle is not None:
-                logger.info("MouseHookManager.start: Hook установлен!")
-                return
-            time.sleep(0.1)
-
-        logger.warning(f"MouseHookManager.start: Hook не подтверждён за 2 сек, но поток alive={self.thread.is_alive()}")
-
     def _hook_thread(self):
         logger.info("MouseHookManager._hook_thread: ЗАПУСК")
 
         try:
-            import mouse
-            try_register_hook('MouseHookManager', 'WH_MOUSE_LL')
-            self._hook_handle = mouse.hook(self._on_mouse_event)
-            logger.info("MouseHookManager._hook_thread: mouse.hook установлен")
+            try_register_hook('MouseHookManager', 'WH_MOUSE_POLL')
 
             while self.running:
-                if self._stop_event.wait(timeout=0.1):
+                self._poll_once()
+                if self._stop_event.wait(timeout=0.05):
                     break
 
             logger.info("MouseHookManager._hook_thread: Выход из цикла")
@@ -77,27 +65,14 @@ class MouseHookManager:
         except Exception as e:
             logger.error(f"MouseHookManager._hook_thread: ИСКЛЮЧЕНИЕ: {e}", exc_info=True)
         finally:
-            self._remove_hook()
+            unregister_hook('WH_MOUSE_POLL')
             logger.info("MouseHookManager._hook_thread: ЗАВЕРШЕНИЕ")
-
-    def _remove_hook(self):
-        try:
-            if self._hook_handle is not None:
-                import mouse
-                mouse.unhook(self._hook_handle)
-                logger.info("MouseHookManager._remove_hook: Хук удалён")
-                self._hook_handle = None
-        except Exception as e:
-            logger.error(f"MouseHookManager._remove_hook: Ошибка: {e}", exc_info=True)
-        finally:
-            unregister_hook('WH_MOUSE_LL')
 
     def stop(self):
         logger.info("MouseHookManager.stop: ВЫЗОВ")
 
         self.running = False
         self._stop_event.set()
-        self._remove_hook()
 
         if self.thread and self.thread.is_alive():
             self.thread.join(timeout=2.0)
@@ -106,4 +81,4 @@ class MouseHookManager:
 
     @property
     def is_active(self) -> bool:
-        return self._hook_handle is not None and self.running
+        return self.running

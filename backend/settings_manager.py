@@ -1,5 +1,6 @@
 import json
 import logging
+import threading
 from typing import Any, Dict
 from pathlib import Path
 
@@ -59,27 +60,29 @@ class SettingsManager:
 
     def __init__(self, settings_file: str = "settings.json"):
         self.settings_file = Path(settings_file)
+        self._lock = threading.RLock()
         self._settings: Dict[str, Any] = {}
         self._listeners: Dict[str, list] = {}
         self._load_settings()
 
     def _load_settings(self) -> None:
-        if self.settings_file.exists():
-            try:
-                with open(self.settings_file, 'r', encoding='utf-8') as f:
-                    loaded = json.load(f)
+        with self._lock:
+            if self.settings_file.exists():
+                try:
+                    with open(self.settings_file, 'r', encoding='utf-8') as f:
+                        loaded = json.load(f)
 
-                self._settings = {**self.DEFAULTS, **loaded}
-                
-                self._convert_settings_types()
-                
-                logger.info(f"Загружено {len(loaded)} настроек из {self.settings_file}")
-            except Exception as e:
-                logger.error(f"Ошибка загрузки настроек: {e}", exc_info=True)
+                    self._settings = {**self.DEFAULTS, **loaded}
+                    
+                    self._convert_settings_types()
+                    
+                    logger.info(f"Загружено {len(loaded)} настроек из {self.settings_file}")
+                except Exception as e:
+                    logger.error(f"Ошибка загрузки настроек: {e}", exc_info=True)
+                    self._settings = self.DEFAULTS.copy()
+            else:
                 self._settings = self.DEFAULTS.copy()
-        else:
-            self._settings = self.DEFAULTS.copy()
-            logger.info("Настройки по умолчанию загружены")
+                logger.info("Настройки по умолчанию загружены")
 
     def _convert_settings_types(self) -> None:
         for key in ("base_channeling", "movement_delay_ms", "ocr_scale", "first_step_delay"):
@@ -129,74 +132,72 @@ class SettingsManager:
                 self._settings["castbar_color"] = [int(x) for x in color]
 
     def save_settings(self) -> bool:
-        try:
-            settings_to_save = self._settings.copy()
-            
-            if "castbar_color" in settings_to_save:
-                color = settings_to_save["castbar_color"]
-                if isinstance(color, str):
-                    try:
-                        settings_to_save["castbar_color"] = [int(x) for x in color.split(',')]
-                    except (ValueError, TypeError):
-                        settings_to_save["castbar_color"] = [94, 123, 104]
-            
-            with open(self.settings_file, 'w', encoding='utf-8') as f:
-                json.dump(settings_to_save, f, indent=2, ensure_ascii=False)
-            logger.info(f"Настройки сохранены в {self.settings_file}")
-            return True
-        except Exception as e:
-            logger.error(f"Ошибка сохранения настроек: {e}", exc_info=True)
-            return False
+        with self._lock:
+            try:
+                settings_to_save = self._settings.copy()
+                
+                if "castbar_color" in settings_to_save:
+                    color = settings_to_save["castbar_color"]
+                    if isinstance(color, str):
+                        try:
+                            settings_to_save["castbar_color"] = [int(x) for x in color.split(',')]
+                        except (ValueError, TypeError):
+                            settings_to_save["castbar_color"] = [94, 123, 104]
+                
+                with open(self.settings_file, 'w', encoding='utf-8') as f:
+                    json.dump(settings_to_save, f, indent=2, ensure_ascii=False)
+                logger.info(f"Настройки сохранены в {self.settings_file}")
+                return True
+            except Exception as e:
+                logger.error(f"Ошибка сохранения настроек: {e}", exc_info=True)
+                return False
 
     def get(self, key: str, default: Any = None) -> Any:
-        if key in self._settings:
-            return self._settings[key]
-        if default is not None:
-            return default
-        return self.DEFAULTS.get(key)
+        with self._lock:
+            if key in self._settings:
+                return self._settings[key]
+            if default is not None:
+                return default
+            return self.DEFAULTS.get(key)
 
     def set(self, key: str, value: Any, notify: bool = True) -> None:
-        if key in ("base_channeling", "movement_delay_ms", "ocr_scale", "first_step_delay"):
-            try:
-                value = int(value)
-            except (ValueError, TypeError):
-                value = 0
+        with self._lock:
+            if key in ("base_channeling", "movement_delay_ms", "ocr_scale", "first_step_delay"):
+                try:
+                    value = int(value)
+                except (ValueError, TypeError):
+                    value = 0
+            elif key in ("cooldown_margin", "cast_lock_margin"):
+                try:
+                    value = float(value)
+                except (ValueError, TypeError):
+                    value = 0.0
+            elif key in ("castbar_swap_delay", "global_step_delay"):
+                try:
+                    value = float(value)
+                except (ValueError, TypeError):
+                    value = 0.0
+            elif key in ("castbar_threshold",):
+                try:
+                    value = int(value)
+                except (ValueError, TypeError):
+                    value = 70
+            elif key in ("use_castbar_detection", "castbar_enabled"):
+                if isinstance(value, str):
+                    value = value.lower() in ("true", "1", "yes")
+            elif key in ("movement_delay_enabled", "check_distance", "ocr_use_morph", "ping_auto"):
+                if isinstance(value, str):
+                    value = value.lower() in ("true", "1", "yes")
 
-        elif key in ("cooldown_margin", "cast_lock_margin"):
-            try:
-                value = float(value)
-            except (ValueError, TypeError):
-                value = 0.0
+            old_value = self._settings.get(key)
+            self._settings[key] = value
 
-        elif key in ("castbar_swap_delay", "global_step_delay"):
-            try:
-                value = float(value)
-            except (ValueError, TypeError):
-                value = 0.0
+            logger.debug(f"Настройка {key} изменена: {old_value} → {value}")
 
-        elif key in ("castbar_threshold",):
-            try:
-                value = int(value)
-            except (ValueError, TypeError):
-                value = 70
+            if notify and old_value != value:
+                self._notify_listeners(key, value)
 
-        elif key in ("use_castbar_detection", "castbar_enabled"):
-            if isinstance(value, str):
-                value = value.lower() in ("true", "1", "yes")
-
-        elif key in ("movement_delay_enabled", "check_distance", "ocr_use_morph", "ping_auto"):
-            if isinstance(value, str):
-                value = value.lower() in ("true", "1", "yes")
-
-        old_value = self._settings.get(key)
-        self._settings[key] = value
-
-        logger.debug(f"Настройка {key} изменена: {old_value} → {value}")
-
-        if notify and old_value != value:
-            self._notify_listeners(key, value)
-        
-        self.save_settings()
+            self.save_settings()
 
     def _notify_listeners(self, key: str, value: Any) -> None:
         if key in self._listeners:
@@ -207,4 +208,5 @@ class SettingsManager:
                     logger.error(f"Ошибка в слушателе настройки {key}: {e}", exc_info=True)
 
     def get_all(self) -> Dict[str, Any]:
-        return self._settings.copy()
+        with self._lock:
+            return self._settings.copy()

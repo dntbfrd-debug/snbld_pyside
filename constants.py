@@ -153,7 +153,39 @@ VIRTUAL_KEYS = {
     'f6': 0x75, 'f7': 0x76, 'f8': 0x77, 'f9': 0x78, 'f10': 0x79,
     'f11': 0x7A, 'f12': 0x7B,
     'up': 0x26, 'down': 0x28, 'left': 0x25, 'right': 0x27,
+    '-': 0xBD, '=': 0xBB, ',': 0xBC, '.': 0xBE,
+    '[': 0xDB, ']': 0xDD, '\\': 0xDC, ';': 0xBA, "'": 0xDE,
+    '/': 0xBF, '`': 0xC0,
 }
+
+MOD_CONTROL = 0x0002
+MOD_SHIFT = 0x0004
+MOD_ALT = 0x0001
+MOD_WIN = 0x0008
+
+
+def parse_hotkey(hotkey_str: str):
+    if not hotkey_str:
+        return 0, 0
+    parts = hotkey_str.lower().split('+')
+    vk_name = parts[-1]
+    vk = VIRTUAL_KEYS.get(vk_name)
+    if vk is None and len(vk_name) == 1:
+        vk = ord(vk_name.upper())
+    if vk is None:
+        vk = 0
+    mods = 0
+    for p in parts[:-1]:
+        if p == 'ctrl':
+            mods |= MOD_CONTROL
+        elif p == 'alt':
+            mods |= MOD_ALT
+        elif p == 'shift':
+            mods |= MOD_SHIFT
+        elif p == 'win':
+            mods |= MOD_WIN
+    return vk, mods
+
 
 MACRO_TYPES = {
     "SIMPLE": "simple",
@@ -219,6 +251,7 @@ ALLOWED_SETTINGS = {
     "buff_8004_click_point": (str, None, None),
     "accent_color": (str, None, None),
     "window_manager_skip_activation": (bool, None, None),
+    "force_sendinput": (bool, None, None),
     "log_level_macros": (str, None, None),
     "log_level_errors": (str, None, None),
     "log_level_ocr": (str, None, None),

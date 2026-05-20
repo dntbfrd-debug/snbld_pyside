@@ -14,14 +14,7 @@ from PySide6.QtCore import QObject, Signal, QThread, Slot
 
 logging.getLogger('pytesseract').setLevel(logging.WARNING)
 
-_logger = None
-
-def _get_logger():
-    global _logger
-    if _logger is None:
-        from backend.logger_manager import get_logger
-        _logger = get_logger('ocr')
-    return _logger
+from backend.logger_manager import get_logger as _get_logger
 
 def ensure_tesseract():
     base_dir = os.path.dirname(os.path.abspath(__file__))

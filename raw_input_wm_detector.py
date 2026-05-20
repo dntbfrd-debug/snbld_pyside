@@ -15,7 +15,7 @@ class RawInputWMDetector:
         self._running = False
         self._debounce = 0.05
         self._last_click = 0.0
-        self._poll_interval = 0.02
+        self._poll_interval = 0.05
         
         try:
             self._user32 = ctypes.windll.user32

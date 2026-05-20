@@ -214,7 +214,7 @@ class MouseClickMonitor(QThread):
 
 
 
-logger = get_logger('network')
+network_logger = get_logger('network')
 
 class PingMonitor(QThread):
     ping_updated = Signal(int)
@@ -313,10 +313,9 @@ class PingMonitor(QThread):
         return None
 
     def run(self):
-        logger.info(f"PingMonitor запущен, интервал={self.interval}сек")
-        check_ip_counter = 0
-
-        logger.debug(f"Ожидание подключения игры...")
+        network_logger.info(f"PingMonitor запущен, интервал={self.interval}сек")
+        while not self._stop_event.is_set():
+            network_logger.debug(f"Ожидание подключения игры...")
         if self._stop_event.wait(5):
             return
 
@@ -327,21 +326,21 @@ class PingMonitor(QThread):
                 ip = self.find_server_ip()
                 if ip:
                     if self.server_ip != ip:
-                        logger.info(f"IP сервера изменился: {self.server_ip} → {ip}")
+                        network_logger.info(f"IP сервера изменился: {self.server_ip} → {ip}")
                     self.server_ip = ip
                     self.server_ip_found.emit(ip)
                 else:
-                    logger.debug(f"Не удалось найти IP сервера (игра не запущена?)")
+                    network_logger.debug(f"Не удалось найти IP сервера (игра не запущена?)")
                     if self._stop_event.wait(self.interval):
                         break
                     continue
 
             ping = self.measure_ping(self.server_ip)
             if ping is not None:
-                logger.info(f"Пинг до {self.server_ip}: {ping} мс")
+                network_logger.info(f"Пинг до {self.server_ip}: {ping} мс")
                 self.ping_updated.emit(ping)
             else:
-                logger.debug(f"Не удалось измерить пинг")
+                network_logger.debug(f"Не удалось измерить пинг")
             if self._stop_event.wait(self.interval):
                 break
 

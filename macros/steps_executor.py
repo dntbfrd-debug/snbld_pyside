@@ -1,14 +1,6 @@
 import time
 from backend.input_system import click_left, click_right, send_key
-
-_logger = None
-
-def _get_logger():
-    global _logger
-    if _logger is None:
-        from backend.logger_manager import get_logger
-        _logger = get_logger('macros')
-    return _logger
+from backend.logger_manager import get_logger as _get_logger
 
 
 class StepsExecutor:

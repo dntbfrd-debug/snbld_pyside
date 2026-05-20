@@ -102,11 +102,12 @@ ApplicationWindow {
         anchors.fill: parent
         radius: root.windowRadius
         color: "#151515"
-        clip: true
+        // clip: true удалён — чтобы не обрезать IconStrip. Клиппинг только на rightColumnBackground
 
         // Правая колонка: видео/градиент на всю высоту окна (включая заголовок)
         Item {
             id: rightColumnBackground
+            clip: true
             anchors.left: parent.left
             anchors.leftMargin: root.iconStripWidth
             anchors.top: parent.top
@@ -1050,4 +1051,5 @@ ApplicationWindow {
         }
     }
     }
+
 }

@@ -35,7 +35,7 @@ class QMLBridgeMixin:
         try:
             from packaging import version
             version_url = "https://snbld.ru/version.json"
-            resp = requests.get(version_url, timeout=3)
+            resp = requests.get(version_url, timeout=3, verify=True)
             if resp.status_code == 200:
                 data = resp.json()
                 current = self._get_current_version()
@@ -175,8 +175,8 @@ class QMLBridgeMixin:
                 try:
                     from auth import get_hwid
                     metadata['hwid'] = get_hwid()
-                except:
-                    pass
+                except Exception as ex:
+                    logger.debug(f"Failed to get HWID for logs: {ex}")
 
                 import json
                 zf.writestr('metadata.json', json.dumps(metadata, indent=2))

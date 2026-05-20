@@ -672,10 +672,8 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
             logger.info(f"[MACROS] \u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435 \u0432 \u043f\u0440\u043e\u0444\u0438\u043b\u044c: {self._current_profile}")
             self.save_profile(self._current_profile)
             logger.debug(f"[PROFILE] \u041c\u0430\u043a\u0440\u043e\u0441\u044b \u0430\u0432\u0442\u043e\u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u044b \u0432 \u043f\u0440\u043e\u0444\u0438\u043b\u044c: {self._current_profile}")
-        else:
-            logger.warning(f"[MACROS] \u041d\u0435\u0442 \u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0433\u043e \u043f\u0440\u043e\u0444\u0438\u043b\u044f! \u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435 \u0432 macros.json")
-            self._save_macros_to_file()
-            logger.debug("[MACROS] \u041c\u0430\u043a\u0440\u043e\u0441\u044b \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u044b \u0432 macros.json (\u043d\u0435\u0442 \u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0433\u043e \u043f\u0440\u043e\u0444\u0438\u043b\u044f)")
+        self._save_macros_to_file()
+        logger.debug("[MACROS] \u041c\u0430\u043a\u0440\u043e\u0441\u044b \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u044b \u0432 macros.json")
 
     def _save_macros_to_file(self):
         macro_file = os.path.join(self.app_dir, constants.MACROS_JSON_FILE)
@@ -791,6 +789,7 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
     def cleanup(self):
         if getattr(self, '_cleanup_done', False):
             return
+        self._cleanup_done = True
         logger.info("\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b...")
 
         tray_mgr = getattr(self, '_tray_icon_manager', None)
@@ -801,7 +800,28 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
                 pass
 
         self.unregister_all_hotkeys()
-        logger.debug("\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0432\u0441\u0435\u0445 \u043c\u0430\u043a\u0440\u043e\u0441\u043e\u0432...")
+
+        logger.debug("\u042d\u0442\u0430\u043f 1: \u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u043a\u0430 \u043d\u043e\u0432\u044b\u0445 \u0437\u0430\u043f\u0443\u0441\u043a\u043e\u0432...")
+        self._global_stopped = True
+        self.globalStoppedChanged.emit()
+
+        if self.mouse_click_monitor:
+            try:
+                self.mouse_click_monitor.stop()
+                if self.mouse_click_monitor.isRunning():
+                    self.mouse_click_monitor.wait(500)
+            except Exception as e:
+                logger.debug(f"[CLEANUP] MouseClickMonitor error: {e}")
+
+        if hasattr(self, 'dispatcher') and self.dispatcher:
+            logger.debug("\u042d\u0442\u0430\u043f 2: \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0434\u0438\u0441\u043f\u0435\u0442\u0447\u0435\u0440\u0430...")
+            try:
+                self.dispatcher.stop_all_macros(timeout=3.0)
+                self.dispatcher.stop()
+            except Exception as e:
+                logger.error(f"[CLEANUP] Dispatcher error: {e}")
+
+        logger.debug("\u042d\u0442\u0430\u043f 3: \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0432\u0441\u0435\u0445 \u043c\u0430\u043a\u0440\u043e\u0441\u043e\u0432...")
         for macro in self._macros:
             try:
                 macro.stop()
@@ -810,22 +830,18 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
         for macro in self._macros:
             if macro.thread and macro.thread.is_alive():
                 macro.thread.join(timeout=2.0)
-        if hasattr(self, 'dispatcher') and self.dispatcher:
-            logger.debug("\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0434\u0438\u0441\u043f\u0435\u0442\u0447\u0435\u0440\u0430 \u043c\u0430\u043a\u0440\u043e\u0441\u043e\u0432...")
-            try:
-                self.dispatcher.stop()
-            except Exception:
-                pass
-        if self.mouse_click_monitor:
-            logger.debug("\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 MouseClickMonitor...")
-            try:
-                self.mouse_click_monitor.stop()
-                if self.mouse_click_monitor.isRunning():
-                    self.mouse_click_monitor.wait(500)
-            except Exception as e:
-                logger.debug(f"[CLEANUP] MouseClickMonitor error: {e}")
+
+        logger.debug("\u042d\u0442\u0430\u043f 4: \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 InputBlocker...")
+        try:
+            from input_blocker import get_global_blocker
+            blocker = get_global_blocker()
+            if blocker:
+                blocker.stop()
+        except Exception as e:
+            logger.debug(f"[CLEANUP] InputBlocker error: {e}")
+
+        logger.debug("\u042d\u0442\u0430\u043f 5: \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0444\u043e\u043d\u043e\u0432\u044b\u0445 \u0441\u0435\u0440\u0432\u0438\u0441\u043e\u0432...")
         if self.target_reader:
-            logger.debug("\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 OCR...")
             try:
                 self.target_reader.stop()
                 if self.target_reader.isRunning():
@@ -833,16 +849,13 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
             except Exception as e:
                 logger.debug(f"[CLEANUP] OCR error: {e}")
         if self.ping_monitor:
-            logger.debug("\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 PingMonitor...")
             try:
                 self._stop_ping_monitor()
             except Exception as e:
                 logger.debug(f"[CLEANUP] PingMonitor error: {e}")
         if self.movement_monitor:
-            logger.debug("\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 MovementMonitor...")
             self.movement_monitor.stop()
         if self.buff_check_thread:
-            logger.debug("\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 BuffCheckThread...")
             try:
                 self.buff_check_thread.stop()
                 if self.buff_check_thread.isRunning():
@@ -850,21 +863,19 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
             except Exception as e:
                 logger.debug(f"[CLEANUP] BuffCheckThread error: {e}")
         if hasattr(self, '_mouse_hook_manager') and self._mouse_hook_manager:
-            logger.debug("\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 MouseHookManager...")
             try:
                 self._mouse_hook_manager.stop()
-                if self._mouse_hook_manager.isRunning():
+                if hasattr(self._mouse_hook_manager, 'isRunning') and self._mouse_hook_manager.isRunning():
                     self._mouse_hook_manager.wait(1000)
             except Exception as e:
                 logger.debug(f"[CLEANUP] MouseHookManager error: {e}")
-        logger.debug("\u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043a...")
+
+        logger.debug("\u042d\u0442\u0430\u043f 6: \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435 \u0434\u0430\u043d\u043d\u044b\u0445...")
         self.save_settings()
-        logger.debug("\u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435 \u043c\u0430\u043a\u0440\u043e\u0441\u043e\u0432...")
         self.save_macros()
         if self._current_profile:
             logger.info(f"[CLEANUP] \u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435 \u043f\u0440\u043e\u0444\u0438\u043b\u044f '{self._current_profile}' \u043f\u0435\u0440\u0435\u0434 \u0437\u0430\u043a\u0440\u044b\u0442\u0438\u0435\u043c...")
             self.save_profile(self._current_profile)
-        self._cleanup_done = True
         logger.info("\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0438\u0435 \u0440\u0430\u0431\u043e\u0442\u044b.")
 
     def __del__(self):

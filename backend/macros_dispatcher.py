@@ -41,6 +41,7 @@ class MacroDispatcher:
 
         self.macro_queue: list = []
         self.queue_lock = threading.Lock()
+        self.MAX_QUEUE_SIZE = 100
         self._queue_stop_event = threading.Event()
 
         self.cooldown_cache: Dict[str, float] = {}
@@ -164,8 +165,8 @@ class MacroDispatcher:
                                 macro.last_used = 0
                         else:
                             macro.last_used = 0
-                    except:
-                        pass
+                    except Exception as e:
+                        logger.error(f"[DISPATCHER] Failed to reset cooldown for {macro.name}: {e}", exc_info=True)
                 self.cast_lock_until = 0.0
 
     def set_cast_lock(self, macro):
@@ -178,7 +179,8 @@ class MacroDispatcher:
                         actual_cast_time = self.backend.get_actual_cast_time(cast_time)
                     else:
                         actual_cast_time = 0.5
-                except:
+                except Exception as e:
+                    logger.warning(f"[DISPATCHER] get_actual_cast_time failed: {e}")
                     actual_cast_time = 0.5
                 
                 margin = self.backend.settings.get("cast_lock_margin", 0.4)
@@ -241,6 +243,9 @@ class MacroDispatcher:
 
                     self.macro_queue = valid_queue
                     heapq.heapify(self.macro_queue)
+                    while len(self.macro_queue) > self.MAX_QUEUE_SIZE:
+                        dropped = heapq.heappop(self.macro_queue)
+                        logger.warning(f" {dropped.macro.name}: удалён из очереди (переполнение)")
 
                     if expired_count > 0:
                         logger.debug(f"[QUEUE] Истекло {expired_count} макросов")

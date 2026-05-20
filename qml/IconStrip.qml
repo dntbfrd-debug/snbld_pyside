@@ -16,6 +16,7 @@ Item {
     property color accentColor: "#7793a1"
     property string currentActiveButtonId: ""
     property real submenuOffset: 0
+    property real submenuHeight: 110
 
     // --- Каскадная анимация ---
     property string _activeId: ""
@@ -94,26 +95,81 @@ Item {
         z: 0
     }
 
+    property real _itemLeft: 8
+    property real _itemWidth: stripWidth - 16
+
     Item {
         anchors.fill: parent
         clip: true
 
-        ColumnLayout {
-            id: iconColumn
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: 8
-            anchors.rightMargin: 8
-            spacing: root.itemSpacing
+        // Макросы
+        Item {
+            id: macrosIcon
+            x: root._itemLeft; y: root.itemTopMargin
+            width: root._itemWidth; height: root.itemHeight
 
-            // === Кнопка "Макросы" ===
-            Item {
-                id: macrosIcon
-                Layout.fillWidth: true
-                Layout.preferredHeight: root.itemHeight
-                Layout.topMargin: root.itemTopMargin
+            property bool isActive: root._activeId === "macros"
 
-                property bool isActive: root._activeId === "macros"
+            Rectangle {
+                anchors.fill: parent
+                radius: 10
+                color: root.accentColor
+                opacity: parent.isActive ? 0.2 : 0.0
+                border.color: parent.isActive ? root.accentColor : "transparent"
+                border.width: parent.isActive ? 2 : 0
+                Behavior on opacity { NumberAnimation { duration: 200 } }
+                Behavior on border.color { ColorAnimation { duration: 200 } }
+            }
+            Image {
+                anchors.centerIn: parent
+                width: root.iconSize
+                height: root.iconSize
+                source: "../icons/macros.png"
+                fillMode: Image.PreserveAspectFit
+                opacity: parent.isActive ? 1.0 : (backend && backend.isActivated ? 0.7 : 0.35)
+                Behavior on opacity { NumberAnimation { duration: 200 } }
+            }
+        }
+
+        // Спейсер подменю — всегда в раскладке, высота анимируется через root.submenuOffset
+        Item {
+            id: submenuSpacer
+            x: root._itemLeft; y: macrosIcon.y + macrosIcon.height + root.itemSpacing
+            width: root._itemWidth; height: root.submenuOffset
+
+            Rectangle {
+                width: 4; height: 4; radius: 2
+                color: root.accentColor
+                opacity: root.submenuOffset / root.submenuHeight * 0.5
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 10 + 45 / 2 - 2
+            }
+            Rectangle {
+                width: 4; height: 4; radius: 2
+                color: root.accentColor
+                opacity: root.submenuOffset / root.submenuHeight * 0.5
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 10 + 45 + 5 + 45 / 2 - 2
+            }
+        }
+
+        Repeater {
+            id: iconRepeater
+            model: [
+                { btnId: "settings", icon: "../icons/settings.png" },
+                { btnId: "profiles", icon: "../icons/profiles.png" },
+                { btnId: "subscription", icon: "../icons/subscription.png" },
+                { btnId: "help", icon: "../icons/help.png" },
+                { btnId: "debug", icon: "../icons/calibrate.png" }
+            ]
+
+            delegate: Item {
+                x: root._itemLeft
+                y: submenuSpacer.y + submenuSpacer.height + root.itemSpacing + index * (root.itemHeight + root.itemSpacing)
+                width: root._itemWidth; height: root.itemHeight
+
+                property bool isActive: root._activeId === modelData.btnId
+                property bool _blocked: modelData.btnId !== "subscription" && modelData.btnId !== "help" && modelData.btnId !== "debug" && (!backend || !backend.isActivated)
 
                 Rectangle {
                     anchors.fill: parent
@@ -129,76 +185,12 @@ Item {
                     anchors.centerIn: parent
                     width: root.iconSize
                     height: root.iconSize
-                    source: "../icons/macros.png"
+                    source: modelData.icon
                     fillMode: Image.PreserveAspectFit
-                    opacity: parent.isActive ? 1.0 : (backend && backend.isActivated ? 0.7 : 0.35)
+                    opacity: parent.isActive ? 1.0 : (parent._blocked ? 0.35 : 0.7)
                     Behavior on opacity { NumberAnimation { duration: 200 } }
                 }
             }
-
-            Item {
-                Layout.fillWidth: true
-                Layout.preferredHeight: root.submenuOffset
-                visible: root.submenuOffset > 0
-                clip: true
-
-                Rectangle {
-                    width: 4; height: 4; radius: 2
-                    color: root.accentColor
-                    opacity: 0.5
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    y: 10 + 45 / 2 - 2
-                }
-                Rectangle {
-                    width: 4; height: 4; radius: 2
-                    color: root.accentColor
-                    opacity: 0.5
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    y: 10 + 45 + 5 + 45 / 2 - 2
-                }
-            }
-
-            Repeater {
-                id: iconRepeater
-                model: [
-                    { btnId: "settings", icon: "../icons/settings.png" },
-                    { btnId: "profiles", icon: "../icons/profiles.png" },
-                    { btnId: "subscription", icon: "../icons/subscription.png" },
-                    { btnId: "help", icon: "../icons/help.png" },
-                    { btnId: "debug", icon: "../icons/calibrate.png" }
-                ]
-
-                delegate: Item {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: root.itemHeight
-
-                    property bool isActive: root._activeId === modelData.btnId
-                    property bool _blocked: modelData.btnId !== "subscription" && modelData.btnId !== "help" && modelData.btnId !== "debug" && (!backend || !backend.isActivated)
-
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: 10
-                        color: root.accentColor
-                        opacity: parent.isActive ? 0.2 : 0.0
-                        border.color: parent.isActive ? root.accentColor : "transparent"
-                        border.width: parent.isActive ? 2 : 0
-                        Behavior on opacity { NumberAnimation { duration: 200 } }
-                        Behavior on border.color { ColorAnimation { duration: 200 } }
-                    }
-                    Image {
-                        anchors.centerIn: parent
-                        width: root.iconSize
-                        height: root.iconSize
-                        source: modelData.icon
-                        fillMode: Image.PreserveAspectFit
-                        opacity: parent.isActive ? 1.0 : (parent._blocked ? 0.35 : 0.7)
-                        Behavior on opacity { NumberAnimation { duration: 200 } }
-                    }
-                }
-            }
-
-            Item { Layout.fillWidth: true; Layout.preferredHeight: root.itemTopMargin }
-            Item { Layout.fillHeight: true }
         }
     }
 

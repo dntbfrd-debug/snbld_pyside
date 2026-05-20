@@ -4,15 +4,7 @@ import logging
 from backend.win32_api import GetForegroundWindow, GetWindowText, GetWindowTextTimeout, EnumWindows
 
 from backend.input_system import send_key, click_left, click_right, key_down, key_up, key_down_sendinput, key_up_sendinput
-
-_logger = None
-
-def _get_logger():
-    global _logger
-    if _logger is None:
-        from backend.logger_manager import get_logger
-        _logger = get_logger('macros')
-    return _logger
+from backend.logger_manager import get_logger as _get_logger
 
 def _play_window_lost_sound():
     try:
@@ -39,8 +31,8 @@ def find_window_hwnd(window_title):
         return True
     try:
         EnumWindows(callback)
-    except:
-        pass
+    except Exception as ex:
+        _get_logger().warning(f"EnumWindows failed: {ex}")
     return result_hwnd
 
 
@@ -206,15 +198,17 @@ class ZoneMacro(Macro):
         self.last_used = 0
         self.cooldown_lock = threading.Lock()
         self._mouse_click_connected = False
+        self._scheduled = False
 
     def _connect_mouse_click(self, app):
         if self._mouse_click_connected:
             try:
                 app.mouse_click_monitor.mouse_clicked.disconnect(self.on_mouse_click)
-                _get_logger().debug(f"[{self.name}] Старое подключение к MouseClickMonitor отключено")
-            except:
-                pass
-            self._mouse_click_connected = False
+                _get_logger().debug(f"[{self.name}] Отвязан сигнал от MouseClickMonitor")
+            except Exception as e:
+                _get_logger().warning(f"[{self.name}] Ошибка при отключении сигнала: {e}", exc_info=True)
+            finally:
+                self._mouse_click_connected = False
         
         if hasattr(app, 'mouse_click_monitor') and app.mouse_click_monitor:
             try:
@@ -223,6 +217,7 @@ class ZoneMacro(Macro):
                 _get_logger().info(f" [{self.name}]  Подключен к новому MouseClickMonitor")
             except Exception as e:
                 _get_logger().error(f"[{self.name}]  Ошибка подключения к MouseClickMonitor: {e}", exc_info=True)
+                self._mouse_click_connected = False
 
     def on_mouse_click(self, x, y):
         _get_logger().debug(f"[ZONE] on_mouse_click '{self.name}': клик ({x},{y}), зона={self.zone_rect}")
@@ -262,7 +257,8 @@ class ZoneMacro(Macro):
                 _get_logger().debug(f"[ZONE] {self.name}: цель слишком далеко ({self.app.target_distance:.1f}м)")
                 return
 
-        if not self.running:
+        if not self.running and not self._scheduled:
+            self._scheduled = True
             _get_logger().info(f"[ZONE]  Запрос на запуск '{self.name}' по клику в области ({x},{y})")
             def launch_macro():
                 try:
@@ -280,11 +276,14 @@ class ZoneMacro(Macro):
                         _get_logger().warning(f"[ZONE]  '{self.name}': app НЕ ДОСТУПЕН")
                         self.start()
                 except Exception as e:
-                    _get_logger().error(f"[ZONE]  '{self.name}': ОШИБКА {e}", exc_info=True)
+                    _get_logger().error(f"[ZONE]  '{self.name}': ������ {e}", exc_info=True)
                     try:
                         self.start()
-                    except:
-                        pass
+                    except Exception as start_e:
+                        _get_logger().error(f"[ZONE]  '{self.name}': ������ {e}", exc_info=True)
+                        _get_logger().error(f"[ZONE]  '{self.name}': ����� ������ start: {start_e}", exc_info=True)
+                finally:
+                    self._scheduled = False
             threading.Thread(target=launch_macro, daemon=True).start()
         else:
             _get_logger().info(f"[ZONE] Макрос '{self.name}' уже выполняется")
@@ -455,11 +454,11 @@ class SkillMacro(SimpleMacro):
                         _get_logger().warning(f"[SKILL+ZONE]  '{self.name}': app НЕ ДОСТУПЕН")
                         self.start()
                 except Exception as e:
-                    _get_logger().error(f"[SKILL+ZONE]  '{self.name}': ОШИБКА {e}", exc_info=True)
+                    _get_logger().error(f"[SKILL+ZONE]  '{self.name}': ������ {e}", exc_info=True)
                     try:
                         self.start()
-                    except:
-                        pass
+                    except Exception as start_e:
+                        _get_logger().error(f"[SKILL+ZONE]  '{self.name}': ����� ������ start: {start_e}", exc_info=True)
             threading.Thread(target=launch_macro, daemon=True).start()
         else:
             _get_logger().info(f"[SKILL+ZONE] Макрос '{self.name}' уже выполняется")
@@ -509,7 +508,7 @@ class SkillMacro(SimpleMacro):
                     approach_start = time.time()
                     last_keydown_time = time.time()
                     while self.running and not self.stop_event.is_set():
-                        if not has_zone and not approach_used and not self._check_window():
+                        if not has_zone and not self._check_window():
                             _get_logger().debug(f"[SKILL] Окно неактивно, прерывание подбегания")
                             break
                         
@@ -568,7 +567,7 @@ class SkillMacro(SimpleMacro):
         
         step1 = self.steps[0]
         step1_delay = step1[2] if len(step1) > 2 else 90
-        step2_repeat_delay = 200
+        step2_repeat_delay = self.step2_repeat_delay if self.step2_repeat_delay else 200
         
         use_ping_delays = self.app.settings.get("use_ping_delays", False)
         if use_ping_delays:
@@ -625,9 +624,9 @@ class SkillMacro(SimpleMacro):
                     if hasattr(self.app, 'dispatcher') and hasattr(self.app.dispatcher, 'set_cast_lock'):
                         self.app.dispatcher.set_cast_lock(self)
                 
-                _get_logger().debug(f"[SKILL] Ожидание кастбара (макс 2 сек)...")
+                _get_logger().debug(f"[SKILL] Ожидание кастбара (макс {max(2.0, self.cast_time):.1f} сек)...")
                 start_wait = time.time()
-                timeout = 2.0
+                timeout = max(2.0, self.cast_time)
                 cast_detected = False
                 
                 while time.time() - start_wait < timeout and self.running and not self.stop_event.is_set():
@@ -652,6 +651,8 @@ class SkillMacro(SimpleMacro):
                             click_left()
                         elif step[0] == "right":
                             click_right()
+                        elif step[0] == "wait":
+                            time.sleep(step[2] / 1000.0)
                         if i < len(middle_steps) - 1:
                             time.sleep(step2_repeat_delay / 1000.0)
                     
@@ -671,6 +672,11 @@ class SkillMacro(SimpleMacro):
                         click_left()
                     elif step[0] == "right":
                         click_right()
+                    elif step[0] == "wait":
+                        time.sleep(step[2] / 1000.0)
+                        if i < len(middle_steps) - 1:
+                            time.sleep(step2_repeat_delay / 1000.0)
+                        continue
                     
                     if len(step) > 2 and step[2] > 0:
                         time.sleep(step[2] / 1000.0)
