@@ -10,22 +10,22 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 20
-        spacing: 15
+        anchors.margins: 15
+        spacing: 12
 
         // ========== ПЛИТКА: ГОРЯЧИЕ КЛАВИШИ СТАРТ/СТОП ==========
         GlassBlurPanel {
             Layout.fillWidth: true
-            Layout.preferredHeight: 100
+            Layout.preferredHeight: 85
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 15
-                spacing: 6
+                anchors.margins: 12
+                spacing: 4
 
                 Text {
                     text: "Горячие клавиши Старт / Стоп"
-                    color: "#c2c2c2"
+                    color: "#a2a2a2"
                     font.pointSize: 10
                     font.bold: true
                 }
@@ -33,17 +33,17 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    spacing: 20
+                    spacing: 15
 
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 5
+                        spacing: 3
 
                         Text { text: "Запуск макросов:"; color: "#a0a0a0"; font.pointSize: 9 }
                         TextField {
                             id: startHotkeyField
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 28
+                            Layout.preferredHeight: 24
                             placeholderText: "Нажмите клавишу"
                             font.pointSize: 10
                             horizontalAlignment: Text.AlignHCenter
@@ -51,7 +51,7 @@ Item {
                             text: backend && backend.settings ? (backend.settings.start_all_hotkey || "") : ""
                             Keys.onPressed: {
                                 event.accepted = true
-                                if (event.key === Qt.Key_Backspace) { text = ""; backend.set_setting("start_all_hotkey", ""); return }
+                                if (event.key === Qt.Key_Backspace) { text = ""; backend.set_setting("start_all_hotkey", ""); backend.save_all_settings(); return }
                                 if (event.key === Qt.Key_Escape) { return }
                                 var modifiers = []
                                 var keyName = ""
@@ -91,7 +91,7 @@ Item {
                                 else if (key === Qt.Key_CapsLock) keyName = "caps lock"
                                 else { keyName = "key_" + key; return }
                                 text = modifiers.length > 0 ? modifiers.join("+") + "+" + keyName : keyName
-                                backend.set_setting("start_all_hotkey", text)
+                                backend.set_setting("start_all_hotkey", text); backend.save_all_settings()
                             }
                         }
                     }
@@ -104,7 +104,7 @@ Item {
                         TextField {
                             id: stopHotkeyField
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 28
+                            Layout.preferredHeight: 24
                             placeholderText: "Нажмите клавишу"
                             font.pointSize: 10
                             horizontalAlignment: Text.AlignHCenter
@@ -112,7 +112,7 @@ Item {
                             text: backend && backend.settings ? (backend.settings.stop_all_hotkey || "") : ""
                             Keys.onPressed: {
                                 event.accepted = true
-                                if (event.key === Qt.Key_Backspace) { text = ""; backend.set_setting("stop_all_hotkey", ""); return }
+                                if (event.key === Qt.Key_Backspace) { text = ""; backend.set_setting("stop_all_hotkey", ""); backend.save_all_settings(); return }
                                 if (event.key === Qt.Key_Escape) { return }
                                 var modifiers = []
                                 var keyName = ""
@@ -152,7 +152,7 @@ Item {
                                 else if (key === Qt.Key_CapsLock) keyName = "caps lock"
                                 else { keyName = "key_" + key; return }
                                 text = modifiers.length > 0 ? modifiers.join("+") + "+" + keyName : keyName
-                                backend.set_setting("stop_all_hotkey", text)
+                                backend.set_setting("stop_all_hotkey", text); backend.save_all_settings()
                             }
                         }
                     }
@@ -163,149 +163,210 @@ Item {
         // ========== ПЛИТКА: ДИАГНОСТИКА МОНИТОРОВ ==========
         GlassBlurPanel {
             Layout.fillWidth: true
-            Layout.preferredHeight: 155
+            Layout.preferredHeight: 160
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 15
-                spacing: 5
+                anchors.margins: 12
+                spacing: 4
 
                 Text {
                     text: "Диагностика мониторов и окон"
-                    color: "#c2c2c2"
+                    color: "#a2a2a2"
                     font.pointSize: 10
                     font.bold: true
                 }
-
+                
                 GridLayout {
                     columns: 4
                     Layout.fillWidth: true
-                    columnSpacing: 12
-                    rowSpacing: 3
+                    columnSpacing: 10
+                    rowSpacing: 2
 
-                    Text { text: "Мониторы:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 70 }
-                    Text { id: monitorsCount; text: "-"; color: "#c2c2c2"; font.pointSize: 9; font.bold: true; Layout.preferredWidth: 60 }
+                    Text { text: "Мониторы:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 65 }
+                    Text { id: monitorsCount; text: "-"; color: "#a2a2a2"; font.pointSize: 9; font.bold: true; Layout.preferredWidth: 55 }
 
-                    Text { text: "DPI:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 70 }
-                    Text { id: currentDpi; text: "-"; color: "#c2c2c2"; font.pointSize: 9; font.bold: true; Layout.preferredWidth: 60 }
+                    Text { text: "DPI:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 65 }
+                    Text { id: currentDpi; text: "-"; color: "#a2a2a2"; font.pointSize: 9; font.bold: true; Layout.preferredWidth: 55 }
 
-                    Text { text: "Разрешение:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 70 }
-                    Text { id: monitorResolution; text: "-"; color: "#c2c2c2"; font.pointSize: 9; font.bold: true; Layout.preferredWidth: 60 }
+                    Text { text: "Разрешение:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 65 }
+                    Text { id: monitorResolution; text: "-"; color: "#a2a2a2"; font.pointSize: 9; font.bold: true; Layout.preferredWidth: 55 }
 
-                    Text { text: "Последняя:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 70 }
-                    Text { id: lastActivation; text: "-"; color: "#c2c2c2"; font.pointSize: 9; Layout.preferredWidth: 60 }
+                    Text { text: "Последняя:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 65 }
+                    Text { id: lastActivation; text: "-"; color: "#a2a2a2"; font.pointSize: 9; font.bold: true; Layout.preferredWidth: 55 }
 
-                    Text { text: "Активное:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 70 }
-                    Text { id: activeWindowTitle; text: "-"; color: "#c2c2c2"; font.pointSize: 9; elide: Text.ElideRight; Layout.columnSpan: 3; Layout.fillWidth: true }
+                    Text { text: "Активное:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 65 }
+                    Text { id: activeWindowTitle; text: "-"; color: "#a2a2a2"; font.pointSize: 9; elide: Text.ElideRight; Layout.columnSpan: 3; Layout.fillWidth: true }
 
-                    Text { text: "Целевое:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 70 }
-                    Text { id: targetWindowTitle; text: "-"; color: "#c2c2c2"; font.pointSize: 9; elide: Text.ElideRight; Layout.columnSpan: 3; Layout.fillWidth: true }
+                    Text { text: "Целевое:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 65 }
+                    Text { id: targetWindowTitle; text: "-"; color: "#a2a2a2"; font.pointSize: 9; elide: Text.ElideRight; Layout.columnSpan: 3; Layout.fillWidth: true }
                 }
 
                 Item { Layout.fillHeight: true }
 
-                BaseButton {
-                    text: "Обновить"
-                    implicitWidth: 120
-                    implicitHeight: 26
-                    iconSize: 10
-                    textSize: 9
+                RowLayout {
                     Layout.alignment: Qt.AlignHCenter
-                    onClicked: {
-                        var info = backend.get_window_manager_diagnostic()
-                        monitorsCount.text = info.monitors_count
-                        currentDpi.text = info.current_dpi + " DPI"
-                        monitorResolution.text = (info.monitor_right - info.monitor_left) + "x" + (info.monitor_bottom - info.monitor_top)
-                        activeWindowTitle.text = info.foreground_title
+                    Layout.bottomMargin: 4
+                    spacing: 8
 
-                        if (info.target_title && info.target_title != "") {
-                            targetWindowTitle.text = info.target_title
-                        } else {
-                            targetWindowTitle.text = backend.settings.target_window_title || "Не выбрано"
+                    BaseButton {
+                        text: "Обновить"
+                        implicitWidth: 140
+                        implicitHeight: 28
+                        iconSize: 10
+                        textSize: 9
+                        onClicked: {
+                            var info = backend.get_window_manager_diagnostic()
+                            monitorsCount.text = info.monitors_count
+                            currentDpi.text = info.current_dpi + " DPI"
+                            monitorResolution.text = (info.monitor_right - info.monitor_left) + "x" + (info.monitor_bottom - info.monitor_top)
+                            activeWindowTitle.text = info.foreground_title
+
+                            if (info.target_title && info.target_title != "") {
+                                targetWindowTitle.text = info.target_title
+                            } else {
+                                targetWindowTitle.text = backend.settings.target_window_title || "Не выбрано"
+                            }
+
+                            lastActivation.text = info.last_activation > 0 ? Math.round((Date.now() / 1000 - info.last_activation)) + " сек назад" : "Никогда"
                         }
-
-                        lastActivation.text = info.last_activation > 0 ? Math.round((Date.now() / 1000 - info.last_activation)) + " сек назад" : "Никогда"
                     }
                 }
             }
         }
 
-        // ========== ПЛИТКА: ЛОГИ ==========
-        GlassBlurPanel {
+        // ========== РЯД: FAST OCR + ЛОГИ ==========
+        RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 115
+            spacing: 12
 
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 15
-                spacing: 6
+            GlassBlurPanel {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredHeight: 105
 
-                Text {
-                    text: "Отправить все логи разработчику для анализа"
-                    color: "#a0a0a0"
-                    font.pointSize: 9
-                    Layout.fillWidth: true
-                }
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    spacing: 4
 
-                Text {
-                    text: "Вы не отправляете мне никаких своих личных данных, вы можете сами проверить все логи в папке logs"
-                    color: "#70a070"
-                    font.pointSize: 9
-                    font.italic: true
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
+                    Text {
+                        text: "Fast OCR Reader (ридер дистанции)"
+                        color: "#a0a0a0"
+                        font.pointSize: 9
+                        Layout.fillWidth: true
+                    }
 
-                Item { Layout.fillHeight: true }
+                    Text {
+                        text: "Плавающий оверлей с отладкой OCR: расстояние, raw-текст, история, изображение"
+                        color: "#70a070"
+                        font.pointSize: 9
+                        font.italic: true
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
 
-                BaseButton {
-                    text: backend && backend.isSendingLogs ? "Отправка..." : "Отправить логи"
-                    implicitWidth: 160
-                    implicitHeight: 30
-                    iconSize: 12
-                    textSize: 9
-                    enabled: !(backend && backend.isSendingLogs)
-                    opacity: enabled ? 1.0 : 0.5
-                    Layout.alignment: Qt.AlignHCenter
-                    onClicked: backend.send_logs_to_telegram()
+                    Item { Layout.fillHeight: true }
+
+                    RowLayout {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.bottomMargin: 4
+                        spacing: 8
+
+                        BaseButton {
+                            text: "Открыть оверлей"
+                            implicitWidth: 140
+                            implicitHeight: 28
+                            iconSize: 10
+                            textSize: 9
+                            onClicked: backend.requestFastOCROverlay()
+                        }
+                    }
                 }
             }
 
-            // Анимация — волна бежит слева направо по верхнему краю
-            Item {
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: 3
-                z: 10
-                clip: true
-                visible: backend && backend.isSendingLogs
+            GlassBlurPanel {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredHeight: 105
 
-                Rectangle {
-                    id: logWave
-                    width: 120
-                    height: 3
-                    radius: 1.5
-                    gradient: Gradient {
-                        orientation: Gradient.Horizontal
-                        GradientStop { position: 0.0; color: "transparent" }
-                        GradientStop { position: 0.3; color: settingsDebugPage.accentColor }
-                        GradientStop { position: 0.5; color: Qt.lighter(settingsDebugPage.accentColor, 1.5) }
-                        GradientStop { position: 0.7; color: settingsDebugPage.accentColor }
-                        GradientStop { position: 1.0; color: "transparent" }
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    spacing: 4
+
+                    Text {
+                        text: "Отправить все логи разработчику для анализа"
+                        color: "#a0a0a0"
+                        font.pointSize: 9
+                        Layout.fillWidth: true
                     }
 
-                    SequentialAnimation on x {
-                        id: waveAnim
-                        running: backend && backend.isSendingLogs
-                        loops: Animation.Infinite
+                    Text {
+                        text: "Вы не отправляете мне никаких своих личных данных, вы можете сами проверить все логи в папке logs"
+                        color: "#70a070"
+                        font.pointSize: 9
+                        font.italic: true
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
 
-                        PropertyAction { target: logWave; property: "x"; value: -logWave.width }
-                        NumberAnimation {
-                            from: -logWave.width
-                            to: logWave.parent ? logWave.parent.width : 400
-                            duration: 2000
-                            easing.type: Easing.Linear
+                    Item { Layout.fillHeight: true }
+
+                    RowLayout {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.bottomMargin: 4
+                        spacing: 8
+
+                        BaseButton {
+                            text: backend && backend.isSendingLogs ? "Отправка..." : "Отправить логи"
+                            implicitWidth: 140
+                            implicitHeight: 28
+                            iconSize: 10
+                            textSize: 9
+                            enabled: !(backend && backend.isSendingLogs)
+                            opacity: enabled ? 1.0 : 0.5
+                            onClicked: backend.send_logs_to_telegram()
+                        }
+                    }
+                }
+
+                // Анимация — волна бежит слева направо по верхнему краю
+                Item {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 3
+                    z: 10
+                    clip: true
+                    visible: backend && backend.isSendingLogs
+
+                    Rectangle {
+                        id: logWave
+                        width: 120
+                        height: 3
+                        radius: 1.5
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+                            GradientStop { position: 0.0; color: "transparent" }
+                            GradientStop { position: 0.3; color: settingsDebugPage.accentColor }
+                            GradientStop { position: 0.5; color: Qt.lighter(settingsDebugPage.accentColor, 1.5) }
+                            GradientStop { position: 0.7; color: settingsDebugPage.accentColor }
+                            GradientStop { position: 1.0; color: "transparent" }
+                        }
+
+                        SequentialAnimation on x {
+                            id: waveAnim
+                            running: backend && backend.isSendingLogs
+                            loops: Animation.Infinite
+
+                            PropertyAction { target: logWave; property: "x"; value: -logWave.width }
+                            NumberAnimation {
+                                from: -logWave.width
+                                to: logWave.parent ? logWave.parent.width : 400
+                                duration: 2000
+                                easing.type: Easing.Linear
+                            }
                         }
                     }
                 }
@@ -316,16 +377,16 @@ Item {
         GlassBlurPanel {
             id: updatePanel
             Layout.fillWidth: true
-            Layout.preferredHeight: updateProgressBar.visible ? 175 : 140
+            Layout.preferredHeight: updateProgressBar.visible ? 165 : 140
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 15
-                spacing: 6
+                anchors.margins: 12
+                spacing: 4
 
                 Text {
                     text: "Обновления"
-                    color: "#c2c2c2"
+                    color: "#a2a2a2"
                     font.pointSize: 10
                     font.bold: true
                 }
@@ -340,7 +401,7 @@ Item {
                     Text {
                         id: currentVersionText
                         text: backend ? backend.get_current_version() : "..."
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         font.pointSize: 10
                         font.bold: true
                     }
@@ -364,7 +425,6 @@ Item {
                     Item { Layout.fillWidth: true }
                 }
 
-                // Прогресс-бар загрузки
                 ProgressBar {
                     id: updateProgressBar
                     Layout.fillWidth: true
@@ -397,6 +457,7 @@ Item {
 
                 RowLayout {
                     Layout.fillWidth: true
+                    Item { Layout.fillWidth: true }
                     BaseButton {
                         id: checkBtn
                         text: "Проверить"
@@ -451,7 +512,7 @@ Item {
                         property string downloadUrl: ""
                         property string version: ""
                         text: "Скачать и установить"
-                        implicitWidth: 180
+                        implicitWidth: 140
                         implicitHeight: 28
                         iconSize: 10
                         textSize: 9
@@ -475,7 +536,7 @@ Item {
                         id: downloadBtn
                         property string downloadUrl: ""
                         text: "Браузер"
-                        implicitWidth: 100
+                        implicitWidth: 140
                         implicitHeight: 28
                         iconSize: 10
                         textSize: 9
@@ -523,21 +584,6 @@ Item {
             }
         }
 
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.topMargin: 5
-            spacing: 0
-            Item { Layout.fillWidth: true }
-            BaseButton {
-                text: "Сохранить"
-                implicitWidth: 160
-                implicitHeight: 34
-                iconSize: 14
-                textSize: 10
-                onClicked: backend.save_all_settings()
-            }
-            Item { Layout.fillWidth: true }
-        }
     }
 
     // Обновление информации при открытии страницы
@@ -566,5 +612,4 @@ Item {
             }
         }
     }
-
 }

@@ -22,24 +22,13 @@ Item {
         spacing: 15
 
         // Заголовок с кнопкой назад
-        RowLayout {
-            Layout.fillWidth: true
-            BaseButton {
-                text: "← Назад"
-                implicitWidth: 80
-                implicitHeight: 30
-                iconSize: 0
-                textSize: 10
-                onClicked: settingsOCRPage.StackView.view.pop()
-            }
-            Text {
-                text: "OCR — Настройки"
-                font.pointSize: 18
-                font.bold: true
-                color: "#c2c2c2"
-                Layout.alignment: Qt.AlignHCenter
-            }
-            Item { Layout.fillWidth: true }
+        BaseButton {
+            text: "← Назад"
+            implicitWidth: 80
+            implicitHeight: 30
+            iconSize: 0
+            textSize: 10
+            onClicked: settingsOCRPage.StackView.view.pop()
         }
 
         ColumnLayout {
@@ -50,6 +39,14 @@ Item {
 
             GroupBox {
                 title: "Масштаб распознавания"
+                label: Label {
+                    text: "Масштаб распознавания"
+                    color: "#a2a2a2"
+                    font.pointSize: 11
+                    font.bold: true
+                    topPadding: 10
+                    leftPadding: 12
+                }
                 Layout.fillWidth: true
                 background: GlassBlurPanel {}
                 contentItem: ColumnLayout {
@@ -63,7 +60,7 @@ Item {
 
                         Label {
                             text: "Масштаб:"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             font.bold: true
                             Layout.fillWidth: true
@@ -91,6 +88,14 @@ Item {
 
             GroupBox {
                 title: "Режим сегментации (PSM)"
+                label: Label {
+                    text: "Режим сегментации (PSM)"
+                    color: "#a2a2a2"
+                    font.pointSize: 11
+                    font.bold: true
+                    topPadding: 10
+                    leftPadding: 12
+                }
                 Layout.fillWidth: true
                 background: GlassBlurPanel {}
                 contentItem: ColumnLayout {
@@ -104,7 +109,7 @@ Item {
 
                         Label {
                             text: "PSM:"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             font.bold: true
                             Layout.fillWidth: true
@@ -132,6 +137,14 @@ Item {
 
             GroupBox {
                 title: "Морфологическая обработка"
+                label: Label {
+                    text: "Морфологическая обработка"
+                    color: "#a2a2a2"
+                    font.pointSize: 11
+                    font.bold: true
+                    topPadding: 10
+                    leftPadding: 12
+                }
                 Layout.fillWidth: true
                 background: GlassBlurPanel {}
                 contentItem: ColumnLayout {

@@ -257,7 +257,7 @@ class WindowMixin:
                 from backend.win32_api import (IsWindowVisible, GetWindowTextTimeout,
                     EnumWindows, ShowWindow, SetForegroundWindow, SW_RESTORE,
                     GetWindowThreadProcessId, GetCurrentThreadId, AttachThreadInput)
-                def enum_callback(hwnd, hwnds):
+                def enum_callback(hwnd, _):
                     if IsWindowVisible(hwnd):
                         title = GetWindowTextTimeout(hwnd)
                         if window_title.lower() in title.lower():

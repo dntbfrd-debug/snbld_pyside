@@ -221,7 +221,7 @@ Item {
                 spacing: 2
                 Label {
                     text: "Название:"
-                    color: "#c2c2c2"
+                    color: "#a2a2a2"
                     font.pointSize: 9
                 }
                 TextField {
@@ -238,7 +238,7 @@ Item {
                 spacing: 2
                 Label {
                     text: "Горячая клавиша:"
-                    color: "#c2c2c2"
+                    color: "#a2a2a2"
                     font.pointSize: 9
                 }
                 TextField {
@@ -288,7 +288,7 @@ Item {
                 spacing: 2
                 Label {
                     text: "Тип макроса:"
-                    color: "#c2c2c2"
+                    color: "#a2a2a2"
                     font.pointSize: 9
                 }
                 ComboBox {
@@ -313,7 +313,7 @@ Item {
                         height: 30
                         contentItem: Text {
                             text: model.text
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             verticalAlignment: Text.AlignVCenter
                         }
@@ -352,7 +352,7 @@ Item {
                 spacing: 2
                 Label {
                     text: "Бафф:"
-                    color: "#c2c2c2"
+                    color: "#a2a2a2"
                     font.pointSize: 9
                 }
                 TextField {
@@ -374,7 +374,7 @@ Item {
 
             Label {
                 text: "Область:"
-                color: "#c2c2c2"
+                color: "#a2a2a2"
                 font.pointSize: 9
                 Layout.preferredWidth: 60
             }
@@ -408,7 +408,7 @@ Item {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 2
-                Label { text: "Длительность (сек):"; color: "#c2c2c2"; font.pointSize: 9 }
+                Label { text: "Длительность (сек):"; color: "#a2a2a2"; font.pointSize: 9 }
                 TextField {
                     id: durationField
                     Layout.fillWidth: true
@@ -424,7 +424,7 @@ Item {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 2
-                Label { text: "Бонус пения (%):"; color: "#c2c2c2"; font.pointSize: 9 }
+                Label { text: "Бонус пения (%):"; color: "#a2a2a2"; font.pointSize: 9 }
                 TextField {
                     id: channelingField
                     Layout.fillWidth: true
@@ -454,7 +454,7 @@ Item {
 
                 Text {
                     text: "Точка клика:"
-                    color: "#c2c2c2"
+                    color: "#a2a2a2"
                     font.pointSize: 9
                     font.bold: true
                 }
@@ -513,7 +513,7 @@ Item {
             Layout.fillHeight: true
             spacing: 4
 
-            Label { text: "Шаги макроса:"; color: "#c2c2c2"; font.pointSize: 9 }
+            Label { text: "Шаги макроса:"; color: "#a2a2a2"; font.pointSize: 9 }
 
             ListView {
                 id: stepsView
@@ -535,10 +535,10 @@ Item {
                                   modelData.action === "left" ? "ЛКМ" :
                                   modelData.action === "right" ? "ПКМ" :
                                   "Пауза"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             width: 80
                         }
-                        Text { text: modelData.value || ""; color: "#c2c2c2"; width: 60 }
+                        Text { text: modelData.value || ""; color: "#a2a2a2"; width: 60 }
                         Text { text: (modelData.delay !== undefined ? modelData.delay : 0) + " мс"; color: "#a0a0a0" }
                         Item { Layout.fillWidth: true }
                         BaseButton {

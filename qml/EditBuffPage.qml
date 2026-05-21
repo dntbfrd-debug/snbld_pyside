@@ -54,7 +54,7 @@ Item {
                 text: editingMacro ? (" " + editingMacro.name) : "Бафф-макрос"
                 font.pointSize: 18
                 font.bold: true
-                color: "#c2c2c2"
+                color: "#a2a2a2"
                 Layout.alignment: Qt.AlignHCenter
             }
             Item { Layout.fillWidth: true }

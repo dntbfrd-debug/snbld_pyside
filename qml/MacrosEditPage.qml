@@ -186,7 +186,7 @@ Item {
     Text {
         id: invitationText
         text: "Выберите тип макроса для создания"
-        color: "#c2c2c2"
+        color: "#a2a2a2"
         font.pointSize: 16
         horizontalAlignment: Text.AlignHCenter
         anchors.centerIn: parent

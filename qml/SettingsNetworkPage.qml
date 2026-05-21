@@ -24,24 +24,13 @@ Item {
         anchors.bottomMargin: 70
         spacing: 15
 
-        RowLayout {
-            Layout.fillWidth: true
-            BaseButton {
-                text: "← Назад"
-                implicitWidth: 80
-                implicitHeight: 30
-                iconSize: 0
-                textSize: 10
-                onClicked: settingsNetworkPage.StackView.view.pop()
-            }
-            Text {
-                text: "Сеть"
-                font.pointSize: 18
-                font.bold: true
-                color: "#c2c2c2"
-                Layout.alignment: Qt.AlignHCenter
-            }
-            Item { Layout.fillWidth: true }
+        BaseButton {
+            text: "← Назад"
+            implicitWidth: 80
+            implicitHeight: 30
+            iconSize: 0
+            textSize: 10
+            onClicked: settingsNetworkPage.StackView.view.pop()
         }
 
         ColumnLayout {
@@ -52,6 +41,14 @@ Item {
 
             GroupBox {
                 title: "Мониторинг"
+                label: Label {
+                    text: "Мониторинг"
+                    color: "#a2a2a2"
+                    font.pointSize: 11
+                    font.bold: true
+                    topPadding: 10
+                    leftPadding: 12
+                }
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
                 background: GlassBlurPanel {}
@@ -98,7 +95,7 @@ Item {
                         
                         Label {
                             text: "Средний пинг (мс):"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             font.bold: true
                             Layout.fillWidth: true
@@ -115,7 +112,7 @@ Item {
 
                         Label {
                             text: "Интервал проверки (сек):"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             font.bold: true
                             Layout.fillWidth: true
@@ -133,7 +130,7 @@ Item {
 
                         Label {
                             text: "Процесс игры:"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             font.bold: true
                             Layout.fillWidth: true
@@ -150,7 +147,7 @@ Item {
 
                         Label {
                             text: "IP сервера:"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             font.bold: true
                             Layout.fillWidth: true
@@ -172,7 +169,7 @@ Item {
 
                         Label {
                             text: "Текущий пинг:"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             font.bold: true
                         }

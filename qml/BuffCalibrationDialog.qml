@@ -139,7 +139,7 @@ Window {
 
                         Text {
                             text: "Бафф «Светлая опека духов» требует выбора цели. Эта функция автоматически кликает по вашему персонажу в игре, чтобы он стал целью для баффа."
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -171,7 +171,7 @@ Window {
 
                         Text {
                             text: "Выберите точку на верхнем таргете (иконка персонажа в интерфейсе игры). Это точка, по которой программа будет кликать, чтобы выбрать вашего персонажа как цель."
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -203,7 +203,7 @@ Window {
 
                         Text {
                             text: "1. Нажмите ' Начать калибровку'\n2. Кликните ЛКМ на верхний таргет вашего персонажа\n3. Координаты будут сохранены автоматически"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -334,7 +334,7 @@ Window {
 
                         Text {
                             text: "Кликните ЛКМ на верхний таргет вашего персонажа.\nКоординаты будут сохранены.\nESC для отмены."
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -433,7 +433,7 @@ Window {
                     Text {
                         anchors.centerIn: parent
                         text: "Выберите действие:"
-                        color: "#b0b0b0"
+                        color: "#a2a2a2"
                         font.pointSize: 10
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter

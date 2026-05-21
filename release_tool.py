@@ -11,6 +11,8 @@ import zipfile
 from pathlib import Path
 from datetime import date
 
+from utils.wizard_bmp import generate_dark_wizard_bmp
+
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QTextEdit, QCheckBox,
@@ -36,6 +38,9 @@ def read_current_version():
     return m.group(1) if m else "0.0.0"
 
 
+CONSTANTS_FILE = BASE_DIR / "constants.py"
+
+
 def write_version(version):
     text = BUILD_NUITKA.read_text("utf-8")
     text = re.sub(
@@ -44,6 +49,15 @@ def write_version(version):
         text, count=1, flags=re.MULTILINE
     )
     BUILD_NUITKA.write_text(text, "utf-8")
+
+    if CONSTANTS_FILE.exists():
+        ctext = CONSTANTS_FILE.read_text("utf-8")
+        ctext = re.sub(
+            r'^CURRENT_VERSION\s*=\s*"[^"]+"',
+            f'CURRENT_VERSION = "{version}"',
+            ctext, count=1, flags=re.MULTILINE
+        )
+        CONSTANTS_FILE.write_text(ctext, "utf-8")
 
 
 def bump_patch(version):
@@ -454,69 +468,6 @@ exit;
         )
         thread.start()
 
-    def _generate_dark_bmps(self, version):
-        try:
-            from PIL import Image, ImageDraw, ImageFont
-        except ImportError:
-            return None, None
-
-        out_dir = BASE_DIR / "dist_installers"
-        out_dir.mkdir(parents=True, exist_ok=True)
-
-        sidebar_path = out_dir / "wizard_sidebar.bmp"
-        small_path = out_dir / "wizard_small.bmp"
-        bg_dark = (18, 18, 30)
-        accent = (230, 100, 140)
-
-        img = Image.new("RGB", (164, 314), bg_dark)
-        draw = ImageDraw.Draw(img)
-        for y in range(314):
-            t = y / 314
-            r = int(accent[0] * 0.08 + bg_dark[0] * (1 - t * 0.15))
-            g = int(accent[1] * 0.05 + bg_dark[1] * (1 - t * 0.15))
-            b = int(accent[2] * 0.05 + bg_dark[2] * (1 - t * 0.15))
-            draw.line([(0, y), (163, y)], fill=(r, g, b))
-        logo_path = BASE_DIR / "logo.png"
-        if logo_path.exists():
-            logo = Image.open(logo_path).convert("RGBA")
-            logo.thumbnail((80, 80), Image.LANCZOS)
-            lx = (164 - logo.width) // 2
-            ly = 30
-            if logo.mode == "RGBA":
-                img.paste(logo, (lx, ly), logo)
-            else:
-                img.paste(logo, (lx, ly))
-        try:
-            font = ImageFont.truetype("arial.ttf", 11)
-            draw.text((82, 160), "snbld resvap", fill=(180, 180, 200), font=font, anchor="mt")
-            font_small = ImageFont.truetype("arial.ttf", 9)
-            draw.text((82, 175), "v" + version, fill=(120, 120, 140), font=font_small, anchor="mt")
-        except Exception:
-            pass
-        img.save(sidebar_path, "BMP")
-        self.log_signal.emit(f"   [OK] {sidebar_path.name} ({img.size[0]}x{img.size[1]})")
-
-        small = Image.new("RGB", (55, 55), bg_dark)
-        sdraw = ImageDraw.Draw(small)
-        for y in range(55):
-            t = y / 55
-            r = int(bg_dark[0] + accent[0] * 0.25 * t)
-            g = int(bg_dark[1] + accent[1] * 0.25 * t)
-            b = int(bg_dark[2] + accent[2] * 0.25 * t)
-            sdraw.line([(0, y), (54, y)], fill=(r, g, b))
-        if logo_path.exists():
-            logo_small = Image.open(logo_path).convert("RGBA")
-            logo_small.thumbnail((40, 40), Image.LANCZOS)
-            slx = (55 - logo_small.width) // 2
-            sly = (55 - logo_small.height) // 2
-            if logo_small.mode == "RGBA":
-                small.paste(logo_small, (slx, sly), logo_small)
-            else:
-                small.paste(logo_small, (slx, sly))
-        small.save(small_path, "BMP")
-        self.log_signal.emit(f"   [OK] {small_path.name} ({small.size[0]}x{small.size[1]})")
-        return str(sidebar_path), str(small_path)
-
     def _build_installer_thread(self, iscc, version):
         def emit(msg):
             self.log_signal.emit(msg)
@@ -533,11 +484,16 @@ exit;
                         except Exception as e:
                             emit(f"   [WARN] Не удалось удалить {f.name}: {e}")
 
-            sidebar, small = self._generate_dark_bmps(version)
+            sidebar, small = generate_dark_wizard_bmp(BASE_DIR, version, log_fn=emit)
             if sidebar and small:
                 iss_text = ISS_FILE.read_text("utf-8")
                 if "WizardStyle=modern dark" not in iss_text:
-                    iss_text = iss_text.replace("WizardStyle=modern", "WizardStyle=modern dark includetitlebar")
+                    iss_text = re.sub(
+                        r'^WizardStyle=modern(?! dark)',
+                        'WizardStyle=modern dark includetitlebar',
+                        iss_text,
+                        flags=re.MULTILINE
+                    )
                 iss_text = re.sub(
                     r'WizardImageFile=.*$',
                     lambda m: f'WizardImageFile={sidebar}',

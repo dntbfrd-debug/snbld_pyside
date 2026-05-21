@@ -84,7 +84,7 @@ class WindowManager:
             return self.check_window()
         self._last_activation_time = current_time
 
-        def enum_callback(hwnd, hwnds):
+        def enum_callback(hwnd, _):
             try:
                 if IsWindowVisible(hwnd):
                     title = GetWindowTextTimeout(hwnd)
@@ -129,7 +129,7 @@ class WindowManager:
         return False
 
     def find_window(self, title_substring: str) -> Optional[int]:
-        def enum_callback(hwnd, hwnds):
+        def enum_callback(hwnd, _):
             try:
                 if IsWindowVisible(hwnd):
                     title = GetWindowTextTimeout(hwnd)

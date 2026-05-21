@@ -14,7 +14,7 @@ Item {
             text: "Настройки"
             font.pointSize: 20
             font.bold: true
-            color: "#c2c2c2"
+            color: "#a2a2a2"
         }
 
         TabBar {
@@ -29,7 +29,7 @@ Item {
                     font.pointSize: 10
                     contentItem: RowLayout {
                         spacing: 6
-                        Text { text: text; color: "#c2c2c2"; font.pointSize: 10 }
+                        Text { text: text; color: "#a2a2a2"; font.pointSize: 10 }
                     }
                 }
             }
@@ -55,7 +55,7 @@ Item {
                         
                         Label { 
                             text: "▣ Сет пения:"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             Layout.fillWidth: true
                         }
@@ -69,7 +69,7 @@ Item {
 
                         Label { 
                             text: "Сет ПА:"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             Layout.fillWidth: true
                         }
@@ -83,7 +83,7 @@ Item {
 
                         Label { 
                             text: "Бонус пения (%):"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             Layout.fillWidth: true
                         }
@@ -98,7 +98,7 @@ Item {
 
                         Label { 
                             text: "Запас по кулдауну (мс):"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             Layout.fillWidth: true
                         }
@@ -142,7 +142,7 @@ Item {
 
                         Label { 
                             text: "Задержка (мс):"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             Layout.fillWidth: true
                         }
@@ -158,7 +158,7 @@ Item {
 
                         Label { 
                             text: "Допуск (м):"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             Layout.fillWidth: true
                         }
@@ -174,7 +174,7 @@ Item {
 
                         Label { 
                             text: "Интервал обновления (сек):"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             Layout.fillWidth: true
                         }
@@ -219,7 +219,7 @@ Item {
 
                         Label { 
                             text: "Масштаб:"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             Layout.fillWidth: true
                         }
@@ -235,7 +235,7 @@ Item {
 
                         Label { 
                             text: "PSM:"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             Layout.fillWidth: true
                         }
@@ -275,7 +275,7 @@ Item {
 
                     Rectangle { height: 1; Layout.fillWidth: true; color: "#60ffffff" }
 
-                    Label { text: "Область моба (x1,y1,x2,y2):"; color: "#c2c2c2"; font.pointSize: 10; font.bold: true }
+                    Label { text: "Область моба (x1,y1,x2,y2):"; color: "#a2a2a2"; font.pointSize: 10; font.bold: true }
                     RowLayout {
                         spacing: 5
                         AreaCoordinateInput {
@@ -308,7 +308,7 @@ Item {
                         }
                     }
 
-                    Label { text: "Область игрока (x1,y1,x2,y2):"; color: "#c2c2c2"; font.pointSize: 10; font.bold: true }
+                    Label { text: "Область игрока (x1,y1,x2,y2):"; color: "#a2a2a2"; font.pointSize: 10; font.bold: true }
                     RowLayout {
                         spacing: 5
                         AreaCoordinateInput {
@@ -363,7 +363,7 @@ Item {
                         }
                     }
                     
-                    Label { text: "Процесс игры:"; color: "#c2c2c2"; font.pointSize: 10 }
+                    Label { text: "Процесс игры:"; color: "#a2a2a2"; font.pointSize: 10 }
                     TextField {
                         text: backend.settings.process_name
                         onEditingFinished: backend.set_setting("process_name", text)
@@ -371,7 +371,7 @@ Item {
                         background: Rectangle { radius: 4; color: "#40ffffff" }
                     }
                     
-                    Label { text: "IP сервера:"; color: "#c2c2c2"; font.pointSize: 10 }
+                    Label { text: "IP сервера:"; color: "#a2a2a2"; font.pointSize: 10 }
                     TextField {
                         text: backend.settings.server_ip
                         onEditingFinished: backend.set_setting("server_ip", text)
@@ -381,7 +381,7 @@ Item {
                     
                     Label {
                         text: "Текущий пинг: " + backend.ping + " мс"
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         font.pointSize: 10
                     }
                 }
@@ -397,6 +397,14 @@ Item {
                     // Привязка к окну
                     GroupBox {
                         title: "Привязка к окну"
+                        label: Label {
+                            text: "Привязка к окну"
+                            color: "#a2a2a2"
+                            font.pointSize: 11
+                            font.bold: true
+                            topPadding: 10
+                            leftPadding: 12
+                        }
                         Layout.fillWidth: true
                         background: GlassBlurPanel { glassOpacity: 0.125; borderOpacity: 0.25 }
                         contentItem: ColumnLayout {
@@ -424,7 +432,7 @@ Item {
                                 }
                                 contentItem: Text {
                                     text: windowLockedCheck.text
-                                    color: "#c2c2c2"
+                                    color: "#a2a2a2"
                                     font.pointSize: 10
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 20
@@ -465,7 +473,7 @@ Item {
                         }
                     }
 
-                    Label { text: "Глобальная задержка шага (мс):"; color: "#c2c2c2"; font.pointSize: 10 }
+                    Label { text: "Глобальная задержка шага (мс):"; color: "#a2a2a2"; font.pointSize: 10 }
                     TextField {
                         text: backend.settings.global_step_delay
                         validator: DoubleValidator { bottom: 0.0; top: 500.0; decimals: 2; notation: DoubleValidator.StandardNotation; locale: Locale.c }

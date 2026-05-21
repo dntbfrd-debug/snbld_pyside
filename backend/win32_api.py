@@ -146,9 +146,12 @@ def SetForegroundWindow(hwnd):
 def SetWindowPos(hwnd, hwnd_after, x, y, w, h, flags):
     return _user32.SetWindowPos(hwnd, hwnd_after, x, y, w, h, flags)
 
-def EnumWindows(callback):
-    cb = WNDENUMPROC(callback)
-    _user32.EnumWindows(cb, 0)
+def EnumWindows(callback, lParam=0):
+    def _wrapper(hwnd, lparam):
+        ret = callback(hwnd, lparam)
+        return True if ret is None else ret
+    cb = WNDENUMPROC(_wrapper)
+    _user32.EnumWindows(cb, lParam)
 
 def GetCursorPos() -> Tuple[int, int]:
     pt = POINT()

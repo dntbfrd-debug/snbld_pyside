@@ -375,7 +375,7 @@ class MacroDispatcher:
             if stats.launches > 1 and stats.last_launch_time > 0:
                 pass
 
-    def stop_all_macros(self, timeout: float = 3.0):
+    def stop_all_macros(self, timeout: float = 1.0):
         self.running = False
         
         stopped_count = 0

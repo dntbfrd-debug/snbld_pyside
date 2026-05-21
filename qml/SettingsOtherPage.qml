@@ -14,25 +14,13 @@ Item {
         anchors.bottomMargin: 70
         spacing: 10
 
-        // Заголовок с кнопкой назад
-        RowLayout {
-            Layout.fillWidth: true
-            BaseButton {
-                text: "← Назад"
-                implicitWidth: 80
-                implicitHeight: 30
-                iconSize: 0
-                textSize: 10
-                onClicked: settingsDelayPage.StackView.view.pop()
-            }
-            Text {
-                text: "Редактор задержек"
-                font.pointSize: 18
-                font.bold: true
-                color: "#c2c2c2"
-                Layout.alignment: Qt.AlignHCenter
-            }
-            Item { Layout.fillWidth: true }
+        BaseButton {
+            text: "← Назад"
+            implicitWidth: 80
+            implicitHeight: 30
+            iconSize: 0
+            textSize: 10
+            onClicked: settingsDelayPage.StackView.view.pop()
         }
 
         // Две плитки рядом (горизонтально)
@@ -45,6 +33,14 @@ Item {
             // ========== ПЛИТКА 1: ФИКСИРОВАННЫЕ ЗАДЕРЖКИ ==========
             GroupBox {
                 title: "Фиксированные задержки"
+                label: Label {
+                    text: "Фиксированные задержки"
+                    color: "#a2a2a2"
+                    font.pointSize: 11
+                    font.bold: true
+                    topPadding: 10
+                    leftPadding: 12
+                }
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 background: GlassBlurPanel {}
@@ -113,7 +109,7 @@ Item {
 
                         Label {
                             text: "Задержка 1 шага (мс):"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             font.bold: true
                             Layout.fillWidth: true
@@ -131,7 +127,7 @@ Item {
 
                         Label {
                             text: "Задержка 2-3 шага (мс):"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             font.bold: true
                             Layout.fillWidth: true
@@ -161,6 +157,14 @@ Item {
             // ========== ПЛИТКА 2: АВТО ЗАДЕРЖКИ (ПИНГ) ==========
             GroupBox {
                 title: "Авто задержки (пинг)"
+                label: Label {
+                    text: "Авто задержки (пинг)"
+                    color: "#a2a2a2"
+                    font.pointSize: 11
+                    font.bold: true
+                    topPadding: 10
+                    leftPadding: 12
+                }
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 background: GlassBlurPanel {}
@@ -230,7 +234,7 @@ Item {
                             Layout.fillWidth: true
                             Text {
                                 text: "ICMP:"
-                                color: "#c2c2c2"
+                                color: "#a2a2a2"
                                 font.pointSize: 10
                             }
                             Text {
@@ -242,7 +246,7 @@ Item {
                             Item { Layout.fillWidth: true }
                             Text {
                                 text: "Игровой:"
-                                color: "#c2c2c2"
+                                color: "#a2a2a2"
                                 font.pointSize: 10
                             }
                             Text {
@@ -263,7 +267,7 @@ Item {
                             Layout.fillWidth: true
                             Text {
                                 text: "Компенсация:"
-                                color: "#c2c2c2"
+                                color: "#a2a2a2"
                                 font.pointSize: 10
                             }
                             Item { Layout.fillWidth: true }
@@ -296,6 +300,14 @@ Item {
         // ========== ПЛИТКА 3: ЗАПАС ПО КУЛДАУНУ (под ними) ==========
         GroupBox {
             title: "Защита от быстрых и случайных нажатий"
+            label: Label {
+                text: "Защита от быстрых и случайных нажатий"
+                color: "#a2a2a2"
+                font.pointSize: 11
+                font.bold: true
+                topPadding: 10
+                leftPadding: 12
+            }
             Layout.fillWidth: true
             Layout.preferredHeight: 160
             background: GlassBlurPanel {}
@@ -312,7 +324,7 @@ Item {
                         Layout.fillWidth: true
                         Label {
                             text: "Поправка отката скилла на пинг сервера:"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             font.bold: true
                         }
@@ -360,7 +372,7 @@ Item {
                         Layout.fillWidth: true
                         Label {
                             text: "Блокировка одновременного запуска макросов:"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             font.bold: true
                         }

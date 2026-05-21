@@ -54,7 +54,7 @@ Item {
                 text: editingMacro ? "Редактирование: " + editingMacro.name : "Зональный макрос"
                 font.pointSize: 16
                 font.bold: true
-                color: "#c2c2c2"
+                color: "#a2a2a2"
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
             }

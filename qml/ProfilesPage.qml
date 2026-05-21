@@ -645,7 +645,7 @@ Item {
             Layout.topMargin: 10
             Text {
                 text: "Доступные профили"
-                color: "#c2c2c2"
+                color: "#a2a2a2"
                 font.pointSize: 12
                 font.bold: true
             }
@@ -785,7 +785,7 @@ Item {
 
                             Text {
                                 text: modelData
-                                color: "#c2c2c2"
+                                color: "#a2a2a2"
                                 font.pointSize: 10
                                 font.bold: backend && modelData === backend.current_profile
                                 elide: Text.ElideRight

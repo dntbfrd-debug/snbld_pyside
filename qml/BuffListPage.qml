@@ -34,7 +34,7 @@ Item {
                 text: "Баффы"
                 font.pointSize: 16
                 font.bold: true
-                color: "#c2c2c2"
+                color: "#a2a2a2"
             }
             Item { Layout.fillWidth: true }
             Text {
@@ -191,7 +191,7 @@ Item {
                                 text: model.name || ""
                                 font.pointSize: 9
                                 font.bold: true
-                                color: "#c2c2c2"
+                                color: "#a2a2a2"
                                 wrapMode: Text.WordWrap
                                 maximumLineCount: 2
                                 elide: Text.ElideRight

@@ -11,6 +11,7 @@ SOUND_PROCESS_DIED = "process_died"
 SOUND_CRITICAL = "critical"
 SOUND_START = "macro_start"
 SOUND_STOP = "macro_stop"
+SOUND_EXIT = "macro_exit"
 
 _SOUND_PATTERNS = {
     SOUND_OCR_FAIL:      (440, 200),
@@ -32,13 +33,15 @@ _sound_enabled = True
 
 _start_mp3 = ""
 _stop_mp3 = ""
+_exit_mp3 = ""
 
 
-def set_sound_files(start_path, stop_path):
-    global _start_mp3, _stop_mp3
+def set_sound_files(start_path, stop_path, exit_path=""):
+    global _start_mp3, _stop_mp3, _exit_mp3
     _start_mp3 = start_path
     _stop_mp3 = stop_path
-    logger.info(f"[SOUND] MP3: start={os.path.exists(start_path)}, stop={os.path.exists(stop_path)}")
+    _exit_mp3 = exit_path
+    logger.info(f"[SOUND] MP3: start={os.path.exists(start_path)}, stop={os.path.exists(stop_path)}, exit={os.path.exists(exit_path)}")
 
 
 def enable_sounds(enabled=True):
@@ -90,7 +93,7 @@ def play_alert_sound(alert_type=SOUND_CRITICAL):
         return
 
     pattern = _SOUND_PATTERNS.get(alert_type)
-    if not pattern and alert_type not in (SOUND_START, SOUND_STOP):
+    if not pattern and alert_type not in (SOUND_START, SOUND_STOP, SOUND_EXIT):
         return
 
     def _play():
@@ -104,6 +107,12 @@ def play_alert_sound(alert_type=SOUND_CRITICAL):
             if _play_mp3(_stop_mp3):
                 return
             _play_message_beep(0x00000030)
+            return
+
+        if alert_type == SOUND_EXIT:
+            # Играем синхронно (не daemon поток) — при выходе daemon-потоки убиваются
+            _play_mp3(_exit_mp3)
+            time.sleep(0.05)  # дать MCI время начать воспроизведение
             return
 
         if pattern:

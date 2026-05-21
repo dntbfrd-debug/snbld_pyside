@@ -112,3 +112,12 @@ asgard_skills.json
 
 # Но не игнорировать app.manifest
 !app.manifest
+
+# Память (Obsidian vault, dev docs)
+memory/
+
+# Разработка
+mouse_detector.py
+test_memory_reader.py
+qml/main.qml.current
+utils/wizard_bmp.py

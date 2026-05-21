@@ -11,27 +11,15 @@ Item {
         anchors.margins: 20
         spacing: 15
 
-        // Заголовок
-        RowLayout {
-            Layout.fillWidth: true
-            BaseButton {
-                text: "← Назад"
-                implicitWidth: 80
-                implicitHeight: 30
-                iconSize: 0
-                textSize: 10
-                onClicked: {
-                    settingsAppearancePage.StackView.view.pop()
-                }
+        BaseButton {
+            text: "← Назад"
+            implicitWidth: 80
+            implicitHeight: 30
+            iconSize: 0
+            textSize: 10
+            onClicked: {
+                settingsAppearancePage.StackView.view.pop()
             }
-            Item { Layout.fillWidth: true }
-            Text {
-                text: "Внешний вид"
-                font.pointSize: 20
-                font.bold: true
-                color: "#c2c2c2"
-            }
-            Item { Layout.fillWidth: true }
         }
 
         RowLayout {
@@ -157,7 +145,7 @@ Item {
                                 radius: 4
                                 border.color: "#40ffffff"
                             }
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.family: "Fira Code"
                             font.pointSize: 11
                             horizontalAlignment: TextInput.AlignHCenter

@@ -54,21 +54,19 @@ Item {
         spacing: 15
 
         // Заголовок с кнопкой назад
-        RowLayout {
-            Layout.fillWidth: true
-            BaseButton {
-                text: "← Назад"
-                implicitWidth: 80
-                implicitHeight: 35
-                iconSize: 0
-                textSize: 11
-                onClicked: settingsOCRAreasPage.StackView.view.pop()
-            }
+        BaseButton {
+            text: "← Назад"
+            implicitWidth: 80
+            implicitHeight: 30
+            iconSize: 0
+            textSize: 10
+            onClicked: settingsOCRAreasPage.StackView.view.pop()
+        }
             Text {
                 text: "Области OCR"
                 font.pointSize: 18
                 font.bold: true
-                color: "#c2c2c2"
+                color: "#a2a2a2"
                 Layout.alignment: Qt.AlignHCenter
             }
             Item { Layout.fillWidth: true }
@@ -118,7 +116,7 @@ Item {
                         text: "Область моба"
                         font.pointSize: 14
                         font.bold: true
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         Layout.fillWidth: true
                     }
 
@@ -126,7 +124,7 @@ Item {
                     Text {
                         text: "Область экрана где отображается дистанция до моба/цели"
                         font.pointSize: 9
-                        color: "#b0b0b0"
+                        color: "#a2a2a2"
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
@@ -215,7 +213,7 @@ Item {
                         text: "Область игрока"
                         font.pointSize: 14
                         font.bold: true
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         Layout.fillWidth: true
                     }
 
@@ -223,7 +221,7 @@ Item {
                     Text {
                         text: "Область экрана где отображается дистанция от игрока"
                         font.pointSize: 9
-                        color: "#b0b0b0"
+                        color: "#a2a2a2"
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }

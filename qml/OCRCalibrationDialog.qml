@@ -179,7 +179,7 @@ Window {
 
                         Text {
                             text: "OCR (Optical Character Recognition) — технология распознавания текста. Программа «видит» числа дистанции в интерфейсе игры так же, как вы."
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -210,7 +210,7 @@ Window {
 
                         Text {
                             text: "Шаг 1: Выберите область моба — выделите прямоугольник вокруг числа дистанции до цели (верхний таргет в интерфейсе игры)"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -218,7 +218,7 @@ Window {
 
                         Text {
                             text: "Шаг 2: Проверьте результат — программа распознаёт число и покажет превью. Если верно — нажмите «Далее»"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -226,7 +226,7 @@ Window {
 
                         Text {
                             text: "Шаг 3: Выберите область игрока — выделите область дистанции от вас до цели (нижний таргет)"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -234,7 +234,7 @@ Window {
 
                         Text {
                             text: "Шаг 4: Проверьте результат и нажмите «Готово»"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -269,7 +269,7 @@ Window {
                                 verticalAlignment: Text.AlignVCenter
                             }
                         }
-                        Text { text: "Моб"; color: "#c2c2c2"; font.pointSize: 10 }
+                        Text { text: "Моб"; color: "#a2a2a2"; font.pointSize: 10 }
 
                         Rectangle {
                             width: 30; height: 30; radius: 6
@@ -287,7 +287,7 @@ Window {
                                 verticalAlignment: Text.AlignVCenter
                             }
                         }
-                        Text { text: "Игрок"; color: "#c2c2c2"; font.pointSize: 10 }
+                        Text { text: "Игрок"; color: "#a2a2a2"; font.pointSize: 10 }
                     }
                 }
 
@@ -339,7 +339,7 @@ Window {
 
                         Text {
                             text: "Откроется прозрачное окно — выделите область"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             Layout.alignment: Qt.AlignHCenter
                         }
@@ -369,7 +369,7 @@ Window {
 
                         Text {
                             text: "• Откроется прозрачное окно поверх всех окон\n• Зажмите ЛКМ и потяните, чтобы выделить прямоугольник\n• Выделите ТОЛЬКО число дистанции (без текста «м», «моб» и т.д.)\n• Отпустите ЛКМ для сохранения"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -486,7 +486,7 @@ Window {
                     Text {
                         anchors.centerIn: parent
                         text: "Распознаём область и проверяем результат..."
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         font.pointSize: 10
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -539,7 +539,7 @@ Window {
 
                         Text {
                             text: "Захваченная область (превью):"
-                            color: "#b0b0b0"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             Layout.alignment: Qt.AlignHCenter
                         }
@@ -611,7 +611,7 @@ Window {
 
                         Text {
                             text: "Если число верное — нажмите «Далее» для настройки области игрока.\nЕсли число неверное или не распознано — нажмите «Переделать» и выделите другую область."
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -683,7 +683,7 @@ Window {
 
                         Text {
                             text: "Теперь выберите область дистанции от игрока"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             Layout.alignment: Qt.AlignHCenter
                         }
@@ -713,7 +713,7 @@ Window {
 
                         Text {
                             text: "• Обычно расположена НИЖЕ области моба\n• Показывает дистанцию ОТ ВАС до цели\n• Выглядит так же — число с буквой «м»\n• В интерфейсе игры это нижний таргет"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -830,7 +830,7 @@ Window {
                     Text {
                         anchors.centerIn: parent
                         text: "Распознаём область игрока..."
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         font.pointSize: 10
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -883,7 +883,7 @@ Window {
 
                         Text {
                             text: "Захваченная область (превью):"
-                            color: "#b0b0b0"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             Layout.alignment: Qt.AlignHCenter
                         }
@@ -954,7 +954,7 @@ Window {
 
                         Text {
                             text: "Области моба и игрока сохранены. Нажмите «Готово» для завершения калибровки.\nЕсли результат не верный — нажмите «Переделать»."
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -1076,7 +1076,7 @@ Window {
                                 return "Моб: " + mobOk + " (" + mobDist + ")\n" +
                                        "Игрок: " + playerOk + " (" + playerDist + ")"
                             }
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true

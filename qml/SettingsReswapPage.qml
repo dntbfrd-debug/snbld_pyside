@@ -21,25 +21,13 @@ Item {
         anchors.bottomMargin: 70  // Место для кнопки
         spacing: 15
 
-        // Заголовок с кнопкой назад
-        RowLayout {
-            Layout.fillWidth: true
-            BaseButton {
-                text: "← Назад"
-                implicitWidth: 80
-                implicitHeight: 30
-                iconSize: 0
-                textSize: 10
-                onClicked: settingsReswapPage.StackView.view.pop()
-            }
-            Text {
-                text: "Ресвап"
-                font.pointSize: 18
-                font.bold: true
-                color: "#c2c2c2"
-                Layout.alignment: Qt.AlignHCenter
-            }
-            Item { Layout.fillWidth: true }
+        BaseButton {
+            text: "← Назад"
+            implicitWidth: 80
+            implicitHeight: 30
+            iconSize: 0
+            textSize: 10
+            onClicked: settingsReswapPage.StackView.view.pop()
         }
 
         // Содержимое - без прокрутки
@@ -51,6 +39,14 @@ Item {
 
             GroupBox {
                 title: "Кнопки смены сетов"
+                label: Label {
+                    text: "Кнопки смены сетов"
+                    color: "#a2a2a2"
+                    font.pointSize: 11
+                    font.bold: true
+                    topPadding: 10
+                    leftPadding: 12
+                }
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
                 background: GlassBlurPanel {}
@@ -65,7 +61,7 @@ Item {
 
                         Label {
                             text: "Сет пения:"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             font.bold: true
                             Layout.fillWidth: true
@@ -82,7 +78,7 @@ Item {
 
                         Label {
                             text: "Сет ПА:"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             font.bold: true
                             Layout.fillWidth: true
@@ -99,7 +95,7 @@ Item {
 
                         Label {
                             text: "Бонус пения (%):"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             font.bold: true
                             Layout.fillWidth: true

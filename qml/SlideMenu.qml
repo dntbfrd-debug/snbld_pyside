@@ -182,7 +182,7 @@ Item {
             }
             contentItem: Text {
                 text: "Макросы"
-                color: macrosBtn.hovered || macrosBtn.isActive ? "#ffffff" : "#c2c2c2"
+                color: macrosBtn.hovered || macrosBtn.isActive ? "#ffffff" : "#a2a2a2"
                 font.pointSize: 12
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -294,7 +294,7 @@ Item {
                 }
                 contentItem: Text {
                     text: "Список макросов"
-                    color: parent.hovered ? "#ffffff" : "#c2c2c2"
+                    color: parent.hovered ? "#ffffff" : "#a2a2a2"
                     font.pointSize: 10
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
@@ -358,7 +358,7 @@ Item {
                 }
                 contentItem: Text {
                     text: "Создание"
-                    color: parent.hovered ? "#ffffff" : "#c2c2c2"
+                    color: parent.hovered ? "#ffffff" : "#a2a2a2"
                     font.pointSize: 10
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
@@ -440,7 +440,7 @@ Item {
                     }
                     contentItem: Text {
                         text: modelData.text
-                        color: menuBtn.hovered || menuBtn.isActive ? "#ffffff" : "#c2c2c2"
+                        color: menuBtn.hovered || menuBtn.isActive ? "#ffffff" : "#a2a2a2"
                         font.pointSize: 12
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter

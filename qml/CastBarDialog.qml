@@ -143,7 +143,7 @@ Window {
 
                         Text {
                             text: "Полоска в игре, показывающая применение скилла."
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -175,7 +175,7 @@ Window {
 
                         Text {
                             text: "Программа запомнит цвет ромбика и будет определять начало каста."
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -207,7 +207,7 @@ Window {
 
                         Text {
                             text: "1. Нажмите ' Начать'\n2. Примените скилл в игре\n3. Кликните ЛКМ на ромбик в начале полоски"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -280,7 +280,7 @@ Window {
                             color: "#4CAF50"
                             font.pointSize: 12
                             font.bold: true
-                            anchors.horizontalCenter: parent.horizontalCenter
+                            Layout.alignment: Qt.AlignHCenter
                         }
                     }
                 }
@@ -309,7 +309,7 @@ Window {
 
                         Text {
                             text: "1. Примените скилл в игре\n2. Найдите полоску каста (появится при касте)\n3. Кликните ЛКМ на ромбик в начале полоски"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -430,7 +430,7 @@ Window {
                     Text {
                         anchors.centerIn: parent
                         text: "Выберите действие:"
-                        color: "#b0b0b0"
+                        color: "#a2a2a2"
                         font.pointSize: 10
                     }
                 }

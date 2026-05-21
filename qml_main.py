@@ -276,6 +276,11 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
     openWindowSelector = Signal()
     targetWindowChanged = Signal()
     windowLockedChanged = Signal()
+    fastOCROverlayRequested = Signal()
+
+    @Slot()
+    def requestFastOCROverlay(self):
+        self.fastOCROverlayRequested.emit()
 
     @Property(list, notify=macrosChanged)
     def macros(self):
@@ -376,6 +381,49 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
     @Property(int, notify=pingUpdated)
     def ping(self):
         return self._ping
+
+    @property
+    def fast_distance(self):
+        if hasattr(self, 'fast_distance_reader') and self.fast_distance_reader:
+            d = self.fast_distance_reader.distance
+            return d if d is not None else 0.0
+        return 0.0
+
+    @property
+    def fast_raw_distance(self):
+        if hasattr(self, 'fast_distance_reader') and self.fast_distance_reader:
+            d = self.fast_distance_reader.raw_distance
+            return d if d is not None else 0.0
+        return 0.0
+
+    @Slot(result=str)
+    def getFastOCRDict(self):
+        import json, base64, io
+        import cv2
+        from PIL import Image as PILImage
+        result = {
+            "distance": 0.0,
+            "raw_text": "",
+            "image": "",
+            "history": []
+        }
+        if hasattr(self, 'fast_distance_reader') and self.fast_distance_reader:
+            reader = self.fast_distance_reader
+            d = reader.distance
+            result["distance"] = round(d, 1) if d is not None else 0.0
+            result["raw_text"] = reader.get_last_raw_text() or ""
+            result["history"] = [round(h, 1) for h in reader.get_history()]
+            img = reader.get_last_image()
+            if img is not None:
+                if len(img.shape) == 2:
+                    preview = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+                else:
+                    preview = img
+                pil = PILImage.fromarray(preview)
+                buf = io.BytesIO()
+                pil.save(buf, format="PNG")
+                result["image"] = base64.b64encode(buf.getvalue()).decode()
+        return json.dumps(result)
 
     @Property(float, notify=distanceUpdated)
     def target_distance(self):
@@ -762,6 +810,11 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
         self.target_distance = None
         self.movement_monitor = threads.MovementMonitor()
         self.movement_monitor.start()
+        self.fast_distance_reader = threads.FastDistanceReader(
+            get_area_fn=lambda: self._settings.get("mob_area"),
+            get_settings_fn=lambda: self._settings,
+        )
+        self.fast_distance_reader.start()
         self.mouse_click_monitor = threads.MouseClickMonitor(self._target_window_title)
         self.mouse_click_monitor.start()
         logger.info("[MOUSE] MouseClickMonitor \u0437\u0430\u043f\u0443\u0449\u0435\u043d")
@@ -972,6 +1025,7 @@ def main():
     set_sound_files(
         os.path.join(app_path, "onn.mp3"),
         os.path.join(app_path, "off.mp3"),
+        os.path.join(app_path, "exit.mp3"),
     )
 
     os.environ["QML_DISABLE_DISK_CACHE"] = "1"
@@ -1072,7 +1126,7 @@ def main():
     except Exception as e:
         logger.debug(f"[DWM] API \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d: {e}")
 
-    backend.minimizeRequested.connect(window.showMinimized)
+    backend.minimizeRequested.connect(window.hide)
     backend.closeRequested.connect(window.close)
 
     class CleanupEventFilter(QObject):

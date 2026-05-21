@@ -235,6 +235,47 @@ class TargetWorker(QObject):
             _get_logger().error(f"[OCR] Ошибка test_area для {target_type}: {e}", exc_info=True)
             return {"success": False, "distance": None, "numbers": [], "image": None, "area": area}
 
+    def sync_read(self, target_type: str = "mob") -> Optional[float]:
+        area = self.areas.get(target_type)
+        if not area:
+            return None
+        if isinstance(area, str):
+            area = tuple(int(x.strip()) for x in area.split(','))
+        try:
+            with mss.mss() as sct:
+                PADDING = 5
+                monitor = {
+                    "left": max(0, int(area[0]) - PADDING),
+                    "top": max(0, int(area[1]) - PADDING),
+                    "width": int(area[2]) - int(area[0]) + PADDING * 2,
+                    "height": int(area[3]) - int(area[1]) + PADDING * 2
+                }
+                img = sct.grab(monitor)
+                img_np = np.array(img)
+            if img_np.size == 0:
+                return None
+            processed = self._preprocess_fast(img_np)
+            numbers = self.recognize_numbers(processed)
+            distance = self.numbers_to_distance(numbers, target_type)
+            if distance is not None and distance > 0:
+                _get_logger().debug(f"[OCR] sync_read {target_type}: {distance:.1f}м")
+                return distance
+            return None
+        except Exception as e:
+            _get_logger().error(f"[OCR] sync_read error: {e}", exc_info=True)
+            return None
+
+    @staticmethod
+    def _preprocess_fast(img: np.ndarray) -> np.ndarray:
+        h, w = img.shape[:2]
+        scale = 3
+        new_w = min(int(w * scale), 600)
+        new_h = min(int(h * scale), 150)
+        resized = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+        gray = cv2.cvtColor(resized, cv2.COLOR_BGRA2GRAY)
+        _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        return binary
+
     def preprocess_image(self, img: np.ndarray) -> np.ndarray:
         h, w = img.shape[:2]
 

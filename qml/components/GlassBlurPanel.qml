@@ -11,18 +11,13 @@ Item {
     property bool hoverEnabled: false
     property bool clip: false
     property alias border: tintOverlay.border
-    property color tintColor: Qt.rgba(0.08, 0.08, 0.12, glassOpacity)
+    property color tintColor: "#a01c1c1c"
     property color accentColor: backend && backend.settings && backend.settings.accent_color !== undefined && backend.settings.accent_color !== null ? backend.settings.accent_color : "#7793a1"
     property bool useBgCapture: true
     property Item customBgSource: null
 
-    // Источник для захвата фона.
-    // Приоритет: customBgSource > Window.window.backgroundSource > null
-    // Динамический биндинг — срабатывает когда Window.window становится доступен
-    // (важно для Loader-загруженных страниц, где onCompleted вызывается ДО установки window)
     property Item __bgSource: root.customBgSource ? root.customBgSource : (root.useBgCapture && Window.window && Window.window.backgroundSource ? Window.window.backgroundSource : null)
 
-    // Авто-детект Flickable для корректного sourceRect при скролле
     property Item __flickable: {
         var p = root.parent
         while (p) {
@@ -36,8 +31,6 @@ Item {
         id: bgCapture
         sourceItem: root.__bgSource
         sourceRect: {
-            // Принудительная зависимость от contentY/contentX Flickable
-            // чтобы биндинг пересчитывался при скролле
             var _fy = root.__flickable ? root.__flickable.contentY : 0
             var _ = _fy
             var pos = root.__bgSource ? root.mapToItem(root.__bgSource, 0, 0) : Qt.point(0, 0)
@@ -68,6 +61,17 @@ Item {
         Behavior on border.color {
             ColorAnimation { duration: 150; easing.type: Easing.InOutQuad }
         }
+
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "#60000000" }
+                GradientStop { position: 0.35; color: "#30000000" }
+                GradientStop { position: 0.7; color: "#10000000" }
+                GradientStop { position: 1.0; color: "#00000000" }
+            }
+        }
     }
 
     MouseArea {
@@ -90,9 +94,20 @@ Item {
         id: fallbackBg
         anchors.fill: parent
         radius: root.radius
-        color: Qt.rgba(0.1, 0.1, 0.15, root.__bgSource === null ? root.glassOpacity : 0.0)
+        color: root.tintColor
         border.color: tintOverlay.border.color
         border.width: tintOverlay.border.width
         visible: root.__bgSource === null
+
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "#60000000" }
+                GradientStop { position: 0.35; color: "#30000000" }
+                GradientStop { position: 0.7; color: "#10000000" }
+                GradientStop { position: 1.0; color: "#00000000" }
+            }
+        }
     }
 }

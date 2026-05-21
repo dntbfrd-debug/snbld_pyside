@@ -60,7 +60,7 @@ Item {
 
         Text {
             text: "Выберите класс вашего персонажа:"
-            color: "#c2c2c2"
+            color: "#a2a2a2"
             font.pointSize: 16
             font.bold: true
             horizontalAlignment: Text.AlignHCenter
@@ -182,7 +182,7 @@ Item {
                         text: "Маг"
                         font.pointSize: 12
                         font.bold: true
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         horizontalAlignment: Text.AlignHCenter
                         Layout.alignment: Qt.AlignHCenter
                     }
@@ -297,7 +297,7 @@ Item {
                         text: "Лучник"
                         font.pointSize: 12
                         font.bold: true
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         horizontalAlignment: Text.AlignHCenter
                         Layout.alignment: Qt.AlignHCenter
                     }
@@ -412,7 +412,7 @@ Item {
                         text: "Жрец"
                         font.pointSize: 12
                         font.bold: true
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         horizontalAlignment: Text.AlignHCenter
                         Layout.alignment: Qt.AlignHCenter
                     }
@@ -520,7 +520,7 @@ Item {
                         text: "Друид"
                         font.pointSize: 12
                         font.bold: true
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         horizontalAlignment: Text.AlignHCenter
                         Layout.alignment: Qt.AlignHCenter
                     }
@@ -628,7 +628,7 @@ Item {
                         text: "Жнец"
                         font.pointSize: 12
                         font.bold: true
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         horizontalAlignment: Text.AlignHCenter
                         Layout.alignment: Qt.AlignHCenter
                     }

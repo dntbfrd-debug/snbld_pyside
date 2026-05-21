@@ -70,7 +70,7 @@ Dialog {
 
         RowLayout {
             spacing: 8
-            Label { text: "Задержка (мс):"; color: "#c2c2c2"; Layout.preferredWidth: 90 }
+            Label { text: "Задержка (мс):"; color: "#a2a2a2"; Layout.preferredWidth: 90 }
             TextField {
                 id: delayField
                 Layout.fillWidth: true

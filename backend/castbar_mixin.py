@@ -9,23 +9,19 @@ from backend.logger_manager import get_logger
 logger = get_logger('castbar')
 
 try:
-    from low_level_hook import MouseHookManager
+    from mouse_detector import MouseDetector as MouseHookManager
     LOW_LEVEL_HOOK_AVAILABLE = True
 except ImportError:
     LOW_LEVEL_HOOK_AVAILABLE = False
 
 
-_sct_instance = None
-_sct_lock = threading.Lock()
+_thread_sct = threading.local()
 
 def _get_sct():
-    global _sct_instance
-    if _sct_instance is None:
-        with _sct_lock:
-            if _sct_instance is None:
-                import mss
-                _sct_instance = mss.mss()
-    return _sct_instance
+    if not hasattr(_thread_sct, 'instance'):
+        import mss
+        _thread_sct.instance = mss.mss()
+    return _thread_sct.instance
 
 
 class CastbarMixin:
@@ -198,9 +194,9 @@ class CastbarMixin:
         self.activate_game_window()
         self._calibration_active = True
         try:
-            def on_left_click():
+            def on_left_click(x, y):
                 logger.info("=" * 30)
-                logger.info("on_left_click: ЛКМ нажата!")
+                logger.info(f"on_left_click: ЛКМ нажата в ({x}, {y})!")
                 if self._calibration_active:
                     logger.info("on_left_click: Калибровка активна, захват цвета...")
                     self._onCastbarHotkey()
@@ -208,7 +204,8 @@ class CastbarMixin:
                 logger.info("on_left_click: Калибровка НЕ активна, пропускаем клик")
                 return False
             logger.info("startCastbarCalibration: Создание MouseHookManager...")
-            self._mouse_hook_manager = MouseHookManager(on_left_click)
+            self._mouse_hook_manager = MouseHookManager()
+            self._mouse_hook_manager.set_click_callback(on_left_click)
             logger.info("startCastbarCalibration: Запуск hook...")
             self._mouse_hook_manager.start()
             logger.info("startCastbarCalibration: MouseHookManager запущен УСПЕШНО")

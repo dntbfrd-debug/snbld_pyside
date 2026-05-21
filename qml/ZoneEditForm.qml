@@ -83,7 +83,7 @@ Item {
                 spacing: 2
                 Label { 
                     text: "Название:"
-                    color: "#c2c2c2"
+                    color: "#a2a2a2"
                     font.pointSize: 9
                 }
                 TextField {
@@ -101,7 +101,7 @@ Item {
                 spacing: 2
                 Label {
                     text: "Горячая клавиша:"
-                    color: "#c2c2c2"
+                    color: "#a2a2a2"
                     font.pointSize: 9
                 }
                 TextField {
@@ -206,7 +206,7 @@ Item {
                 spacing: 2
                 Label {
                     text: "Триггер:"
-                    color: "#c2c2c2"
+                    color: "#a2a2a2"
                     font.pointSize: 9
                 }
                 ComboBox {
@@ -223,7 +223,7 @@ Item {
                         width: parent.width
                         contentItem: Text {
                             text: model.text
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             verticalAlignment: Text.AlignVCenter
                         }
@@ -246,7 +246,7 @@ Item {
                 spacing: 2
                 Label {
                     text: "Область (x1,y1,x2,y2):"
-                    color: "#c2c2c2"
+                    color: "#a2a2a2"
                     font.pointSize: 9
                 }
                 RowLayout {
@@ -278,7 +278,7 @@ Item {
                 spacing: 2
                 Label {
                     text: "Интервал (мс):"
-                    color: "#c2c2c2"
+                    color: "#a2a2a2"
                     font.pointSize: 9
                 }
                 TextField {
@@ -311,7 +311,7 @@ Item {
                     Layout.fillWidth: true
                     Label {
                         text: "Шаги макроса:"
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         font.pointSize: 10
                     }
                     Label {
@@ -358,7 +358,7 @@ Item {
                                           modelData.action === "left" ? " ЛКМ" :
                                           modelData.action === "right" ? " ПКМ" :
                                           " Пауза"
-                                    color: "#c2c2c2"
+                                    color: "#a2a2a2"
                                     font.pointSize: 9
                                     Layout.fillWidth: true
                                     elide: Text.ElideRight

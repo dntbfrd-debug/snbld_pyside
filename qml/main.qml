@@ -8,8 +8,8 @@ import "components"
 ApplicationWindow {
     id: root
 
-    FontLoader { id: mainFont; source: "fonts/Rubik.ttf" }
-    FontLoader { id: firaCodeFont; source: "fonts/FiraCode-Regular.ttf" }
+    FontLoader { id: mainFont; source: "../fonts/Rubik.ttf" }
+    FontLoader { id: firaCodeFont; source: "../fonts/FiraCode-Regular.ttf" }
     font.family: "Rubik"
     width: 1300
     height: 700
@@ -221,7 +221,7 @@ ApplicationWindow {
                             }
                             Text {
                                 text: "Старт"
-                                color: startAllBtn.isActive ? "#ffffff" : "#c2c2c2"
+                                color: startAllBtn.isActive ? "#ffffff" : "#a2a2a2"
                                 font.pointSize: 11
                                 Behavior on color { ColorAnimation { duration: 200 } }
                             }
@@ -276,7 +276,7 @@ ApplicationWindow {
                             }
                             Text {
                                 text: "Стоп"
-                                color: stopAllBtn.isActive ? "#ffffff" : "#c2c2c2"
+                                color: stopAllBtn.isActive ? "#ffffff" : "#a2a2a2"
                                 font.pointSize: 11
                                 Behavior on color { ColorAnimation { duration: 200 } }
                             }
@@ -654,7 +654,7 @@ ApplicationWindow {
             Text {
                 id: notificationText
                 text: "X"
-                color: "#c2c2c2"
+                color: "#a2a2a2"
                 font.pointSize: 10
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignLeft
@@ -732,6 +732,18 @@ ApplicationWindow {
             ocrCalibrationDialog.visible = true
             ocrCalibrationDialog.raise()
             ocrCalibrationDialog.requestActivate()
+        }
+    }
+
+    // Плавающий оверлей отладки Fast OCR
+    FastOCRDebugOverlay {
+        id: fastOCROverlay
+    }
+
+    Connections {
+        target: backend
+        function onFastOCROverlayRequested() {
+            fastOCROverlay.open()
         }
     }
 
@@ -1044,12 +1056,6 @@ ApplicationWindow {
 
     }
 
-    // Очистка при закрытии
-    Component.onDestruction: {
-        if (backend) {
-            backend.stop_all_macros()
-        }
-    }
     }
 
 }

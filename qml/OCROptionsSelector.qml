@@ -35,7 +35,7 @@ Item {
 
         Text {
             text: "Распознавание и детекция"
-            color: "#c2c2c2"
+            color: "#a2a2a2"
             font.pointSize: 20
             font.bold: true
             horizontalAlignment: Text.AlignHCenter
@@ -154,7 +154,7 @@ Item {
                         text: "Калибровка OCR"
                         font.pointSize: 16
                         font.bold: true
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         horizontalAlignment: Text.AlignHCenter
                         Layout.alignment: Qt.AlignHCenter
                     }
@@ -190,7 +190,7 @@ Item {
                                 }
                             }
                         }
-                        Text { text: "Моб"; color: "#c2c2c2"; font.pointSize: 9 }
+                        Text { text: "Моб"; color: "#a2a2a2"; font.pointSize: 9 }
 
                         Rectangle {
                             width: 18; height: 18; radius: 9
@@ -210,7 +210,7 @@ Item {
                                 }
                             }
                         }
-                        Text { text: "Игрок"; color: "#c2c2c2"; font.pointSize: 9 }
+                        Text { text: "Игрок"; color: "#a2a2a2"; font.pointSize: 9 }
                     }
                 }
             }
@@ -317,7 +317,7 @@ Item {
                         text: "Детекция каста"
                         font.pointSize: 16
                         font.bold: true
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         horizontalAlignment: Text.AlignHCenter
                         Layout.alignment: Qt.AlignHCenter
                     }
@@ -358,7 +358,7 @@ Item {
                                 var enabled = backend && backend.settings ? backend.settings.castbar_enabled : false
                                 return enabled ? "Включено" : "Не настроено"
                             }
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                         }
                     }

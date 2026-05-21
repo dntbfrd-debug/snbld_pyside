@@ -92,7 +92,7 @@ Item {
                                             text: modelData.name
                                             font.bold: true
                                             font.pointSize: 8
-                                            color: "#c2c2c2"
+                                            color: "#a2a2a2"
                                             horizontalAlignment: Text.AlignHCenter
                                             wrapMode: Text.Wrap
                                             Layout.fillWidth: true
@@ -111,12 +111,12 @@ Item {
                                                 spacing: 4
                                                 Text {
                                                     text: backend && !backend.global_stopped ? "\u25cf" : "\u25cb"
-                                                    color: backend && !backend.global_stopped ? "#4CAF50" : "#c2c2c2"
+                                                    color: backend && !backend.global_stopped ? "#4CAF50" : "#a2a2a2"
                                                     font.pointSize: 10
                                                 }
                                                 Text {
                                                     text: backend && !backend.global_stopped ? "Активен" : "Остановлен"
-                                                    color: backend && !backend.global_stopped ? "#4CAF50" : "#c2c2c2"
+                                                    color: backend && !backend.global_stopped ? "#4CAF50" : "#a2a2a2"
                                                     font.pointSize: 8
                                                 }
                                             }
@@ -188,7 +188,7 @@ Item {
                 }
                 Text {
                     text: "Нет макросов"
-                    color: "#c2c2c2"
+                    color: "#a2a2a2"
                     font.pointSize: 14
                     font.bold: true
                     anchors.horizontalCenter: parent.horizontalCenter

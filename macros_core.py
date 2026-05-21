@@ -79,7 +79,6 @@ class Macro:
                 _get_logger().debug(f"[START] Макрос '{self.name}' уже запущен")
                 return
 
-
             self.stop_event.clear()
             self.running = True
             self.last_start_time = time.time()
@@ -148,7 +147,7 @@ class SimpleMacro(Macro):
                 steps=self.steps,
                 check_window=self._check_window,
                 running_check=running_check,
-                cast_lock_callback=None
+                cast_lock_callback=lambda: self.app.dispatcher.set_cast_lock(self) if hasattr(self.app, 'dispatcher') and hasattr(self.app.dispatcher, 'set_cast_lock') else None
             )
             if not success:
                 _get_logger().debug(f"[SIMPLE] Макрос '{self.name}' прерван или не выполнен полностью")
@@ -199,6 +198,7 @@ class ZoneMacro(Macro):
         self.cooldown_lock = threading.Lock()
         self._mouse_click_connected = False
         self._scheduled = False
+        self._schedule_lock = threading.Lock()
 
     def _connect_mouse_click(self, app):
         if self._mouse_click_connected:
@@ -232,7 +232,6 @@ class ZoneMacro(Macro):
 
         _get_logger().info(f"[ZONE]  Клик в области: ({x},{y}), зона={self.zone_rect}")
 
-
         if self.app.global_stopped:
             _get_logger().debug(f"[ZONE] {self.name}: глобальная блокировка, игнорируем клик")
             return
@@ -257,36 +256,39 @@ class ZoneMacro(Macro):
                 _get_logger().debug(f"[ZONE] {self.name}: цель слишком далеко ({self.app.target_distance:.1f}м)")
                 return
 
-        if not self.running and not self._scheduled:
+        # Атомарная проверка и установка флага _scheduled
+        with self._schedule_lock:
+            if self.running or self._scheduled:
+                _get_logger().info(f"[ZONE] Макрос '{self.name}' уже выполняется или запланирован")
+                return
             self._scheduled = True
-            _get_logger().info(f"[ZONE]  Запрос на запуск '{self.name}' по клику в области ({x},{y})")
-            def launch_macro():
-                try:
-                    if hasattr(self, 'app') and self.app:
-                        if hasattr(self.app, 'dispatcher') and self.app.dispatcher:
-                            result = self.app.dispatcher.request_macro(self)
-                            if result:
-                                _get_logger().info(f"[ZONE]  '{self.name}': ЗАПУЩЕН диспетчером")
-                            else:
-                                _get_logger().warning(f"[ZONE]  '{self.name}': ОТКЛОНЕНО диспетчером")
+
+        _get_logger().info(f"[ZONE]  Запрос на запуск '{self.name}' по клику в области ({x},{y})")
+        def launch_macro():
+            try:
+                if hasattr(self, 'app') and self.app:
+                    if hasattr(self.app, 'dispatcher') and self.app.dispatcher:
+                        result = self.app.dispatcher.request_macro(self)
+                        if result:
+                            _get_logger().info(f"[ZONE]  '{self.name}': ЗАПУЩЕН диспетчером")
                         else:
-                            _get_logger().warning(f"[ZONE]  '{self.name}': dispatcher НЕ ДОСТУПЕН")
-                            self.start()
+                            _get_logger().warning(f"[ZONE]  '{self.name}': ОТКЛОНЕНО диспетчером")
                     else:
-                        _get_logger().warning(f"[ZONE]  '{self.name}': app НЕ ДОСТУПЕН")
+                        _get_logger().warning(f"[ZONE]  '{self.name}': dispatcher НЕ ДОСТУПЕН")
                         self.start()
-                except Exception as e:
-                    _get_logger().error(f"[ZONE]  '{self.name}': ������ {e}", exc_info=True)
-                    try:
-                        self.start()
-                    except Exception as start_e:
-                        _get_logger().error(f"[ZONE]  '{self.name}': ������ {e}", exc_info=True)
-                        _get_logger().error(f"[ZONE]  '{self.name}': ����� ������ start: {start_e}", exc_info=True)
-                finally:
+                else:
+                    _get_logger().warning(f"[ZONE]  '{self.name}': app НЕ ДОСТУПЕН")
+                    self.start()
+            except Exception as e:
+                _get_logger().error(f"[ZONE]  '{self.name}': ошибка: {e}", exc_info=True)
+                try:
+                    self.start()
+                except Exception as start_e:
+                    _get_logger().error(f"[ZONE]  '{self.name}': ошибка при start: {start_e}", exc_info=True)
+            finally:
+                with self._schedule_lock:
                     self._scheduled = False
-            threading.Thread(target=launch_macro, daemon=True).start()
-        else:
-            _get_logger().info(f"[ZONE] Макрос '{self.name}' уже выполняется")
+        threading.Thread(target=launch_macro, daemon=True).start()
 
     def _is_point_in_rect(self, x, y, rect):
         x1, y1, x2, y2 = rect
@@ -309,6 +311,7 @@ class ZoneMacro(Macro):
             _get_logger().debug(f"[ZONE] Макрос '{self.name}' завершил работу")
             if hasattr(self, 'app') and hasattr(self.app, 'dispatcher'):
                 self.app.dispatcher.on_macro_finished(self.name)
+
 
 class BuffMacro(SimpleMacro):
     def __init__(
@@ -356,7 +359,7 @@ class BuffMacro(SimpleMacro):
                 steps=self.steps,
                 check_window=self._check_window,
                 running_check=running_check,
-                cast_lock_callback=None
+                cast_lock_callback=lambda: self.app.dispatcher.set_cast_lock(self) if hasattr(self.app, 'dispatcher') and hasattr(self.app.dispatcher, 'set_cast_lock') else None
             )
             
             if success and self.running and not self.stop_event.is_set():
@@ -399,8 +402,9 @@ class SkillMacro(SimpleMacro):
         self.zone_rect = None
         self._mouse_click_connected = False
         self.step2_repeat_delay = step2_repeat_delay
-        
-    
+        self._scheduled = False
+        self._schedule_lock = threading.Lock()
+
     def _connect_mouse_click(self, app):
         if self._mouse_click_connected:
             try:
@@ -434,35 +438,40 @@ class SkillMacro(SimpleMacro):
         
         _get_logger().info(f"[SKILL+ZONE]  Клик в области: ({x},{y}), зона={self.zone_rect}")
 
+        # Атомарная проверка и установка флага _scheduled
+        with self._schedule_lock:
+            if self.running or self._scheduled:
+                _get_logger().info(f"[SKILL+ZONE] Макрос '{self.name}' уже выполняется или запланирован")
+                return
+            self._scheduled = True
 
-
-        if not self.running:
-            _get_logger().info(f"[SKILL+ZONE]  Запрос на запуск '{self.name}' по клику в области ({x},{y})")
-            def launch_macro():
-                try:
-                    if hasattr(self, 'app') and self.app:
-                        if hasattr(self.app, 'dispatcher') and self.app.dispatcher:
-                            result = self.app.dispatcher.request_macro(self)
-                            if result:
-                                _get_logger().info(f"[SKILL+ZONE]  '{self.name}': ЗАПУЩЕН диспетчером")
-                            else:
-                                _get_logger().warning(f"[SKILL+ZONE]  '{self.name}': ОТКЛОНЕНО диспетчером")
+        _get_logger().info(f"[SKILL+ZONE]  Запрос на запуск '{self.name}' по клику в области ({x},{y})")
+        def launch_macro():
+            try:
+                if hasattr(self, 'app') and self.app:
+                    if hasattr(self.app, 'dispatcher') and self.app.dispatcher:
+                        result = self.app.dispatcher.request_macro(self)
+                        if result:
+                            _get_logger().info(f"[SKILL+ZONE]  '{self.name}': ЗАПУЩЕН диспетчером")
                         else:
-                            _get_logger().warning(f"[SKILL+ZONE]  '{self.name}': dispatcher НЕ ДОСТУПЕН")
-                            self.start()
+                            _get_logger().warning(f"[SKILL+ZONE]  '{self.name}': ОТКЛОНЕНО диспетчером")
                     else:
-                        _get_logger().warning(f"[SKILL+ZONE]  '{self.name}': app НЕ ДОСТУПЕН")
+                        _get_logger().warning(f"[SKILL+ZONE]  '{self.name}': dispatcher НЕ ДОСТУПЕН")
                         self.start()
-                except Exception as e:
-                    _get_logger().error(f"[SKILL+ZONE]  '{self.name}': ������ {e}", exc_info=True)
-                    try:
-                        self.start()
-                    except Exception as start_e:
-                        _get_logger().error(f"[SKILL+ZONE]  '{self.name}': ����� ������ start: {start_e}", exc_info=True)
-            threading.Thread(target=launch_macro, daemon=True).start()
-        else:
-            _get_logger().info(f"[SKILL+ZONE] Макрос '{self.name}' уже выполняется")
-    
+                else:
+                    _get_logger().warning(f"[SKILL+ZONE]  '{self.name}': app НЕ ДОСТУПЕН")
+                    self.start()
+            except Exception as e:
+                _get_logger().error(f"[SKILL+ZONE]  '{self.name}': ошибка: {e}", exc_info=True)
+                try:
+                    self.start()
+                except Exception as start_e:
+                    _get_logger().error(f"[SKILL+ZONE]  '{self.name}': ошибка при start: {start_e}", exc_info=True)
+            finally:
+                with self._schedule_lock:
+                    self._scheduled = False
+        threading.Thread(target=launch_macro, daemon=True).start()
+
     def _is_point_in_rect(self, x, y, rect):
         x1, y1, x2, y2 = rect
         return x1 <= x <= x2 and y1 <= y <= y2
@@ -480,7 +489,6 @@ class SkillMacro(SimpleMacro):
                 self.running = False
                 return
 
-
         approach_used = False
         user_was_moving = False
 
@@ -490,16 +498,17 @@ class SkillMacro(SimpleMacro):
             _get_logger().debug(f"[SKILL] Пользователь двигался (возраст={time_since_stop*1000:.0f}мс), используем цикл")
 
         check_distance = self.app.settings.get("check_distance", False)
-        _get_logger().info(f"[SKILL] check_distance={check_distance}, skill_range={self.skill_range}, target_distance={self.app.target_distance}")
+        fast_dist = self.app.fast_distance if hasattr(self.app, 'fast_distance') else self.app.target_distance
+        _get_logger().info(f"[SKILL] check_distance={check_distance}, skill_range={self.skill_range}, target_distance={fast_dist}")
         
         if check_distance and self.skill_range > 0:
             tolerance = self.app.settings.get("distance_tolerance", 1.0)
             cast_required = self.skill_range + tolerance
             target_dist = max(0, self.skill_range - 0.2)
-            current = self.app.target_distance
+            current = fast_dist
 
-            if current is None:
-                _get_logger().warning(f"[SKILL] Макрос '{self.name}': расстояние не определено (OCR не работает?), выполняем без подбегания")
+            if current is None or current < 0.5:
+                _get_logger().warning(f"[SKILL] Макрос '{self.name}': расстояние не определено (fast_reader: {current}), выполняем без подбегания")
             elif current > target_dist:
                 _get_logger().info(f"[SKILL] Макрос '{self.name}': цель слишком далеко ({current:.1f}м, нужно ≤{target_dist:.1f}), ПОДБЕГАЕМ")
                 approach_used = True
@@ -516,7 +525,7 @@ class SkillMacro(SimpleMacro):
                             key_down_sendinput('w')
                             last_keydown_time = time.time()
 
-                        current_dist = self.app.target_distance
+                        current_dist = self.app.fast_raw_distance if hasattr(self.app, 'fast_raw_distance') else (self.app.fast_distance if hasattr(self.app, 'fast_distance') else self.app.target_distance)
                         if current_dist is not None and current_dist <= target_dist:
                             _get_logger().info(f"[SKILL] Подбежали до {current_dist:.1f}м за {time.time()-approach_start:.2f}с")
                             break
@@ -563,8 +572,6 @@ class SkillMacro(SimpleMacro):
         num_steps = len(self.steps)
         _get_logger().debug(f"[SKILL] Шаги ({num_steps}): {self.steps}")
         
-        actual_cast_time = self.app.get_actual_cast_time(self.cast_time)
-        
         step1 = self.steps[0]
         step1_delay = step1[2] if len(step1) > 2 else 90
         step2_repeat_delay = self.step2_repeat_delay if self.step2_repeat_delay else 200
@@ -572,6 +579,9 @@ class SkillMacro(SimpleMacro):
         use_ping_delays = self.app.settings.get("use_ping_delays", False)
         if use_ping_delays:
             ping_comp = self.app.get_ping_compensation() * 1000
+            # Применяем ping-компенсацию к задержкам
+            step1_delay = max(10, step1_delay - ping_comp)
+            step2_repeat_delay = max(10, step2_repeat_delay - ping_comp)
             _get_logger().info(f"[SKILL] Режим авто задержек: step1={step1_delay:.0f}мс (пинг компенсация {ping_comp:.0f}мс)")
         else:
             _get_logger().info(f"[SKILL] Режим фиксированных задержек: step1={step1_delay:.0f}мс")
@@ -582,7 +592,6 @@ class SkillMacro(SimpleMacro):
                 _get_logger().debug(f"[SKILL] Шаг 1: отправка клавиши '{step1[1]}'")
                 send_key(step1[1])
                 time.sleep(step1_delay / 1000.0)
-            
             
             middle_steps = self.steps[1:-1]
             _get_logger().debug(f"[SKILL] Средние шаги (повторы): {len(middle_steps)} шт.")

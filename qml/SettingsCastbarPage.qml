@@ -34,8 +34,13 @@ Item {
         var currentColor = backend.getCurrentCastbarColor()
         calibrationStatusText.text = "Откалиброванный цвет: " + currentColor
         calibrationStatusText.color = accentColor
-        colorPreviewRect.color = colorStringToRgb(currentColor)
+                        colorPreviewRect.color = colorStringToRgb(currentColor)
         console.log("SettingsCastbarPage: текущий цвет кастбара = " + currentColor)
+        if (safeSettings.castbar_threshold !== undefined) {
+            castbarThresholdSlider.updating = true
+            castbarThresholdSlider.value = safeSettings.castbar_threshold
+            castbarThresholdSlider.updating = false
+        }
     }
 
     // Загружаем CastBarDialog
@@ -123,7 +128,7 @@ Item {
                 text: "Детекция каста"
                 font.pointSize: 18
                 font.bold: true
-                color: "#c2c2c2"
+                color: "#a2a2a2"
                 Layout.alignment: Qt.AlignHCenter
             }
             Item { Layout.fillWidth: true }
@@ -153,7 +158,7 @@ Item {
 
                         Text {
                             text: "Детекция кастбара"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 14
                             font.bold: true
                             Layout.fillWidth: true
@@ -161,7 +166,7 @@ Item {
 
                         Text {
                             text: "Детекция кастбара позволяет точно определить момент завершения каста и автоматически сменить сет в нужный момент."
-                            color: "#b0b0b0"
+                            color: "#a2a2a2"
                             font.pointSize: 10
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -210,7 +215,7 @@ Item {
 
                         Text {
                             text: "Включите для автоматической детекции кастбара во время выполнения макросов"
-                            color: "#b0b0b0"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -223,14 +228,14 @@ Item {
                             Layout.fillWidth: true
                             spacing: 8
 
-                            RowLayout {
-                                Layout.fillWidth: true
-                                Label {
-                                    text: "Порог совпадения:"
-                                    color: "#c2c2c2"
-                                    font.pointSize: 10
-                                    font.bold: true
-                                }
+        BaseButton {
+            text: "← Назад"
+            implicitWidth: 80
+            implicitHeight: 30
+            iconSize: 0
+            textSize: 10
+            onClicked: settingsCastbarPage.StackView.view.pop()
+        }
                                 Text {
                                     text: Math.round(castbarThresholdSlider.value) + "%"
                                     color: settingsCastbarPage.accentColor
@@ -245,7 +250,7 @@ Item {
                                 from: 1
                                 to: 100
                                 stepSize: 1
-                                value: safeSettings.castbar_threshold !== undefined ? safeSettings.castbar_threshold : 70
+                                value: 70
                                 property bool updating: false
                                 onValueChanged: {
                                     if (!updating && visible) {
@@ -256,7 +261,7 @@ Item {
 
                             Text {
                                 text: "Чем меньше значение, тем точнее должно быть совпадение цвета"
-                                color: "#b0b0b0"
+                                color: "#a2a2a2"
                                 font.pointSize: 9
                                 wrapMode: Text.WordWrap
                                 Layout.fillWidth: true
@@ -286,7 +291,7 @@ Item {
 
                         Text {
                             text: "Калибровка цвета"
-                            color: "#c2c2c2"
+                            color: "#a2a2a2"
                             font.pointSize: 14
                             font.bold: true
                             Layout.fillWidth: true
@@ -294,7 +299,7 @@ Item {
 
                         Text {
                             text: "Нажмите кнопку и наведите курсор на статичный элемент кастбара (ромбик). После начала калибровки нажмите ЛКМ для захвата цвета."
-                            color: "#b0b0b0"
+                            color: "#a2a2a2"
                             font.pointSize: 9
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -341,10 +346,14 @@ Item {
                             }
 
                             // Предпросмотр захваченного цвета
-                            GlassBlurPanel {
+                            Rectangle {
                                 id: colorPreviewRect
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 60
+                                radius: 8
+                                color: "transparent"
+                                border.color: "#446688"
+                                border.width: 1
                             }
                         }
                     }

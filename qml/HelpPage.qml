@@ -13,21 +13,6 @@ Item {
         anchors.margins: 20
         spacing: 0
 
-        // Заголовок
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 40
-            spacing: 0
-
-            Text {
-                text: "Помощь"
-                font.pointSize: 20
-                font.bold: true
-                color: "#ef4444"
-            }
-            Item { Layout.fillWidth: true }
-        }
-
         // ==================== БЫСТРЫЙ СТАРТ ====================
         GlassBlurPanel {
             id: quickStartBlock
@@ -46,7 +31,7 @@ Item {
                 Text {
                     text: "Быстрый старт — Создание скилл-макроса"
                     color: "#ef4444"
-                    font.pointSize: 13
+                    font.pointSize: 14
                     font.bold: true
                 }
 
@@ -69,13 +54,13 @@ Item {
                         Text {
                             text: "Шаг 1: Привяжите окно игры"
                             color: "#ef4444"
-                            font.pointSize: 10
+                            font.pointSize: 11
                             font.bold: true
                         }
                         Text {
                             text: "Откройте «Настройки → Окно». Нажмите «Выбрать окно» и кликните мышкой на окно вашей игры Perfect World. Это нужно чтобы программа «знала» куда отправлять нажатия клавиш."
-                            color: "#c2c2c2"
-                            font.pointSize: 9
+                            color: "#a2a2a2"
+                            font.pointSize: 10
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
@@ -83,13 +68,13 @@ Item {
                         Text {
                             text: "Шаг 2: Настройте ресвап"
                             color: "#ef4444"
-                            font.pointSize: 10
+                            font.pointSize: 11
                             font.bold: true
                         }
                         Text {
                             text: "В «Настройки → Ресвап» укажите клавиши смены сетов  (ПА сет, Пение сет). Также задайте процент максимального пения, при котором будет происходить смена сета."
-                            color: "#c2c2c2"
-                            font.pointSize: 9
+                            color: "#a2a2a2"
+                            font.pointSize: 10
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
@@ -97,13 +82,13 @@ Item {
                         Text {
                             text: "Шаг 3: Настройте OCR"
                             color: "#ef4444"
-                            font.pointSize: 10
+                            font.pointSize: 11
                             font.bold: true
                         }
                         Text {
                             text: "Откройте «Настройки → OCR ». Начните калибровку,с помощью мыши выделите зону, где отображаются цифры дистанции до цели. Также включите «Проверку дистанции» в настройках «Движение»."
-                            color: "#c2c2c2"
-                            font.pointSize: 9
+                            color: "#a2a2a2"
+                            font.pointSize: 10
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
@@ -117,13 +102,13 @@ Item {
                         Text {
                             text: "Шаг 4: Откалибруйте кастбар"
                             color: "#ef4444"
-                            font.pointSize: 10
+                            font.pointSize: 11
                             font.bold: true
                         }
                         Text {
                             text: "В «Настройки → OCR» нажмите на плитку  «Детекция каста».Начните калибровку,кликните мышкой на полоску прогресса каста в интерфейсе игры — это нужно для определения момента завершения каста."
-                            color: "#c2c2c2"
-                            font.pointSize: 9
+                            color: "#a2a2a2"
+                            font.pointSize: 10
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
@@ -131,13 +116,13 @@ Item {
                         Text {
                             text: "Шаг 5: Создайте макрос"
                             color: "#ef4444"
-                            font.pointSize: 10
+                            font.pointSize: 11
                             font.bold: true
                         }
                         Text {
                             text: "Перейдите в «Макросы» → «Создание». Выберите тип «Скиллы», укажите класс персонажа и нужный скилл. Назначьте клавишу или область активации. Создайте макрос."
-                            color: "#c2c2c2"
-                            font.pointSize: 9
+                            color: "#a2a2a2"
+                            font.pointSize: 10
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
@@ -145,13 +130,13 @@ Item {
                         Text {
                             text: "Шаг 6: Запустите!"
                             color: "#ef4444"
-                            font.pointSize: 10
+                            font.pointSize: 11
                             font.bold: true
                         }
                         Text {
                             text: "Нажмите «-» (минус) для старта всех макросов, «=» (равно) для остановки. Также можно использовать кнопки «Старт/Стоп» в интерфейсе программы."
-                            color: "#c2c2c2"
-                            font.pointSize: 9
+                            color: "#a2a2a2"
+                            font.pointSize: 10
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
@@ -181,7 +166,7 @@ Item {
                         Text {
                             text: "Обратная связь"
                             color: helpPage.accentColor
-                            font.pointSize: 10
+                            font.pointSize: 11
                             font.bold: true
                         }
 
@@ -198,13 +183,13 @@ Item {
                             Text {
                                 text: "Telegram:"
                                 color: "#a0a0a0"
-                                font.pointSize: 8
+                                font.pointSize: 9
                             }
 
                             Text {
                                 text: "@rtmnklvch"
                                 color: helpPage.accentColor
-                                font.pointSize: 8
+                                font.pointSize: 9
                                 font.bold: true
                                 font.underline: true
 
@@ -223,13 +208,13 @@ Item {
                             Text {
                                 text: "Сайт:"
                                 color: "#a0a0a0"
-                                font.pointSize: 8
+                                font.pointSize: 9
                             }
 
                             Text {
                                 text: "snbld.ru"
                                 color: helpPage.accentColor
-                                font.pointSize: 8
+                                font.pointSize: 9
                                 font.bold: true
                                 font.underline: true
 
@@ -267,10 +252,10 @@ Item {
                     Text {
                         text: "Пользовательское соглашение"
                         color: helpPage.accentColor
-                        font.pointSize: 10
+                        font.pointSize: 11
                         font.bold: true
                     }
-
+                    
                     Rectangle {
                         width: parent.width
                         height: 1
@@ -279,8 +264,8 @@ Item {
 
                     Text {
                         text: "Программа предоставляется «как есть». Используя snbld resvap, вы подтверждаете что понимаете риски использования автоматизированного ПО в онлайн играх. Разработчик не несет ответственности за возможные блокировки аккаунтов."
-                        color: "#c2c2c2"
-                        font.pointSize: 9
+                        color: "#a2a2a2"
+                        font.pointSize: 10
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
@@ -288,7 +273,7 @@ Item {
                     Text {
                         text: "Пользовательское соглашение"
                         color: helpPage.accentColor
-                        font.pointSize: 8
+                        font.pointSize: 9
                         font.bold: true
                         font.underline: true
 
@@ -315,10 +300,10 @@ Item {
                     Text {
                         text: "Политика конфиденциальности"
                         color: helpPage.accentColor
-                        font.pointSize: 10
+                        font.pointSize: 11
                         font.bold: true
                     }
-
+                    
                     Rectangle {
                         width: parent.width
                         height: 1
@@ -327,8 +312,8 @@ Item {
 
                     Text {
                         text: "Программа собирает минимальные технические данные (HWID) для защиты лицензии и предотвращения несанкционированного доступа."
-                        color: "#c2c2c2"
-                        font.pointSize: 9
+                        color: "#a2a2a2"
+                        font.pointSize: 10
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
@@ -336,7 +321,7 @@ Item {
                     Text {
                         text: "Политика конфиденциальности"
                         color: helpPage.accentColor
-                        font.pointSize: 8
+                        font.pointSize: 9
                         font.bold: true
                         font.underline: true
 

@@ -27,24 +27,13 @@ Item {
         anchors.bottomMargin: 70  // Место для кнопки
         spacing: 15
 
-        RowLayout {
-            Layout.fillWidth: true
-            BaseButton {
-                text: "← Назад"
-                implicitWidth: 80
-                implicitHeight: 30
-                iconSize: 0
-                textSize: 10
-                onClicked: settingsWindowPage.StackView.view.pop()
-            }
-            Text {
-                text: "Окно"
-                font.pointSize: 18
-                font.bold: true
-                color: "#c2c2c2"
-                Layout.alignment: Qt.AlignHCenter
-            }
-            Item { Layout.fillWidth: true }
+        BaseButton {
+            text: "← Назад"
+            implicitWidth: 80
+            implicitHeight: 30
+            iconSize: 0
+            textSize: 10
+            onClicked: settingsWindowPage.StackView.view.pop()
         }
 
         ColumnLayout {
@@ -55,6 +44,14 @@ Item {
 
             GroupBox {
                 title: "Привязка к окну"
+                label: Label {
+                    text: "Привязка к окну"
+                    color: "#a2a2a2"
+                    font.pointSize: 11
+                    font.bold: true
+                    topPadding: 10
+                    leftPadding: 12
+                }
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
                 background: GlassBlurPanel {}

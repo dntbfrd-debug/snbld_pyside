@@ -120,7 +120,7 @@ Window {
                     anchors.fill: parent
                     anchors.margins: 10
                     text: "Выберите окно игры из списка ниже.\nПрограмма будет использовать это окно для макросов."
-                    color: "#c2c2c2"
+                    color: "#a2a2a2"
                     font.pointSize: 9
                     wrapMode: Text.WordWrap
                     verticalAlignment: Text.AlignVCenter

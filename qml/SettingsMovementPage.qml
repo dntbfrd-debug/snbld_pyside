@@ -45,25 +45,13 @@ Item {
         anchors.bottomMargin: 70
         spacing: 15
 
-        // Заголовок с кнопкой назад
-        RowLayout {
-            Layout.fillWidth: true
-            BaseButton {
-                text: "← Назад"
-                implicitWidth: 80
-                implicitHeight: 30
-                iconSize: 0
-                textSize: 10
-                onClicked: settingsMovementPage.StackView.view.pop()
-            }
-            Text {
-                text: "Движение"
-                font.pointSize: 18
-                font.bold: true
-                color: "#c2c2c2"
-                Layout.alignment: Qt.AlignHCenter
-            }
-            Item { Layout.fillWidth: true }
+        BaseButton {
+            text: "← Назад"
+            implicitWidth: 80
+            implicitHeight: 30
+            iconSize: 0
+            textSize: 10
+            onClicked: settingsMovementPage.StackView.view.pop()
         }
 
         // Две плитки рядом по горизонтали
@@ -75,6 +63,14 @@ Item {
             // Плитка 1: Методы обнаружения после движения (взаимоисключающие)
             GroupBox {
                 title: "Обнаружение после движения"
+                label: Label {
+                    text: "Обнаружение после движения"
+                    color: "#a2a2a2"
+                    font.pointSize: 11
+                    font.bold: true
+                    topPadding: 10
+                    leftPadding: 12
+                }
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 background: GlassBlurPanel {}
@@ -151,7 +147,7 @@ Item {
 
                                 Label {
                                     text: "Задержка (мс):"
-                                    color: "#c2c2c2"
+                                    color: "#a2a2a2"
                                     font.pointSize: 10
                                     font.bold: true
                                 }
@@ -275,6 +271,14 @@ Item {
             // Плитка 2: Проверка дистанции OCR
             GroupBox {
                 title: "Проверка дистанции (OCR)"
+                label: Label {
+                    text: "Проверка дистанции (OCR)"
+                    color: "#a2a2a2"
+                    font.pointSize: 11
+                    font.bold: true
+                    topPadding: 10
+                    leftPadding: 12
+                }
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 background: GlassBlurPanel {}
@@ -352,7 +356,7 @@ Item {
 
                             Text {
                                 text: "Пример работы:"
-                                color: "#b0b0b0"
+                                color: "#a2a2a2"
                                 font.pointSize: 10
                                 font.bold: true
                             }

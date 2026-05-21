@@ -49,7 +49,7 @@ class TrayIconManager:
                 padding: 4px;
             }
             QMenu::item {
-                color: #c2c2c2;
+                color: #a2a2a2;
                 padding: 8px 30px 8px 20px;
                 border-radius: 4px;
                 margin: 1px;

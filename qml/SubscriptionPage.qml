@@ -24,17 +24,7 @@ Item {
         anchors.margins: 20
         spacing: 15
 
-        // Заголовок
-        RowLayout {
-            Layout.fillWidth: true
-            Text {
-                text: "Подписка"
-                font.pointSize: 20
-                font.bold: true
-                color: subscriptionPage.accentColor
-            }
-            Item { Layout.fillWidth: true }
-        }
+
 
         // ========== БЛОК: ФОРМА АКТИВАЦИИ (если НЕ активирована) ==========
         GlassBlurPanel {
@@ -243,7 +233,7 @@ Item {
                     Layout.fillWidth: true
                     Text {
                         text: "Статус:"
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         font.pointSize: 12
                     }
                     Text {
@@ -261,13 +251,13 @@ Item {
                     Layout.fillWidth: true
                     Text {
                         text: "Действует до:"
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         font.pointSize: 10
                     }
                     Text {
                         id: expiresText
                         text: "подсчёт..."
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         font.pointSize: 10
                         Layout.fillWidth: true
                     }
@@ -281,7 +271,7 @@ Item {
                             expiresText.color = subInfo.expires_color || "#4CAF50"
                         } else {
                             expiresText.text = subInfo.expires_at || "неизвестно"
-                            expiresText.color = "#c2c2c2"
+                            expiresText.color = "#a2a2a2"
                         }
                     }
                 }
@@ -299,7 +289,7 @@ Item {
                     Layout.fillWidth: true
                     Text {
                         text: "Тип:"
-                        color: "#c2c2c2"
+                        color: "#a2a2a2"
                         font.pointSize: 10
                     }
                     Text {

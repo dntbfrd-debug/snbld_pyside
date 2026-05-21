@@ -13,7 +13,7 @@ SELECTEL_REGION = "ru-3"
 UPDATE_BASE_URL = "https://snbld.ru"
 PUBLIC_DOMAIN = "snbld.ru"
 
-CURRENT_VERSION = "1.3.43"
+CURRENT_VERSION = "1.3.55"
 
 DEFAULT_SWAP_KEY_CHANT = "e"
 DEFAULT_SWAP_KEY_PA = "e"
@@ -265,7 +265,7 @@ class ColorScheme:
     BG_PRIMARY = "#2b2b2b"
     BG_SECONDARY = "#3a3a3a"
     FG_PRIMARY = "#f0f0f0"
-    FG_SECONDARY = "#c2c2c2"
+    FG_SECONDARY = "#a2a2a2"
     ACCENT = "#4a6a8a"
     ACCENT_AREA = "#ff6b6b"
     SELECTION_BG = "#4a6a8a"

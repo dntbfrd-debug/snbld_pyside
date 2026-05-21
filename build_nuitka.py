@@ -5,15 +5,17 @@ import subprocess
 import time
 from pathlib import Path
 
+from utils.wizard_bmp import generate_dark_wizard_bmp
+
 BUILD_DIR = Path("dist_standalone")
-VERSION = "1.3.51"
+VERSION = "1.3.55"
 
 def get_base_dir():
     return Path(__file__).parent
 
 def check_required_files(base_dir):
     print("\n[1/5] Проверка обязательных файлов...")
-    required = ["run.pyw", "qml_main.py", "qml", "icons", "123.ico", "asgard_skills.json", "macros.json"]
+    required = ["run.pyw", "qml_main.py", "qml", "icons", "123.ico", "asgard_skills.json"]
     all_ok = True
     for f in required:
         path = base_dir / f
@@ -54,10 +56,9 @@ def build_nuitka(base_dir):
 
     python_modules = [
         "macros_core", "tesseract_reader", "threads",
-        "skill_database", "low_level_hook", "constants",
+        "skill_database", "low_level_hook", "mouse_detector", "constants",
         "auth", "utils_qml", "tooltips_qml",
         "updater_main",
-        "raw_input_wm_detector",
         "input_blocker",
         "backend.input_system", "backend.logger_manager",
         "backend.macros_dispatcher", "backend.qml_bridge",
@@ -254,81 +255,10 @@ def get_inno_setup_path():
             return path
     return None
 
-def generate_dark_wizard_bmp(base_dir):
-    print("\n   [ГЕНЕРАЦИЯ] Тёмные изображения установщика...")
-    try:
-        from PIL import Image, ImageDraw, ImageFont
-    except ImportError:
-        print("   [SKIP] Pillow не найден, использую стандартные изображения")
-        return None, None
-
-    out_dir = base_dir / "dist_installers"
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    sidebar_path = out_dir / "wizard_sidebar.bmp"
-    small_path = out_dir / "wizard_small.bmp"
-
-    bg_dark = (18, 18, 30)
-    accent = (230, 100, 140)
-
-    img = Image.new("RGB", (164, 314), bg_dark)
-    draw = ImageDraw.Draw(img)
-    for y in range(314):
-        t = y / 314
-        r = int(accent[0] * 0.08 + bg_dark[0] * (1 - t * 0.15))
-        g = int(accent[1] * 0.05 + bg_dark[1] * (1 - t * 0.15))
-        b = int(accent[2] * 0.05 + bg_dark[2] * (1 - t * 0.15))
-        draw.line([(0, y), (163, y)], fill=(r, g, b))
-    for y in range(0, 314, 8):
-        alpha = max(0, 25 - y * 120 // 314)
-        if alpha > 0:
-            draw.line([(0, y), (163, y)], fill=(accent[0], accent[1], accent[2], alpha))
-    logo_path = base_dir / "logo.png"
-    if logo_path.exists():
-        logo = Image.open(logo_path).convert("RGBA")
-        logo.thumbnail((80, 80), Image.LANCZOS)
-        lx = (164 - logo.width) // 2
-        ly = 30
-        if logo.mode == "RGBA":
-            img.paste(logo, (lx, ly), logo)
-        else:
-            img.paste(logo, (lx, ly))
-    try:
-        font = ImageFont.truetype("arial.ttf", 11)
-        draw.text((82, 160), "snbld resvap", fill=(180, 180, 200), font=font, anchor="mt")
-        font_small = ImageFont.truetype("arial.ttf", 9)
-        draw.text((82, 175), "v" + VERSION, fill=(120, 120, 140), font=font_small, anchor="mt")
-    except Exception:
-        pass
-    img.save(sidebar_path, "BMP")
-    print(f"   [OK] {sidebar_path.name} ({img.size[0]}x{img.size[1]})")
-
-    small = Image.new("RGB", (55, 55), bg_dark)
-    sdraw = ImageDraw.Draw(small)
-    for y in range(55):
-        t = y / 55
-        r = int(bg_dark[0] + accent[0] * 0.25 * t)
-        g = int(bg_dark[1] + accent[1] * 0.25 * t)
-        b = int(bg_dark[2] + accent[2] * 0.25 * t)
-        sdraw.line([(0, y), (54, y)], fill=(r, g, b))
-    if logo_path.exists():
-        logo_small = Image.open(logo_path).convert("RGBA")
-        logo_small.thumbnail((40, 40), Image.LANCZOS)
-        slx = (55 - logo_small.width) // 2
-        sly = (55 - logo_small.height) // 2
-        if logo_small.mode == "RGBA":
-            small.paste(logo_small, (slx, sly), logo_small)
-        else:
-            small.paste(logo_small, (slx, sly))
-    small.save(small_path, "BMP")
-    print(f"   [OK] {small_path.name} ({small.size[0]}x{small.size[1]})")
-
-    return str(sidebar_path), str(small_path)
-
 def build_installer(base_dir):
     print("\n[4/5] Подготовка Inno Installer...")
 
-    wizard_image, wizard_small = generate_dark_wizard_bmp(base_dir)
+    wizard_image, wizard_small = generate_dark_wizard_bmp(base_dir, VERSION)
     if not wizard_image:
         inno_path = get_inno_setup_path()
         if inno_path:
@@ -553,9 +483,8 @@ def main():
             try:
                 shutil.rmtree(artifact)
             except PermissionError:
-                print(f"   [WARN] {artifact} заблокирован, пробую убить процессы...")
+                print(f"   [WARN] {artifact} заблокирован, пробую убить qml_main.exe...")
                 subprocess.run(['taskkill', '/F', '/IM', 'qml_main.exe'], capture_output=True)
-                subprocess.run(['taskkill', '/F', '/IM', 'python.exe'], capture_output=True)
                 time.sleep(2)
                 try:
                     shutil.rmtree(artifact)

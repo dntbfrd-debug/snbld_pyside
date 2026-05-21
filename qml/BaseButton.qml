@@ -206,7 +206,7 @@ Button {
 
         Text {
             text: control.text
-            color: control.hovered || control.isActive ? "#ffffff" : "#c2c2c2"
+            color: control.hovered || control.isActive ? "#ffffff" : "#a2a2a2"
             font.pointSize: control.textSize
             horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true

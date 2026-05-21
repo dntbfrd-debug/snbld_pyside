@@ -102,6 +102,209 @@ class MovementMonitor(threading.Thread):
 
 
 
+class FastDistanceReader(threading.Thread):
+    def __init__(self, get_area_fn, get_settings_fn):
+        super().__init__(daemon=True)
+        self._running = False
+        self._distance = None
+        self._raw_distance = None
+        self._lock = threading.Lock()
+        self.get_area = get_area_fn
+        self.get_settings = get_settings_fn
+        self._history = []
+        self._HISTORY_SIZE = 5
+        self._last_raw_text = ""
+        self._last_image = None
+        self._debug_lock = threading.Lock()
+
+    @property
+    def distance(self):
+        with self._lock:
+            return self._distance
+
+    @property
+    def raw_distance(self):
+        with self._lock:
+            return self._raw_distance
+
+    def get_last_raw_text(self):
+        with self._debug_lock:
+            return self._last_raw_text
+
+    def get_last_image(self):
+        with self._debug_lock:
+            return self._last_image.copy() if self._last_image is not None else None
+
+    def get_history(self):
+        with self._lock:
+            return list(self._history)
+
+    def stop(self):
+        self._running = False
+
+    def _correct_number(self, text: str) -> str:
+        if not text:
+            return text
+
+        if text.isdigit():
+            val = int(text)
+            if 100 <= val <= 299:
+                return f"{text[:-1]}.{text[-1]}"
+
+        last_dist = None
+        with self._lock:
+            if self._distance is not None:
+                last_dist = self._distance
+
+        if len(text) == 2 and text.isdigit():
+            if last_dist is not None:
+                if last_dist < 10:
+                    cand = f"{text[0]}.{text[1]}"
+                    cv = float(cand)
+                    if abs(cv - last_dist) < 30 and 0.5 <= cv <= 20:
+                        return cand
+                elif last_dist <= 50:
+                    cand = f"{text}.0"
+                    cv = float(cand)
+                    if abs(cv - last_dist) < 30 and 0.5 <= cv <= 200:
+                        return cand
+            val = int(text)
+            if val <= 50:
+                cand = f"{text[0]}.{text[1]}"
+                cv = float(cand)
+                if 0.5 <= cv <= 20:
+                    return cand
+            else:
+                cand = f"{text}.0"
+                cv = float(cand)
+                if 0.5 <= cv <= 200:
+                    return cand
+
+        if len(text) == 3 and text.isdigit():
+            cand = f"{text[:2]}.{text[2]}"
+            cv = float(cand)
+            if 0.5 <= cv <= 200:
+                return cand
+
+        common = {
+            '21.': '27.', '29.': '25.', '71': '77', '17': '77',
+            '95': '55', '59': '55', '39': '35', '93': '53',
+            '85': '85', '58': '55', '89': '85', '98': '58',
+            '30.': '35.', '30': '35', '82': '8.2', '83': '8.3',
+            '84': '8.4', '86': '8.6', '87': '8.7', '88': '8.8',
+            '27': '2.7', '25': '2.5', '35': '3.5', '45': '4.5',
+            '55': '5.5', '65': '6.5', '75': '7.5', '95': '9.5',
+            '15': '1.5', '05': '0.5',
+        }
+        for wrong, correct in common.items():
+            if wrong in text:
+                return text.replace(wrong, correct)
+
+        if '.' in text:
+            parts = text.split('.')
+            if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                return f"{parts[0]}.{parts[1][0]}"
+
+        return text
+
+    def run(self):
+        self._running = True
+        logger = get_logger('ocr')
+        while self._running:
+            try:
+                area = self.get_area()
+                if not area:
+                    time.sleep(0.1)
+                    continue
+                if isinstance(area, str):
+                    area = tuple(int(x.strip()) for x in area.split(','))
+                x1, y1, x2, y2 = area
+                PADDING = 2
+                monitor = {
+                    "left": max(0, x1 - PADDING),
+                    "top": max(0, y1 - PADDING),
+                    "width": x2 - x1 + PADDING * 2,
+                    "height": y2 - y1 + PADDING * 2
+                }
+                import mss
+                with mss.mss() as sct:
+                    img = sct.grab(monitor)
+                    import numpy as np
+                    img_np = np.array(img)
+                if img_np.size == 0:
+                    time.sleep(0.02)
+                    continue
+                h, w = img_np.shape[:2]
+
+                import cv2
+                scale = 5
+                new_w = min(int(w * scale), 1000)
+                new_h = min(int(h * scale), 250)
+                resized = cv2.resize(img_np, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+
+                gray = cv2.cvtColor(resized, cv2.COLOR_BGRA2GRAY)
+
+                _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+                import pytesseract
+                import re
+                custom_config = '--psm 7 -c tessedit_char_whitelist=0123456789. -c preserve_interword_spaces=0'
+                text = pytesseract.image_to_string(binary, config=custom_config, lang='eng', timeout=2).strip()
+
+                if not text:
+                    custom_config_alt = '--psm 6 -c tessedit_char_whitelist=0123456789.'
+                    text = pytesseract.image_to_string(binary, config=custom_config_alt, lang='eng', timeout=2).strip()
+
+                candidate = None
+                if text:
+                    numbers = re.findall(r'\d+\.?\d*', text)
+                    for num in numbers:
+                        try:
+                            distance = float(num)
+                            if 0.5 <= distance <= 200:
+                                candidate = distance
+                                break
+                        except ValueError:
+                            continue
+
+                    if candidate is None and numbers:
+                        corrected = self._correct_number(numbers[0])
+                        if corrected != numbers[0]:
+                            try:
+                                distance = float(corrected)
+                                if 0.5 <= distance <= 200:
+                                    candidate = distance
+                            except ValueError:
+                                pass
+
+                    if candidate is not None:
+                        with self._lock:
+                            prev = self._distance
+                        if prev is not None and abs(candidate - prev) > 10:
+                            with self._lock:
+                                logger.debug(f"[FAST_OCR] Скачок {prev:.1f}→{candidate:.1f}м, отклонён")
+                            candidate = None
+
+                if candidate is not None:
+                    with self._lock:
+                        self._raw_distance = candidate
+                    self._history.append(candidate)
+                    if len(self._history) > self._HISTORY_SIZE:
+                        self._history.pop(0)
+                    sorted_hist = sorted(self._history)
+                    stable = sorted_hist[len(sorted_hist) // 2]
+                    with self._lock:
+                        self._distance = stable
+                    logger.debug(f"[FAST_OCR] {stable:.1f}м (hist={self._history})")
+
+                with self._debug_lock:
+                    self._last_raw_text = text if text else ""
+                    self._last_image = binary.copy() if text else None
+
+            except Exception:
+                pass
+            time.sleep(0.02)
+
 class BuffCheckThread(QThread):
     buffExpired = Signal(int)
 
@@ -137,7 +340,7 @@ class BuffCheckThread(QThread):
 
 logger = get_logger('macros')
 
-from raw_input_wm_detector import RawInputWMDetector
+from mouse_detector import MouseDetector
 
 
 class MouseClickMonitor(QThread):
@@ -147,7 +350,7 @@ class MouseClickMonitor(QThread):
         super().__init__()
         self._stop_event = threading.Event()
         self._target_window_title = target_window_title.strip().lower()
-        self._inner = RawInputWMDetector(self._target_window_title)
+        self._inner = MouseDetector(self._target_window_title)
         try:
             inner_name = self._inner.__class__.__name__
             inner_mod = self._inner.__class__.__module__
@@ -156,7 +359,7 @@ class MouseClickMonitor(QThread):
             pass
         self.daemon = True
         self._paused = False
-        logger.info("[MOUSE] MouseClickMonitor created (WM_INPUT main detector)")
+        logger.info("[MOUSE] MouseClickMonitor created (WH_MOUSE_LL real-time detector)")
 
     def get_inner_monitor_name(self) -> str:
         try:
