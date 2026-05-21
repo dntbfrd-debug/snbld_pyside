@@ -55,7 +55,6 @@ snbld_pyside/
 ├── input_blocker.py            # Блокировка ввода (WH_KEYBOARD/MOUSE_LL)
 ├── low_level_hook.py           # Низкоуровневый перехват мыши
 ├── skill_database.py           # База данных скиллов (из asgard_skills.json)
-├── raw_input_wm_detector.py    # Детектор кликов (WM_INPUT polling)
 ├── tooltips_qml.py             # Тултипы для QML
 ├── utils_qml.py                # Утилиты для QML
 ├── updater_main.py             # Автообновление
@@ -145,7 +144,8 @@ snbld_pyside/
 │   ├── SkillSelectionDialog.qml # Диалог выбора скилла
 │   ├── OCROptionsSelector.qml  # Панель калибровки OCR
 │   ├── OCRCalibrationDialog.qml # Диалог калибровки OCR
-│   ├── CastBarDialog.qml       # Диалог калибровки кастбара
+│   ├── FastOCRDebugOverlay.qml # Оверлей отладки OCR
+├── CastBarDialog.qml       # Диалог калибровки кастбара
 │   ├── BuffCalibrationDialog.qml # Диалог калибровки баффа
 │   ├── AddStepDialog.qml       # Диалог добавления шага
 │   ├── WindowSelectorDialog.qml # Диалог выбора окна
@@ -162,7 +162,7 @@ snbld_pyside/
 ├── icons/                      # Иконки интерфейса
 ├── fonts/                      # Шрифты (Rubik, Fira Code)
 ├── tesseract/                  # Tesseract OCR бинарники 5.5 + tessdata (rus, eng)
-├── onn.mp3 / off.mp3           # Звуки старта/стопа макросов
+├── onn.mp3 / off.mp3 / exit.mp3 # Звуки старта/стопа/выхода макросов
 ├── 12.mp4                      # Фоновое видео главного окна
 ├── 123.ico                     # Иконка приложения
 ├── logo.png                    # Логотип
