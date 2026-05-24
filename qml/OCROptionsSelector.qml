@@ -56,7 +56,7 @@ Item {
             Layout.fillHeight: true
             spacing: 20
 
-            // === Плитка 1: Калибровка OCR ===
+            // === Плитка 1: Дистанция ===
             GlassBlurPanel {
                 id: ocrTile
                 Layout.fillWidth: true
@@ -151,7 +151,7 @@ Item {
                     }
 
                     Text {
-                        text: "Калибровка OCR"
+                        text: "Дистанция"
                         font.pointSize: 16
                         font.bold: true
                         color: "#a2a2a2"
@@ -215,7 +215,7 @@ Item {
                 }
             }
 
-            // === Плитка 2: Детекция каста ===
+            // === Плитка 2: Кастбар ===
             GlassBlurPanel {
                 id: castbarTile
                 Layout.fillWidth: true
@@ -314,7 +314,7 @@ Item {
                     }
 
                     Text {
-                        text: "Детекция каста"
+                        text: "Кастбар"
                         font.pointSize: 16
                         font.bold: true
                         color: "#a2a2a2"

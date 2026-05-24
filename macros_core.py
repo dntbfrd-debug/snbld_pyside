@@ -336,7 +336,7 @@ class BuffMacro(SimpleMacro):
         _get_logger().info(f"[BUFF] Начало выполнения макроса-баффа '{self.name}'")
         start_time = time.time()
         try:
-            if hasattr(self.app, '_settings'):
+            if hasattr(self.app, '_settings') and self.buff_id == 8004:
                 buff_click_point = self.app._settings.get("buff_8004_click_point", "0,0")
                 if buff_click_point and buff_click_point != "0,0":
                     try:

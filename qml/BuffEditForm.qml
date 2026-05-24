@@ -446,6 +446,7 @@ Item {
             radius: 6
             border.color: "#30ffffff"
             border.width: 1
+            visible: buffId === "8004"
 
             RowLayout {
                 anchors.fill: parent

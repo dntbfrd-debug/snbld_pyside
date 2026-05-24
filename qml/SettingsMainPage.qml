@@ -58,7 +58,7 @@ Item {
             // Плитка: OCR
             CustomTabButton {
                 id: ocrTile
-                text: "OCR"
+                text: "Калибровка"
                 iconSource: "../icons/ocr.png"
                 isActive: false
                 Layout.fillWidth: true

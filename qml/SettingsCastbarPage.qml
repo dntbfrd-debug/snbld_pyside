@@ -227,21 +227,11 @@ Item {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 8
-
-        BaseButton {
-            text: "← Назад"
-            implicitWidth: 80
-            implicitHeight: 30
-            iconSize: 0
-            textSize: 10
-            onClicked: settingsCastbarPage.StackView.view.pop()
-        }
                                 Text {
                                     text: Math.round(castbarThresholdSlider.value) + "%"
                                     color: settingsCastbarPage.accentColor
                                     font.pointSize: 11
                                     font.bold: true
-                                }
                             }
 
                             Slider {
