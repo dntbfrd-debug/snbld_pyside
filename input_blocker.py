@@ -220,11 +220,22 @@ class InputBlocker:
         self._blocked_buttons = set()
         
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=5, thread_name_prefix="InputBlocker")
+        self._executor_shutdown = False
 
         # Регистрация дополнительных callback'ов горячих клавиш
         # (чтобы не создавать отдельный WH_KEYBOARD_LL в HotkeyManager)
         self._hotkey_callbacks = {}
         self._hotkey_lock = threading.Lock()
+
+        # Регистрация callback'ов кликов мыши
+        # (чтобы MouseDetector/MouseClickMonitor не ставил свой WH_MOUSE_LL)
+        self._mouse_click_callbacks = []
+        self._mouse_click_lock = threading.Lock()
+
+        # Таймстемпы для защиты от залипания кнопок
+        self._blocked_keys_time: dict = {}
+        self._blocked_buttons_time: dict = {}
+        self._BUTTON_STUCK_TIMEOUT = 5.0
 
         logger.info("[InputBlocker] Инициализирован")
 
@@ -256,6 +267,44 @@ class InputBlocker:
         with self._hotkey_lock:
             self._hotkey_callbacks.clear()
             logger.debug("[InputBlocker] Все горячие клавиши очищены")
+
+    def register_mouse_click_callback(self, callback):
+        """Регистрирует callback на клик мыши, вызывается из _mouse_hook_callback
+        для всех НЕзаблокированных кликов. Используется MouseDetector
+        вместо установки собственного WH_MOUSE_LL."""
+        with self._mouse_click_lock:
+            self._mouse_click_callbacks.append(callback)
+
+    def unregister_mouse_click_callback(self, callback):
+        with self._mouse_click_lock:
+            try:
+                self._mouse_click_callbacks.remove(callback)
+            except ValueError:
+                pass
+
+    def _notify_mouse_click_callbacks(self, x, y, button):
+        with self._mouse_click_lock:
+            for cb in self._mouse_click_callbacks:
+                try:
+                    cb(x, y, button)
+                except Exception as e:
+                    logger.error(f"[InputBlocker] Ошибка в mouse click callback: {e}", exc_info=True)
+
+    def _cleanup_stuck_buttons(self):
+        now = time.time()
+        stale_keys = [vk for vk, t in list(self._blocked_keys_time.items())
+                      if now - t > self._BUTTON_STUCK_TIMEOUT]
+        for vk in stale_keys:
+            self._blocked_keys.discard(vk)
+            self._blocked_keys_time.pop(vk, None)
+            logger.warning(f"[InputBlocker] Принудительная очистка залипшей клавиши: vk=0x{vk:02X}")
+
+        stale_buttons = [b for b, t in list(self._blocked_buttons_time.items())
+                         if now - t > self._BUTTON_STUCK_TIMEOUT]
+        for b in stale_buttons:
+            self._blocked_buttons.discard(b)
+            self._blocked_buttons_time.pop(b, None)
+            logger.warning(f"[InputBlocker] Принудительная очистка залипшей кнопки: wParam=0x{b:04X}")
 
     def _match_hotkey_callbacks(self, vk_code: int):
         """Проверяет vk_code по зарегистрированным callback'ам горячих клавиш.
@@ -382,12 +431,14 @@ class InputBlocker:
                     vk = ctypes.cast(lParam_ptr, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents.vkCode
                     if vk == 0x1B and (user32.GetAsyncKeyState(VK_CONTROL) & 0x8000) and (user32.GetAsyncKeyState(VK_SHIFT) & 0x8000):
                         logger.warning("[InputBlocker]  ЭКСТРЕННАЯ ОСТАНОВКА по Ctrl+Shift+Esc!")
+                        hook_handle = self._keyboard_hook
                         self.stop()
-                        return user32.CallNextHookEx(self._keyboard_hook, nCode, wParam, lParam_ptr)
+                        return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
                     if vk == 0x7B and (user32.GetAsyncKeyState(VK_CONTROL) & 0x8000) and (user32.GetAsyncKeyState(VK_SHIFT) & 0x8000):
                         logger.warning("[InputBlocker]  ЭКСТРЕННАЯ ОСТАНОВКА по Ctrl+Shift+F12!")
+                        hook_handle = self._keyboard_hook
                         self.stop()
-                        return user32.CallNextHookEx(self._keyboard_hook, nCode, wParam, lParam_ptr)
+                        return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
             except:
                 pass
 
@@ -398,47 +449,57 @@ class InputBlocker:
                         logger.debug(f"[InputBlocker][DEBUG] vk=0x{kb.vkCode:02X} (pass-through mode)")
                     except:
                         pass
-                return user32.CallNextHookEx(self._keyboard_hook, nCode, wParam, lParam_ptr)
+                hook_handle = self._keyboard_hook
+                return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
 
             if nCode != HC_ACTION:
-                return user32.CallNextHookEx(self._keyboard_hook, nCode, wParam, lParam_ptr)
+                hook_handle = self._keyboard_hook
+                return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
 
             kb = ctypes.cast(lParam_ptr, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
             
             if kb.flags & LLKHF_INJECTED:
-                return user32.CallNextHookEx(self._keyboard_hook, nCode, wParam, lParam_ptr)
+                hook_handle = self._keyboard_hook
+                return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
             
             if wParam in (WM_KEYUP, WM_SYSKEYUP):
                 vkCode = kb.vkCode
                 if vkCode in self._blocked_keys:
-                    self._blocked_keys.remove(vkCode)
+                    self._blocked_keys.discard(vkCode)
+                    self._blocked_keys_time.pop(vkCode, None)
                     return 1
-                return user32.CallNextHookEx(self._keyboard_hook, nCode, wParam, lParam_ptr)
+                hook_handle = self._keyboard_hook
+                return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
             
             if wParam not in (WM_KEYDOWN, WM_SYSKEYDOWN):
-                return user32.CallNextHookEx(self._keyboard_hook, nCode, wParam, lParam_ptr)
+                hook_handle = self._keyboard_hook
+                return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
 
             # Проверка дополнительных горячих клавиш (калибровка кастбара и т.д.)
             # Вне зависимости от активности окна игры и глобальной блокировки
             if self._match_hotkey_callbacks(kb.vkCode):
                 logger.debug(f"[InputBlocker]  Клавиша ЗАБЛОКИРОВАНА (callback): vk=0x{kb.vkCode:02X}")
                 self._blocked_keys.add(kb.vkCode)
+                self._blocked_keys_time[kb.vkCode] = time.time()
                 return 1
 
             be = self._get_backend()
             if be is None or getattr(be, '_global_stopped', True):
                 self.stats['kb_passed'] += 1
-                return user32.CallNextHookEx(self._keyboard_hook, nCode, wParam, lParam_ptr)
+                hook_handle = self._keyboard_hook
+                return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
 
             if not self._is_game_window_active():
                 self.stats['kb_passed'] += 1
-                return user32.CallNextHookEx(self._keyboard_hook, nCode, wParam, lParam_ptr)
+                hook_handle = self._keyboard_hook
+                return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
 
             macro = self._match_hotkey(kb.vkCode)
             if macro is not None:
                 self.stats['kb_blocked'] += 1
                 logger.debug(f"[InputBlocker]  Клавиша ЗАБЛОКИРОВАНА: vk=0x{kb.vkCode:02X}  → макрос '{macro.name}'")
                 self._blocked_keys.add(kb.vkCode)
+                self._blocked_keys_time[kb.vkCode] = time.time()
                 self._trigger_macro_async(macro)
                 return 1
 
@@ -446,11 +507,13 @@ class InputBlocker:
         except Exception as e:
             logger.error(f"[InputBlocker] Ошибка в keyboard hook: {e}", exc_info=True)
             try:
-                return user32.CallNextHookEx(self._keyboard_hook, nCode, wParam, lParam_ptr)
+                hook_handle = self._keyboard_hook
+                return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
             except:
                 return 0
         
-        return user32.CallNextHookEx(self._keyboard_hook, nCode, wParam, lParam_ptr)
+        hook_handle = self._keyboard_hook
+        return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
 
     def _mouse_hook_callback(self, nCode, wParam, lParam_ptr):
         try:
@@ -461,34 +524,42 @@ class InputBlocker:
                         logger.debug(f"[InputBlocker][DEBUG] mouse wParam=0x{wParam:04X} at ({ms.pt.x},{ms.pt.y}) (pass-through mode)")
                     except:
                         pass
-                return user32.CallNextHookEx(self._mouse_hook, nCode, wParam, lParam_ptr)
+                hook_handle = self._mouse_hook
+                return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
 
             if nCode != HC_ACTION:
-                return user32.CallNextHookEx(self._mouse_hook, nCode, wParam, lParam_ptr)
+                hook_handle = self._mouse_hook
+                return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
 
             ms = ctypes.cast(lParam_ptr, ctypes.POINTER(MSLLHOOKSTRUCT)).contents
             
             if ms.flags & LLMHF_INJECTED:
-                return user32.CallNextHookEx(self._mouse_hook, nCode, wParam, lParam_ptr)
+                hook_handle = self._mouse_hook
+                return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
             
             if wParam == WM_LBUTTONUP and WM_LBUTTONDOWN in self._blocked_buttons:
-                self._blocked_buttons.remove(WM_LBUTTONDOWN)
+                self._blocked_buttons.discard(WM_LBUTTONDOWN)
+                self._blocked_buttons_time.pop(WM_LBUTTONDOWN, None)
                 return 1
             if wParam == WM_RBUTTONUP and WM_RBUTTONDOWN in self._blocked_buttons:
-                self._blocked_buttons.remove(WM_RBUTTONDOWN)
+                self._blocked_buttons.discard(WM_RBUTTONDOWN)
+                self._blocked_buttons_time.pop(WM_RBUTTONDOWN, None)
                 return 1
             
             if wParam not in (WM_LBUTTONDOWN, WM_RBUTTONDOWN):
-                return user32.CallNextHookEx(self._mouse_hook, nCode, wParam, lParam_ptr)
+                hook_handle = self._mouse_hook
+                return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
 
             be = self._get_backend()
             if be is None or getattr(be, '_global_stopped', True):
                 self.stats['ms_passed'] += 1
-                return user32.CallNextHookEx(self._mouse_hook, nCode, wParam, lParam_ptr)
+                hook_handle = self._mouse_hook
+                return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
 
             if not self._is_game_window_active():
                 self.stats['ms_passed'] += 1
-                return user32.CallNextHookEx(self._mouse_hook, nCode, wParam, lParam_ptr)
+                hook_handle = self._mouse_hook
+                return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
 
             x, y = ms.pt.x, ms.pt.y
 
@@ -497,26 +568,36 @@ class InputBlocker:
                 self.stats['ms_blocked'] += 1
                 logger.debug(f"[InputBlocker]  Клик мыши ЗАБЛОКИРОВАН: ({x},{y})  → макрос '{macro.name}'")
                 self._blocked_buttons.add(wParam)
+                self._blocked_buttons_time[wParam] = time.time()
                 self._trigger_macro_async(macro)
                 return 1
+
+            # Клик не заблокирован — уведомляем колбэки (MouseClickMonitor и др.)
+            self._notify_mouse_click_callbacks(x, y, wParam)
 
             self.stats['ms_passed'] += 1
         except Exception as e:
             logger.error(f"[InputBlocker] Ошибка в mouse hook: {e}", exc_info=True)
             try:
-                return user32.CallNextHookEx(self._mouse_hook, nCode, wParam, lParam_ptr)
+                hook_handle = self._mouse_hook
+                return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
             except:
                 return 0
         
-        return user32.CallNextHookEx(self._mouse_hook, nCode, wParam, lParam_ptr)
+        hook_handle = self._mouse_hook
+        return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
 
 
     def _trigger_macro_async(self, macro):
         try:
+            if getattr(self, '_executor_shutdown', False):
+                return
             if hasattr(self, '_executor') and self._executor is not None:
                 self._executor.submit(self._do_trigger, macro)
             else:
                 self._do_trigger(macro)
+        except RuntimeError:
+            pass
         except Exception as e:
             logger.error(f"[InputBlocker] Ошибка запуска макроса: {e}", exc_info=True)
 
@@ -568,17 +649,20 @@ class InputBlocker:
             logger.info(f"[InputBlocker]  WH_MOUSE_LL установлен: 0x{self._mouse_hook:016X}")
 
             msg = MSG()
-            logger.info("[InputBlocker] Вход в цикл сообщений PeekMessageW")
+            cleanup_counter = 0
+            logger.info("[InputBlocker] Вход в цикл сообщений GetMessageW")
             while self._running:
-                ret = user32.PeekMessageW(ctypes.byref(msg), None, 0, 0, PM_REMOVE)
-                if ret != 0:
-                    if msg.message == WM_QUIT:
-                        logger.info("[InputBlocker] Получено WM_QUIT, выход из цикла")
-                        break
-                    user32.TranslateMessage(ctypes.byref(msg))
-                    user32.DispatchMessageW(ctypes.byref(msg))
-                else:
-                    user32.WaitMessage()
+                ret = user32.GetMessageW(ctypes.byref(msg), None, 0, 0)
+                if ret == 0:
+                    logger.info("[InputBlocker] Получено WM_QUIT, выход из цикла")
+                    break
+                user32.TranslateMessage(ctypes.byref(msg))
+                user32.DispatchMessageW(ctypes.byref(msg))
+
+                cleanup_counter += 1
+                if cleanup_counter >= 100:
+                    cleanup_counter = 0
+                    self._cleanup_stuck_buttons()
 
         except Exception as e:
             logger.error(f"[InputBlocker] Ошибка в потоке хуков: {e}", exc_info=True)
@@ -619,13 +703,16 @@ class InputBlocker:
 
             if self._executor is None:
                 self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=5, thread_name_prefix="InputBlocker")
+                self._executor_shutdown = False
                 logger.info("[InputBlocker] ThreadPoolExecutor пересоздан")
 
             self._running = True
             self.stats = {k: 0 for k in self.stats}
 
             self._blocked_keys.clear()
+            self._blocked_keys_time.clear()
             self._blocked_buttons.clear()
+            self._blocked_buttons_time.clear()
 
             self._thread = threading.Thread(
                 target=self._hook_thread_proc,
@@ -648,6 +735,7 @@ class InputBlocker:
                 return
 
             self._running = False
+            self._executor_shutdown = True
 
             if self._thread_id:
                 try:
@@ -662,9 +750,11 @@ class InputBlocker:
                     self._cleanup_hooks()
 
             self._blocked_keys.clear()
+            self._blocked_keys_time.clear()
             self._blocked_buttons.clear()
+            self._blocked_buttons_time.clear()
 
-            if hasattr(self, '_executor'):
+            if hasattr(self, '_executor') and self._executor is not None:
                 try:
                     self._executor.shutdown(wait=True, timeout=1)
                 except Exception:

@@ -1,6 +1,13 @@
 import sys
 import ctypes
 
+# Немедленное скрытие консоли (до main()) — Nuitka не всегда корректно
+# выставляет PE subsystem = WINDOWS, что даёт кратковременную вспышку консоли.
+try:
+    ctypes.windll.kernel32.FreeConsole()
+except Exception:
+    pass
+
 try:
     ctypes.windll.user32.SetProcessDpiAwarenessContext(-4)
 except:
@@ -11,9 +18,6 @@ except:
             ctypes.windll.user32.SetProcessDPIAware()
         except:
             pass
-
-if sys.executable.endswith('python.exe') or sys.executable.endswith('py.exe'):
-    ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
 
 import os
 import re
@@ -188,6 +192,7 @@ os.environ['QT_LOGGING_RULES'] = '*.debug=false;qt.qpa.*=false;shiboken=false;Py
 os.environ['QT_DEBUG_PLUGINS'] = '0'
 os.environ['QML_DEBUG_DISABLED'] = '1'
 
+from typing import Dict
 import json
 import time
 import webbrowser
@@ -564,7 +569,7 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
             elif expected_type == float:
                 value = float(value)
             elif expected_type == bool:
-                value = value.lower() in ("true", "1", "yes")
+                value = str(value).lower() in ("true", "1", "yes")
             elif expected_type == list:
                 if isinstance(value, str):
                     value = [int(x.strip()) for x in value.split(',')]
@@ -735,7 +740,7 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
                 "type": m.type,
                 "name": m.name,
                 "hotkey": m.hotkey,
-}
+            }
             if m.type in ("simple", "buff"):
                 macro_dict["steps"] = m.steps
                 if m.type == "buff":
@@ -1003,11 +1008,7 @@ def main():
 
     if is_packaged:
         try:
-            import ctypes
-            kernel32 = ctypes.WinDLL('kernel32')
-            hwnd = kernel32.GetConsoleWindow()
-            if hwnd:
-                ctypes.windll.user32.ShowWindow(hwnd, 0)
+            ctypes.windll.kernel32.FreeConsole()
         except Exception:
             pass
 

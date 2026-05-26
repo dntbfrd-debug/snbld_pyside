@@ -275,16 +275,10 @@ class ZoneMacro(Macro):
                             _get_logger().warning(f"[ZONE]  '{self.name}': ОТКЛОНЕНО диспетчером")
                     else:
                         _get_logger().warning(f"[ZONE]  '{self.name}': dispatcher НЕ ДОСТУПЕН")
-                        self.start()
                 else:
                     _get_logger().warning(f"[ZONE]  '{self.name}': app НЕ ДОСТУПЕН")
-                    self.start()
             except Exception as e:
                 _get_logger().error(f"[ZONE]  '{self.name}': ошибка: {e}", exc_info=True)
-                try:
-                    self.start()
-                except Exception as start_e:
-                    _get_logger().error(f"[ZONE]  '{self.name}': ошибка при start: {start_e}", exc_info=True)
             finally:
                 with self._schedule_lock:
                     self._scheduled = False
@@ -457,16 +451,10 @@ class SkillMacro(SimpleMacro):
                             _get_logger().warning(f"[SKILL+ZONE]  '{self.name}': ОТКЛОНЕНО диспетчером")
                     else:
                         _get_logger().warning(f"[SKILL+ZONE]  '{self.name}': dispatcher НЕ ДОСТУПЕН")
-                        self.start()
                 else:
                     _get_logger().warning(f"[SKILL+ZONE]  '{self.name}': app НЕ ДОСТУПЕН")
-                    self.start()
             except Exception as e:
                 _get_logger().error(f"[SKILL+ZONE]  '{self.name}': ошибка: {e}", exc_info=True)
-                try:
-                    self.start()
-                except Exception as start_e:
-                    _get_logger().error(f"[SKILL+ZONE]  '{self.name}': ошибка при start: {start_e}", exc_info=True)
             finally:
                 with self._schedule_lock:
                     self._scheduled = False

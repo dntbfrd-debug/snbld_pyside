@@ -51,6 +51,8 @@ class MovementMonitor(threading.Thread):
     def _is_key_pressed(self, key: str) -> bool:
         if key not in VIRTUAL_KEYS:
             return False
+        if USER32 is None:
+            return False
         vk_code = VIRTUAL_KEYS[key]
         return bool(USER32.GetAsyncKeyState(vk_code) & 0x8000)
 
@@ -517,11 +519,7 @@ class PingMonitor(QThread):
 
     def run(self):
         network_logger.info(f"PingMonitor запущен, интервал={self.interval}сек")
-        while not self._stop_event.is_set():
-            network_logger.debug(f"Ожидание подключения игры...")
-        if self._stop_event.wait(5):
-            return
-
+        check_ip_counter = 0
         while not self._stop_event.is_set():
             check_ip_counter += 1
             if check_ip_counter >= 3 or self.server_ip is None:

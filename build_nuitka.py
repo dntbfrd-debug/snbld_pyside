@@ -8,7 +8,7 @@ from pathlib import Path
 from utils.wizard_bmp import generate_dark_wizard_bmp
 
 BUILD_DIR = Path("dist_standalone")
-VERSION = "1.3.55"
+VERSION = "1.3.56"
 
 def get_base_dir():
     return Path(__file__).parent
@@ -475,6 +475,11 @@ def main():
     print("=" * 50)
     print(f"СБОРКА SNBLD RESVAP v{VERSION} (Standalone)")
     print("=" * 50)
+
+    update_zip = base_dir / "update.zip"
+    if update_zip.exists():
+        update_zip.unlink()
+        print(f"\n[DEL] {update_zip.name} (старый архив обновления)")
 
     build_artifacts = [BUILD_DIR, Path("dist_updater"), Path("qml_main.build"), Path(".nuitka")]
     for artifact in build_artifacts:

@@ -6,6 +6,7 @@ import io
 import shutil
 import subprocess
 import threading
+import time
 import warnings
 import zipfile
 from pathlib import Path
@@ -418,7 +419,7 @@ exit;
             sftp.putfo(buf, remote_php)
             emit("[OK] download_update.php создан")
 
-            emit("[5/5] Обновление version.json...")
+            emit("[4/5] Обновление version.json...")
             upload_url = f"{CDN_BASE}/downloads/download_update.php?file=update_{version}.zip"
             notes = self.notes_edit.toPlainText().strip()
             vj_data = json.loads(VERSION_JSON.read_text("utf-8")) if VERSION_JSON.exists() else {}
@@ -453,6 +454,9 @@ exit;
         if not ISS_FILE.exists():
             QMessageBox.warning(self, "Ошибка", "Сначала собери проект (нужен snbld_resvap.iss)")
             return
+        if not (DIST_DIR / "qml_main.exe").exists():
+            QMessageBox.warning(self, "Ошибка", "Сначала собери проект (нет qml_main.exe в dist_standalone/qml_main.dist)")
+            return
 
         iscc = find_iscc()
         if not iscc:
@@ -484,6 +488,9 @@ exit;
                         except Exception as e:
                             emit(f"   [WARN] Не удалось удалить {f.name}: {e}")
 
+            subprocess.run(['taskkill', '/F', '/IM', 'snbldsetup.exe'], capture_output=True)
+            time.sleep(1)
+
             sidebar, small = generate_dark_wizard_bmp(BASE_DIR, version, log_fn=emit)
             if sidebar and small:
                 iss_text = ISS_FILE.read_text("utf-8")
@@ -511,17 +518,29 @@ exit;
             else:
                 emit("   [SKIP] Pillow не найден, ISS без изменений")
 
-            proc = subprocess.Popen(
-                [iscc, str(ISS_FILE)],
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, cwd=str(BASE_DIR)
-            )
-            for line in proc.stdout:
-                emit(f"   {line.rstrip()}")
-            proc.wait(timeout=300)
+            for attempt in range(1, 4):
+                proc = subprocess.Popen(
+                    [iscc, str(ISS_FILE)],
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    text=True, cwd=str(BASE_DIR)
+                )
+                try:
+                    out, _ = proc.communicate(timeout=300)
+                    for line in out.splitlines():
+                        emit(f"   {line}")
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    emit("[X] ISCC превысил таймаут 300с")
+                    self.deploy_error_signal.emit("ISCC timeout")
+                    return
 
-            if proc.returncode != 0:
-                emit("[X] Ошибка компиляции установщика")
+                if proc.returncode == 0:
+                    break
+
+                emit(f"   [RETRY] Попытка {attempt} не удалась, жду 3с...")
+                time.sleep(3)
+            else:
+                emit("[X] Ошибка компиляции установщика после 3 попыток")
                 self.deploy_error_signal.emit("ISCC ошибка")
                 return
 

@@ -1,19 +1,22 @@
+# snbld resvap
+
+Автоматизация макросов для Perfect World. Низкоуровневый ввод, OCR дистанции, детекция кастбара.
 
 ## Возможности
 
 - **Умные макросы** — проверка кулдаунов, дистанции, каста (SkillMacro, ZoneMacro, BuffMacro, SimpleMacro)
 - **Автодобегание** — с таймаутом 3 сек и детекцией кастбара
 - **Ресвап** — смена экипировки между пением и атакой
-- **OCR** — распознавание дистанции через Tesseract (с поддержкой калибровки)
+- **OCR** — распознавание дистанции через Tesseract (с калибровкой)
 - **Детекция кастбара** — по цвету пикселя (mss DXGI), с калибровкой
-- **Баффы** — пересчёт времени каста от channeling_bonus, автоматическое применение
+- **Баффы** — пересчёт времени каста от channeling_bonus, автоприменение
 - **Зональные макросы** — привязка к области экрана, срабатывание по клику
-- **Активация** — ключ + HWID (CPU+motherboard+disk), с шифрованием через Windows DPAPI
-- **Низкоуровневый ввод** — SendInput + PostMessage через WinAPI, AttachThreadInput fallback
-- **Менеджер окон** — автоматическая активация окна игры, поддержка DPI
-- **Профили** — сохранение/загрузка/переименование наборов макросов и настроек
-- **Звуковые уведомления** — MP3 при старте/стопе макросов
-- **Современный UI** — Qt Quick/QML интерфейс (Glass тема)
+- **Активация** — ключ + HWID (CPU+motherboard+disk), шифрование DPAPI
+- **Низкоуровневый ввод** — SendInput + PostMessage через WinAPI
+- **Менеджер окон** — автоматическая активация окна игры
+- **Профили** — сохранение/загрузка наборов макросов
+- **Звуковые уведомления** — MP3 при старте/стопе
+- **Современный UI** — Qt Quick/QML интерфейс
 
 ---
 
@@ -53,7 +56,7 @@ snbld_pyside/
 ├── auth.py                     # Активация + HWID (+ Windows DPAPI шифрование)
 ├── constants.py                # Константы проекта
 ├── input_blocker.py            # Блокировка ввода (WH_KEYBOARD/MOUSE_LL)
-├── low_level_hook.py           # Низкоуровневый перехват мыши
+├── mouse_detector.py           # Детектор кликов мыши (через InputBlocker)
 ├── skill_database.py           # База данных скиллов (из asgard_skills.json)
 ├── tooltips_qml.py             # Тултипы для QML
 ├── utils_qml.py                # Утилиты для QML
@@ -67,7 +70,6 @@ snbld_pyside/
 ├── requirements.txt            # Python зависимости
 ├── version.json                # Версия приложения (для автообновления)
 ├── qtquickcontrols2.conf       # Стиль Qt Quick Controls
-├── run.pyw                     # Альтернативный вход (без консоли)
 │
 ├── backend/
 │   ├── __init__.py             # Re-export основных классов
@@ -145,7 +147,7 @@ snbld_pyside/
 │   ├── OCROptionsSelector.qml  # Панель калибровки OCR
 │   ├── OCRCalibrationDialog.qml # Диалог калибровки OCR
 │   ├── FastOCRDebugOverlay.qml # Оверлей отладки OCR
-├── CastBarDialog.qml       # Диалог калибровки кастбара
+│   ├── CastBarDialog.qml       # Диалог калибровки кастбара
 │   ├── BuffCalibrationDialog.qml # Диалог калибровки баффа
 │   ├── AddStepDialog.qml       # Диалог добавления шага
 │   ├── WindowSelectorDialog.qml # Диалог выбора окна

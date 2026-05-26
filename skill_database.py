@@ -11,11 +11,10 @@ from enum import Enum
 class SkillClass(Enum):
     MAGE = "маг"
     PRIEST = "жрец"
-    ДРУИД = "друид"
-    ЖНЕЦ = "жнец"
-
-
+    DRUID = "друид"
+    REAPER = "жнец"
     ARCHER = "лучник"
+    WARRIOR = "воин"
     UNKNOWN = "неизвестно"
 
 

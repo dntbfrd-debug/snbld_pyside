@@ -389,7 +389,7 @@ class AuthMixin:
         return {
             'activated': self._is_activated,
             'has_session': session is not None,
-            'session_id': session[0] if session else None,
+            'session_id': session.get('session_id') if session else None,
             'hwid': hwid,
             'subscription': sub_status
         }
