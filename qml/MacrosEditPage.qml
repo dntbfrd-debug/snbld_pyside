@@ -209,6 +209,14 @@ Item {
                 easing.type: Easing.InCubic
             }
         }
+        replaceEnter: Transition {
+            PropertyAnimation { property: "x"; from: editStackView.width; to: 0; duration: 300; easing.type: Easing.OutCubic }
+            PropertyAnimation { property: "opacity"; from: 0; to: 1; duration: 300; easing.type: Easing.OutCubic }
+        }
+        replaceExit: Transition {
+            PropertyAnimation { property: "x"; from: 0; to: -editStackView.width; duration: 300; easing.type: Easing.InCubic }
+            PropertyAnimation { property: "opacity"; from: 1; to: 0; duration: 300; easing.type: Easing.InCubic }
+        }
     }
 
     Text {

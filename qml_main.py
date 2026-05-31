@@ -1,12 +1,13 @@
 import sys
 import ctypes
 
-# Немедленное скрытие консоли (до main()) — Nuitka не всегда корректно
-# выставляет PE subsystem = WINDOWS, что даёт кратковременную вспышку консоли.
-try:
-    ctypes.windll.kernel32.FreeConsole()
-except Exception:
-    pass
+# Немедленное скрытие консоли (до main()) — только для собранного .exe
+is_packaged = getattr(sys, 'frozen', False) or hasattr(sys, 'compiled') or hasattr(sys, '_MEIPASS')
+if is_packaged:
+    try:
+        ctypes.windll.kernel32.FreeConsole()
+    except Exception:
+        pass
 
 import builtins
 _original_print = builtins.print

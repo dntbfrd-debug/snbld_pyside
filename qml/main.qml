@@ -48,23 +48,19 @@ ApplicationWindow {
         closeSubmenu()
         slideMenu.forceClose()
         if (pageFile === "SettingsPage.qml" || pageFile === "SettingsMainPage.qml") {
-            stackView.clear()
-            stackView.push("SettingsMainPage.qml")
+            stackView.replace("SettingsMainPage.qml")
             currentActiveButtonId = "settings"
             slideMenu.setActiveById("settings")
         } else if (pageFile === "SettingsAppearancePage.qml") {
-            stackView.clear()
-            stackView.push("SettingsAppearancePage.qml")
+            stackView.replace("SettingsAppearancePage.qml")
         } else if (pageFile === "MacrosListPage.qml") {
             currentActiveButtonId = "macros"
             slideMenu.setActiveById("macros")
-            stackView.clear()
-            stackView.push("MacrosListPage.qml")
+            stackView.replace("MacrosListPage.qml")
         } else if (pageFile === "MacrosEditPage.qml") {
             currentActiveButtonId = "macros"
             slideMenu.setActiveById("macros")
-            stackView.clear()
-            stackView.push("MacrosEditPage.qml")
+            stackView.replace("MacrosEditPage.qml")
         } else if (pageFile === "EditSimplePage.qml" || pageFile === "EditZonePage.qml" || pageFile === "EditSkillPage.qml" || pageFile === "EditBuffPage.qml") {
             pageFile = "MacrosEditPage.qml"
         } else if (pageFile === "BuffListPage.qml" || pageFile === "BuffEditForm.qml") {
@@ -72,23 +68,19 @@ ApplicationWindow {
         } else if (pageFile === "ProfilesPage.qml") {
             currentActiveButtonId = "profiles"
             slideMenu.setActiveById("profiles")
-            stackView.clear()
-            stackView.push(pageFile)
+            stackView.replace(pageFile)
         } else if (pageFile === "SubscriptionPage.qml") {
             currentActiveButtonId = "subscription"
             slideMenu.setActiveById("subscription")
-            stackView.clear()
-            stackView.push(pageFile)
+            stackView.replace(pageFile)
         } else if (pageFile === "HelpPage.qml") {
             currentActiveButtonId = "help"
             slideMenu.setActiveById("help")
-            stackView.clear()
-            stackView.push(pageFile)
+            stackView.replace(pageFile)
         } else if (pageFile === "DebugPage.qml") {
             currentActiveButtonId = "debug"
             slideMenu.setActiveById("debug")
-            stackView.clear()
-            stackView.push(pageFile)
+            stackView.replace(pageFile)
         }
     }
 

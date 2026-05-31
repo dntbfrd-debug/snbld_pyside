@@ -21,7 +21,7 @@ class MacroMixin:
                 "name": macro.name,
                 "type": macro.type,
                 "hotkey": macro.hotkey or "",
-                "running": macro.running,
+                "running": macro.running.is_set(),
                 "steps": macro.steps,
                 "zone_rect": macro.zone_rect,
             }
@@ -156,7 +156,7 @@ class MacroMixin:
             self.stop_ocr()
             logger.info("[STOP_ALL] OCR остановлен")
         for macro in self._macros:
-            logger.info(f"[STOP_ALL] Остановка макроса '{macro.name}', running={macro.running}")
+            logger.info(f"[STOP_ALL] Остановка макроса '{macro.name}', running={macro.running.is_set()}")
             macro.stop()
         for macro in self._macros:
             if macro.thread and macro.thread.is_alive():
@@ -166,7 +166,7 @@ class MacroMixin:
                     logger.warning(f"[STOP_ALL] Поток '{macro.name}' не завершился за 3с")
         logger.info(f"[STOP_ALL] Все макросы остановлены")
         for macro in self._macros:
-            macro.running = False
+            macro.running.clear()
         for macro in self._macros:
             if macro.hotkey:
                 logger.info(f"[STOP_ALL] Перерегистрация hotkey '{macro.hotkey}' для макроса '{macro.name}' с suppress=False")
@@ -717,7 +717,7 @@ class MacroMixin:
                     "type": macro.type,
                     "hotkey": macro.hotkey or "",
                     "steps": macro.steps if hasattr(macro, "steps") else [],
-                    "running": macro.running,
+                    "running": macro.running.is_set(),
                     "cooldown": getattr(macro, "cooldown", 0),
                     "skill_range": getattr(macro, "skill_range", 0),
                 }
@@ -790,7 +790,7 @@ class MacroMixin:
                         break
                 def make_callback(m):
                     def callback(e=None):
-                        if not m.running:
+                        if not m.running.is_set():
                             if not self.dispatcher.request_macro(m):
                                 logger.warning(f" '{m.name}': ЗАБЛОКИРОВАНО диспетчером")
                                 return
@@ -844,7 +844,7 @@ class MacroMixin:
                         if time.time() < self.dispatcher.cast_lock_until:
                             logger.debug(f"[CAST LOCK] Горячая клавиша '{m.hotkey}' ЗАБЛОКИРОВАНА: идёт каст")
                             return
-                        if not m.running:
+                        if not m.running.is_set():
                             if not self.dispatcher.request_macro(m):
                                 logger.debug(f" '{m.name}': ЗАБЛОКИРОВАНО диспетчером")
                                 return

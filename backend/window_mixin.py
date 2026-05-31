@@ -196,19 +196,19 @@ class WindowMixin:
                         now = time.time()
                         last_start = getattr(m, 'last_start_time', 0)
                         age = now - last_start if last_start > 0 else 999
-                        logger.debug(f"Hotkey '{m.hotkey}': running={m.running}, event_type={event_type}, last_start_age={age:.3f}с")
+                        logger.debug(f"Hotkey '{m.hotkey}': running={m.running.is_set()}, event_type={event_type}, last_start_age={age:.3f}с")
                         if now < self.dispatcher.cast_lock_until:
                             remaining = self.dispatcher.cast_lock_until - now
                             logger.debug(f"[CAST LOCK] Горячая клавиша '{m.hotkey}' ЗАБЛОКИРОВАНА: идёт каст (ост. {remaining:.2f}с)")
                             return
-                        if m.running and e is not None and event_type in ('up', 'key up'):
+                        if m.running.is_set() and e is not None and event_type in ('up', 'key up'):
                             if last_start > 0 and age < 0.3:
                                 logger.debug(f"Игнорируем быструю остановку '{m.name}' (age={age:.3f}с < 0.3с)")
                                 return
                             logger.debug(f"Остановка '{m.name}' (age={age:.3f}с >= 0.3с)")
                             m.stop()
                             return
-                        if not m.running:
+                        if not m.running.is_set():
                             logger.debug(f"Запуск '{m.name}' через диспетчер")
                             if not self.dispatcher.request_macro(m):
                                 logger.debug(f" '{m.name}': ЗАБЛОКИРОВАНО диспетчером")
