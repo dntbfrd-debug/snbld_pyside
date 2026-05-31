@@ -164,7 +164,7 @@ snbld_pyside/
 ├── icons/                      # Иконки интерфейса
 ├── fonts/                      # Шрифты (Rubik, Fira Code)
 ├── tesseract/                  # Tesseract OCR бинарники 5.5 + tessdata (rus, eng)
-├── onn.mp3 / off.mp3 / exit.mp3 # Звуки старта/стопа/выхода макросов
+├── onn.mp3 / off.mp3           # Звуки старта/стопа
 ├── 12.mp4                      # Фоновое видео главного окна
 ├── 123.ico                     # Иконка приложения
 ├── logo.png                    # Логотип
