@@ -203,15 +203,29 @@ Item {
         }
     }
 
+    property var _macrosModel: []
+    property bool _modelDirty: true
+
     Connections {
         target: backend
         function onMacrosChanged() {
-            macrosRepeater.model = null
-            macrosRepeater.model = backend.macros
+            _macrosModel = backend.macros
+            _modelDirty = true
         }
         function onMacroStatusChanged() {
+            _macrosModel = backend.macros
+            _modelDirty = true
+        }
+    }
+
+    Timer {
+        interval: 100
+        repeat: false
+        running: _modelDirty
+        onTriggered: {
             macrosRepeater.model = null
-            macrosRepeater.model = backend.macros
+            macrosRepeater.model = _macrosModel
+            _modelDirty = false
         }
     }
 

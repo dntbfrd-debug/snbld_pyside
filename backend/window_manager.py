@@ -1,4 +1,6 @@
 import time
+import ctypes
+import ctypes.wintypes
 from typing import Optional, Tuple
 
 from .logger_manager import get_logger
@@ -12,6 +14,25 @@ from backend.win32_api import (GetForegroundWindow, GetWindowText, GetWindowText
 logger = get_logger('macros')
 
 _window_manager_instance = None
+
+_user32 = ctypes.windll.user32
+
+def _allow_set_foreground_window():
+    try:
+        _user32.AllowSetForegroundWindow.restype = ctypes.wintypes.BOOL
+        _user32.AllowSetForegroundWindow.argtypes = [ctypes.wintypes.DWORD]
+        _user32.AllowSetForegroundWindow(ctypes.wintypes.DWORD(-1))
+    except Exception:
+        pass
+
+def _switch_to_this_window(hwnd):
+    try:
+        _user32.SwitchToThisWindow.restype = None
+        _user32.SwitchToThisWindow.argtypes = [ctypes.c_void_p, ctypes.wintypes.BOOL]
+        _user32.SwitchToThisWindow(hwnd, True)
+        return True
+    except Exception:
+        return False
 
 def get_window_manager():
     global _window_manager_instance
@@ -28,7 +49,7 @@ class WindowManager:
         self._window_position: Optional[Tuple[int, int]] = None
         self._last_activation_time = 0
         self._activation_cooldown = 0.5
-        self._skip_window_activation = False
+        self._skip_window_activation = True
         self._use_window_message_input = False
 
     @property
@@ -102,16 +123,24 @@ class WindowManager:
         if GetForegroundWindow() == hwnd:
             return True
         try:
+            ShowWindow(hwnd, SW_RESTORE)
+            _allow_set_foreground_window()
+
             with _attached_thread_input(hwnd) as attached:
                 if not attached:
-                    logger.warning(f"AttachThreadInput не удался (UIPI), использую SetForegroundWindow напрямую: hwnd={hwnd}")
+                    logger.warning(f"AttachThreadInput не удался (UIPI), использую SwitchToThisWindow: hwnd={hwnd}")
                 SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0,
                             SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW)
                 success = False
                 for attempt in range(3):
                     try:
-                        SetForegroundWindow(hwnd)
+                        _switch_to_this_window(hwnd)
                         time.sleep(0.05 + (attempt * 0.05))
+                        if GetForegroundWindow() == hwnd:
+                            success = True
+                            break
+                        SetForegroundWindow(hwnd)
+                        time.sleep(0.05)
                         if GetForegroundWindow() == hwnd:
                             success = True
                             break
@@ -127,27 +156,6 @@ class WindowManager:
         except Exception as e:
             logger.error(f"Ошибка активации окна: {e}", exc_info=True)
         return False
-
-    def find_window(self, title_substring: str) -> Optional[int]:
-        def enum_callback(hwnd, _):
-            try:
-                if IsWindowVisible(hwnd):
-                    title = GetWindowTextTimeout(hwnd)
-                    if title and title_substring.lower() in title.lower():
-                        hwnds.append(hwnd)
-            except Exception:
-                pass
-            return True
-        hwnds = []
-        EnumWindows(enum_callback)
-        return hwnds[0] if hwnds else None
-
-    def save_window_position(self, x: int, y: int) -> None:
-        self._window_position = (x, y)
-        logger.debug(f"Позиция окна сохранена: ({x}, {y})")
-
-    def get_window_position(self) -> Optional[Tuple[int, int]]:
-        return self._window_position
 
     @property
     def skip_window_activation(self) -> bool:

@@ -33,7 +33,7 @@ Item {
             Layout.preferredHeight: activationLayout.implicitHeight + 30
             visible: !subscriptionPage.isActivated
 
-            // Бегущая волна по верхней границе (при активации)
+            // Волна — полная линия + серый градиент слева направо
             Item {
                 anchors.top: parent.top
                 width: parent.width
@@ -43,57 +43,31 @@ Item {
                 z: 2
 
                 Rectangle {
-                    id: waveBar1
-                    x: -120
-                    width: 120
-                    height: 3
-                    radius: 1.5
-
-                    gradient: Gradient {
-                        orientation: Gradient.Horizontal
-                        GradientStop { position: 0.0; color: "transparent" }
-                        GradientStop { position: 0.3; color: subscriptionPage.accentColor }
-                        GradientStop { position: 0.5; color: Qt.lighter(subscriptionPage.accentColor, 1.5) }
-                        GradientStop { position: 0.7; color: subscriptionPage.accentColor }
-                        GradientStop { position: 1.0; color: "transparent" }
-                    }
-
-                    SequentialAnimation on x {
-                        running: subscriptionPage.activationInProgress
-                        loops: Animation.Infinite
-                        NumberAnimation {
-                            from: -120
-                            to: waveBar1.parent.width
-                            duration: 2000
-                            easing.type: Easing.Linear
-                        }
-                    }
+                    anchors.fill: parent
+                    color: subscriptionPage.accentColor
                 }
 
                 Rectangle {
-                    id: waveBar2
-                    x: -120
-                    width: 120
+                    id: subWaveBar
+                    width: 300
                     height: 3
-                    radius: 1.5
-
+                    color: "transparent"
                     gradient: Gradient {
                         orientation: Gradient.Horizontal
                         GradientStop { position: 0.0; color: "transparent" }
-                        GradientStop { position: 0.3; color: subscriptionPage.accentColor }
-                        GradientStop { position: 0.5; color: Qt.lighter(subscriptionPage.accentColor, 1.5) }
-                        GradientStop { position: 0.7; color: subscriptionPage.accentColor }
+                        GradientStop { position: 0.25; color: "#AA444444" }
+                        GradientStop { position: 0.5; color: "#DD000000" }
+                        GradientStop { position: 0.75; color: "#AA444444" }
                         GradientStop { position: 1.0; color: "transparent" }
                     }
 
                     SequentialAnimation on x {
-                        running: subscriptionPage.activationInProgress
+                        running: parent.visible
                         loops: Animation.Infinite
-                        PauseAnimation { duration: 1000 }
+                        PropertyAction { value: -subWaveBar.width }
                         NumberAnimation {
-                            from: -120
-                            to: waveBar2.parent.width
-                            duration: 2000
+                            to: subWaveBar.parent.width
+                            duration: 2500
                             easing.type: Easing.Linear
                         }
                     }

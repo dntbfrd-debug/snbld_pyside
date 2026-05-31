@@ -1,5 +1,6 @@
 import json
-import logging
+import os
+import tempfile
 import threading
 from typing import Any, Dict
 from pathlib import Path
@@ -144,9 +145,22 @@ class SettingsManager:
                         except (ValueError, TypeError):
                             settings_to_save["castbar_color"] = [94, 123, 104]
                 
-                with open(self.settings_file, 'w', encoding='utf-8') as f:
-                    json.dump(settings_to_save, f, indent=2, ensure_ascii=False)
-                logger.info(f"Настройки сохранены в {self.settings_file}")
+                fd, tmp_path = tempfile.mkstemp(
+                    suffix='.tmp',
+                    dir=str(self.settings_file.parent),
+                    prefix='settings_'
+                )
+                try:
+                    with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                        json.dump(settings_to_save, f, indent=2, ensure_ascii=False)
+                    os.replace(tmp_path, str(self.settings_file))
+                except Exception:
+                    try:
+                        os.unlink(tmp_path)
+                    except Exception:
+                        pass
+                    raise
+                logger.info(f"Настройки атомарно сохранены в {self.settings_file}")
                 return True
             except Exception as e:
                 logger.error(f"Ошибка сохранения настроек: {e}", exc_info=True)

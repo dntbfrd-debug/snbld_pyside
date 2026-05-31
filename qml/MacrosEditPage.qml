@@ -20,83 +20,111 @@ Item {
         spacing: 15
         height: tilesRow.implicitHeight
 
-        RowLayout {
+        Item {
             id: tilesRow
-            spacing: 8
             Layout.fillWidth: true
             Layout.preferredHeight: 100
 
-            // Плитка: Простые
-            CustomTabButton {
-                id: simpleTab
-                text: "Простые"
-                iconSource: "../icons/macros1.png"
-                isActive: false
-                Layout.fillWidth: true
-                Layout.preferredWidth: tilesRow.width > 0 ? (tilesRow.width - 24) / 4 : 100
-                Layout.preferredHeight: 100
-                iconSize: 18
-                textSize: 10
-                onClicked: {
-                    tabIndicator.setActive(this)
-                    editStackView.push("SimpleEditForm.qml", {
-                        "editingMacro": editMode ? editingMacro : null
-                    })
-                }
-            }
+            RowLayout {
+                anchors.fill: parent
+                spacing: 8
 
-            // Плитка: По области
-            CustomTabButton {
-                id: zoneTab
-                text: "По области"
-                iconSource: "../icons/zone.png"
-                isActive: false
-                Layout.fillWidth: true
-                Layout.preferredWidth: tilesRow.width > 0 ? (tilesRow.width - 24) / 4 : 100
-                Layout.preferredHeight: 100
-                iconSize: 18
-                textSize: 10
-                onClicked: {
-                    tabIndicator.setActive(zoneTab)
-                    editStackView.push("ZoneEditForm.qml", {
-                        "editingMacro": editMode ? editingMacro : null
-                    })
-                }
-            }
+                // Левая группа: Скиллы + Баффы (приоритет)
+                Rectangle {
+                    radius: 14
+                    color: "transparent"
+                    border.color: Qt.rgba(0.2, 0.8, 0.2, 0.6)
+                    border.width: 1
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
 
-            // Плитка: Скиллы
-            CustomTabButton {
-                id: skillTab
-                text: "Скиллы"
-                iconSource: "../icons/skill.png"
-                isActive: false
-                Layout.fillWidth: true
-                Layout.preferredWidth: tilesRow.width > 0 ? (tilesRow.width - 24) / 4 : 100
-                Layout.preferredHeight: 100
-                iconSize: 18
-                textSize: 10
-                onClicked: {
-                    tabIndicator.setActive(skillTab)
-                    editStackView.push("SkillClassSelector.qml", {
-                        "editingMacro": editMode ? editingMacro : null
-                    })
-                }
-            }
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        spacing: 8
 
-            // Плитка: Баффы
-            CustomTabButton {
-                id: buffTab
-                text: "Баффы"
-                iconSource: "../icons/buff.png"
-                isActive: false
-                Layout.fillWidth: true
-                Layout.preferredWidth: tilesRow.width > 0 ? (tilesRow.width - 24) / 4 : 100
-                Layout.preferredHeight: 100
-                iconSize: 18
-                textSize: 10
-                onClicked: {
-                    tabIndicator.setActive(buffTab)
-                    editStackView.push("BuffListPage.qml")
+                        CustomTabButton {
+                            id: skillTab
+                            text: "Скиллы"
+                            iconSource: "../icons/skill.png"
+                            isActive: false
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            iconSize: 18
+                            textSize: 10
+                            onClicked: {
+                                tabIndicator.setActive(skillTab)
+                                editStackView.replace("SkillClassSelector.qml", {
+                                    "editingMacro": editMode ? editingMacro : null
+                                })
+                            }
+                        }
+
+                        CustomTabButton {
+                            id: buffTab
+                            text: "Баффы"
+                            iconSource: "../icons/buff.png"
+                            isActive: false
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            iconSize: 18
+                            textSize: 10
+                            onClicked: {
+                                tabIndicator.setActive(buffTab)
+                                editStackView.replace("BuffListPage.qml")
+                            }
+                        }
+                    }
+                }
+
+                // Правая группа: Простые + По области
+                Rectangle {
+                    radius: 14
+                    color: "transparent"
+                    border.color: Qt.rgba(0.9, 0.2, 0.2, 0.6)
+                    border.width: 1
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        spacing: 8
+
+                        CustomTabButton {
+                            id: simpleTab
+                            text: "Простые"
+                            iconSource: "../icons/macros1.png"
+                            isActive: false
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            iconSize: 18
+                            textSize: 10
+                            onClicked: {
+                                tabIndicator.setActive(this)
+                                editStackView.replace("SimpleEditForm.qml", {
+                                    "editingMacro": editMode ? editingMacro : null
+                                })
+                            }
+                        }
+
+                        CustomTabButton {
+                            id: zoneTab
+                            text: "По области"
+                            iconSource: "../icons/zone.png"
+                            isActive: false
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            iconSize: 18
+                            textSize: 10
+                            onClicked: {
+                                tabIndicator.setActive(zoneTab)
+                                editStackView.replace("ZoneEditForm.qml", {
+                                    "editingMacro": editMode ? editingMacro : null
+                                })
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -196,17 +224,20 @@ Item {
 
     ButtonGroupWithIndicator {
         id: tabIndicator
-        buttons: [simpleTab, zoneTab, skillTab, buffTab]
+        buttons: [skillTab, buffTab, simpleTab, zoneTab]
         setActiveCallback: function(activeButton) {
-            simpleTab.isActive = false
-            zoneTab.isActive = false
             skillTab.isActive = false
             buffTab.isActive = false
+            simpleTab.isActive = false
+            zoneTab.isActive = false
             activeButton.isActive = true
         }
         Component.onCompleted: {
             init()
-            setActive(simpleTab)
+            setActive(skillTab)
+            editStackView.push("SkillClassSelector.qml", {
+                "editingMacro": null
+            })
         }
     }
 

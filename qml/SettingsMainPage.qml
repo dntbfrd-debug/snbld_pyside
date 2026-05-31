@@ -21,11 +21,11 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 100
 
-            // Плитка: Ресвап
+            // Плитка: Окно
             CustomTabButton {
-                id: reswapTile
-                text: "Ресвап"
-                iconSource: "../icons/swap.png"
+                id: windowTile
+                text: "Окно"
+                iconSource: "../icons/window.png"
                 isActive: false
                 Layout.fillWidth: true
                 Layout.preferredWidth: tilesRow.width > 0 ? (tilesRow.width - 48) / 7 : 100
@@ -34,7 +34,7 @@ Item {
                 textSize: 10
                 onClicked: {
                     settingsTabIndicator.setActive(this)
-                    settingsStackView.push(Qt.resolvedUrl("SettingsReswapPage.qml"))
+                    settingsStackView.push(Qt.resolvedUrl("SettingsWindowPage.qml"))
                 }
             }
 
@@ -55,7 +55,7 @@ Item {
                 }
             }
 
-            // Плитка: OCR
+            // Плитка: Калибровка
             CustomTabButton {
                 id: ocrTile
                 text: "Калибровка"
@@ -89,11 +89,11 @@ Item {
                 }
             }
 
-            // Плитка: Окно
+            // Плитка: Ресвап
             CustomTabButton {
-                id: windowTile
-                text: "Окно"
-                iconSource: "../icons/window.png"
+                id: reswapTile
+                text: "Ресвап"
+                iconSource: "../icons/swap.png"
                 isActive: false
                 Layout.fillWidth: true
                 Layout.preferredWidth: tilesRow.width > 0 ? (tilesRow.width - 48) / 7 : 100
@@ -102,7 +102,7 @@ Item {
                 textSize: 10
                 onClicked: {
                     settingsTabIndicator.setActive(this)
-                    settingsStackView.push(Qt.resolvedUrl("SettingsWindowPage.qml"))
+                    settingsStackView.push(Qt.resolvedUrl("SettingsReswapPage.qml"))
                 }
             }
 
@@ -226,7 +226,7 @@ Item {
     // Индикатор для плиток — явный массив только CustomTabButton
     ButtonGroupWithIndicator {
         id: settingsTabIndicator
-        buttons: [reswapTile, movementTile, ocrTile, networkTile, windowTile, delaysTile, appearanceTile]
+        buttons: [windowTile, movementTile, ocrTile, networkTile, reswapTile, delaysTile, appearanceTile]
         setActiveCallback: function(activeButton) {
             for (var i = 0; i < buttons.length; i++) {
                 if (buttons[i]) buttons[i].isActive = false
@@ -236,7 +236,8 @@ Item {
         Component.onCompleted: {
             currentIndex = 0
             init()
-            setActive(reswapTile)
+            setActive(windowTile)
+            settingsStackView.push(Qt.resolvedUrl("SettingsWindowPage.qml"))
         }
     }
 }

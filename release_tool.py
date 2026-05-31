@@ -590,9 +590,15 @@ exit;
 
             import paramiko
             ssh = paramiko.SSHClient()
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.load_system_host_keys()
+            ssh.set_missing_host_key_policy(paramiko.WarningPolicy())
             ssh.connect(host, username=user, password=password, timeout=30)
-            sftp = ssh.open_sftp()
+
+            import paramiko
+            ssh = paramiko.SSHClient()
+            ssh.load_system_host_keys()
+            ssh.set_missing_host_key_policy(paramiko.WarningPolicy())
+            ssh.connect(host, username=user, password=password, timeout=30)
 
             remote = f"/home/s/snbld/snbld.beget.tech/public_html/downloads/{installer_path.name}"
             emit(f"Загрузка -> {remote}...")

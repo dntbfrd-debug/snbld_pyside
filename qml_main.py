@@ -8,6 +8,19 @@ try:
 except Exception:
     pass
 
+import builtins
+_original_print = builtins.print
+def _safe_print(*args, **kwargs):
+    try:
+        _original_print(*args, **kwargs)
+    except (OSError, ValueError):
+        try:
+            kwargs.pop('file', None)
+            _original_print(*args, file=sys.stderr, **kwargs)
+        except (OSError, ValueError):
+            pass
+builtins.print = _safe_print
+
 try:
     ctypes.windll.user32.SetProcessDpiAwarenessContext(-4)
 except:
@@ -22,6 +35,7 @@ except:
 import os
 import re
 import atexit
+import threading
 from backend.win32_api import CreateMutex, ReleaseMutex, GetLastError, MessageBox, ERROR_ALREADY_EXISTS
 import traceback
 from datetime import datetime
@@ -122,6 +136,18 @@ def _global_exception_handler(exc_type, exc_value, exc_traceback):
             f.write(f"Version: {version_text}\n")
             f.write("\n=== TRACEBACK ===\n")
             traceback.print_exception(exc_type, exc_value, exc_traceback, file=f)
+        # Ротация: оставляем не более 10 crash-логов
+        crash_dir = _get_app_dir()
+        crash_logs = sorted(
+            [f for f in os.listdir(crash_dir) if f.startswith('crash_') and f.endswith('.log')],
+            key=lambda f: os.path.getmtime(os.path.join(crash_dir, f))
+        )
+        while len(crash_logs) > 10:
+            oldest = crash_logs.pop(0)
+            try:
+                os.remove(os.path.join(crash_dir, oldest))
+            except Exception:
+                pass
     except Exception:
         pass
     error_msg = f"\u041f\u0440\u043e\u0438\u0437\u043e\u0448\u043b\u0430 \u043a\u0440\u0438\u0442\u0438\u0447\u0435\u0441\u043a\u0430\u044f \u043e\u0448\u0438\u0431\u043a\u0430.\n\u041a\u0440\u0430\u0448\u043b\u043e\u0433 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d:\n{crash_file}\n\n\u041e\u0448\u0438\u0431\u043a\u0430: {exc_value}"
@@ -138,11 +164,29 @@ def _global_exception_handler(exc_type, exc_value, exc_traceback):
 
 sys.excepthook = _global_exception_handler
 
-def _is_admin():
+def _thread_exception_handler(args):
+    crash_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    crash_file = os.path.join(_get_app_dir(), f"crash_{crash_time}.log")
     try:
-        return bool(ctypes.windll.shell32.IsUserAnAdmin())
-    except:
-        return False
+        from backend.logger_manager import LoggerManager
+        logger_errors = LoggerManager.get_logger('errors')
+        logger_errors.critical(
+            "КРИТИЧЕСКАЯ ОШИБКА В ПОТОКЕ",
+            exc_info=(args.exc_type, args.exc_value, args.exc_traceback)
+        )
+    except Exception:
+        pass
+    try:
+        with open(crash_file, 'w', encoding='utf-8') as f:
+            f.write("=== SNBLD CRASH REPORT (thread) ===\n")
+            f.write(f"Time: {crash_time}\n")
+            f.write(f"Thread: {args.thread}\n")
+            f.write("\n=== TRACEBACK ===\n")
+            traceback.print_exception(args.exc_type, args.exc_value, args.exc_traceback, file=f)
+    except Exception:
+        pass
+
+threading.excepthook = _thread_exception_handler
 
 def _cleanup_on_exit():
     try:
@@ -219,7 +263,6 @@ from macros import (
 import skill_database
 import tesseract_reader
 import threads
-from tesseract_reader import TargetWorker
 from utils import resource_path, ensure_all_resources
 from utils_qml import QMLResourceHelper
 from tooltips_qml import get_tooltips_provider
@@ -329,7 +372,7 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
 
     @Property(dict, notify=settingsChanged)
     def settings(self):
-        return self._settings
+        return dict(self._settings)
 
     @Property(dict, notify=subscriptionChanged)
     def subscription_info(self):
@@ -673,44 +716,13 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
             self._macros = []
             for m_dict in data.get("macros", []):
                 self._validate_macro_dict(m_dict)
-                macro_type = m_dict["type"]
-                name_m = m_dict["name"]
-                hotkey = m_dict.get("hotkey")
-                if macro_type == "simple":
-                    macro = macros.SimpleMacro(name_m, m_dict["steps"], self, hotkey)
-                elif macro_type == "zone":
-                    macro = macros.ZoneMacro(
-                        name=name_m, zone_rect=tuple(m_dict["zone_rect"]), steps=m_dict["steps"], app=self,
-                        trigger=m_dict.get("trigger", "left_click"), poll_interval=m_dict.get("poll_interval", 10),
-                        hotkey=hotkey, skill_id=m_dict.get("skill_id"), cooldown=m_dict.get("cooldown", 0),
-                        skill_range=m_dict.get("skill_range", 0), cast_time=m_dict.get("cast_time", 0.0),
-                        castbar_swap_delay=m_dict.get("castbar_swap_delay", 0)
-                    )
+                macro = self._create_macro_from_dict(m_dict)
+                if macro is None:
+                    continue
+                if macro.type == "zone":
                     macro._connect_mouse_click(self)
                     macro.start()
-                    logger.info(f"[ZONE] \u041c\u0430\u043a\u0440\u043e\u0441 '{name_m}' \u0437\u0430\u043f\u0443\u0449\u0435\u043d \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438 (\u043c\u043e\u043d\u0438\u0442\u043e\u0440\u0438\u043d\u0433 \u043e\u0431\u043b\u0430\u0441\u0442\u0438), \u043f\u043e\u0434\u043f\u0438\u0441\u043a\u0430={macro._mouse_click_connected}")
-                elif macro_type == "skill":
-                    macro = macros.SkillMacro(
-                        name=name_m, steps=m_dict["steps"], app=self, hotkey=hotkey,
-                        skill_id=m_dict["skill_id"], cooldown=m_dict["cooldown"],
-                        skill_range=m_dict.get("skill_range", 0), cast_time=m_dict.get("cast_time", 0.0),
-                        castbar_swap_delay=m_dict.get("castbar_swap_delay", 0)
-                    )
-                    if "zone_rect" in m_dict and m_dict["zone_rect"]:
-                        macro.zone_rect = tuple(m_dict["zone_rect"])
-                        logger.info(f"[SKILL+ZONE] \u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 zone_rect={macro.zone_rect} \u0434\u043b\u044f \u043c\u0430\u043a\u0440\u043e\u0441\u0430 '{name_m}'")
-                        macro._connect_mouse_click(self)
-                        logger.info(f"[SKILL+ZONE] \u041c\u0430\u043a\u0440\u043e\u0441 '{name_m}' \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d \u0441 \u043e\u0431\u043b\u0430\u0441\u0442\u044c\u044e {macro.zone_rect}, \u043f\u043e\u0434\u043f\u0438\u0441\u043a\u0430={macro._mouse_click_connected}")
-                    else:
-                        logger.debug(f"[SKILL+ZONE] \u041c\u0430\u043a\u0440\u043e\u0441 '{name_m}' \u0431\u0435\u0437 \u0437\u043e\u043d\u044b (\u043e\u0431\u044b\u0447\u043d\u044b\u0439 \u0441\u043a\u0438\u043b\u043b-\u043c\u0430\u043a\u0440\u043e\u0441)")
-                elif macro_type == "buff":
-                    macro = macros.BuffMacro(
-                        name=name_m, steps=m_dict["steps"], app=self, buff_id=m_dict["buff_id"],
-                        duration=m_dict["duration"], channeling_bonus=m_dict["channeling_bonus"],
-                        hotkey=hotkey, icon=m_dict.get("icon", "buff.png")
-                    )
-                else:
-                    continue
+                    logger.info(f"[ZONE] \u041c\u0430\u043a\u0440\u043e\u0441 '{macro.name}' \u0437\u0430\u043f\u0443\u0449\u0435\u043d \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438")
                 self._macros.append(macro)
             self._update_macros_dicts()
             logger.info(f"\u0417\u0430\u0433\u0440\u0443\u0436\u0435\u043d\u043e {len(self._macros)} \u043c\u0430\u043a\u0440\u043e\u0441\u043e\u0432")
@@ -733,39 +745,8 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
         data = {
             "window_locked": self._window_locked,
             "target_window_title": self._target_window_title,
-            "macros": []
+            "macros": [self._macro_to_dict(m) for m in self._macros]
         }
-        for m in self._macros:
-            macro_dict = {
-                "type": m.type,
-                "name": m.name,
-                "hotkey": m.hotkey,
-            }
-            if m.type in ("simple", "buff"):
-                macro_dict["steps"] = m.steps
-                if m.type == "buff":
-                    macro_dict["buff_id"] = m.buff_id
-                    macro_dict["duration"] = m.duration
-                    macro_dict["channeling_bonus"] = m.channeling_bonus
-                    macro_dict["icon"] = m.icon
-                    if hasattr(m, 'zone_rect') and m.zone_rect:
-                        macro_dict["zone_rect"] = list(m.zone_rect)
-            elif m.type == "zone":
-                macro_dict["zone_rect"] = list(m.zone_rect)
-                macro_dict["steps"] = m.steps
-                macro_dict["trigger"] = m.trigger
-                macro_dict["poll_interval"] = m.poll_interval
-            elif m.type == "skill":
-                macro_dict["steps"] = m.steps
-                macro_dict["skill_id"] = m.skill_id
-                macro_dict["cooldown"] = m.cooldown
-                macro_dict["skill_range"] = m.skill_range
-                macro_dict["cast_time"] = m.cast_time
-                macro_dict["castbar_swap_delay"] = m.castbar_swap_delay
-                if m.zone_rect:
-                    macro_dict["zone_rect"] = list(m.zone_rect)
-                    logger.debug(f"[MACROS] \u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435 zone_rect={macro_dict['zone_rect']} \u0434\u043b\u044f \u043c\u0430\u043a\u0440\u043e\u0441\u0430 '{m.name}'")
-            data["macros"].append(macro_dict)
         try:
             with open(macro_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
@@ -936,33 +917,6 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
             self.save_profile(self._current_profile)
         logger.info("\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0438\u0435 \u0440\u0430\u0431\u043e\u0442\u044b.")
 
-    def __del__(self):
-        try:
-            if hasattr(self, 'target_reader') and self.target_reader:
-                try:
-                    if self.target_reader.isRunning():
-                        self.target_reader.stop()
-                        self.target_reader.wait(1000)
-                except Exception:
-                    pass
-            if hasattr(self, 'ping_monitor') and self.ping_monitor:
-                try:
-                    if self.ping_monitor.isRunning():
-                        self.ping_monitor.stop()
-                        self.ping_monitor.wait(1000)
-                except Exception:
-                    pass
-            if hasattr(self, 'mouse_click_monitor') and self.mouse_click_monitor:
-                try:
-                    if self.mouse_click_monitor.isRunning():
-                        self.mouse_click_monitor.stop()
-                        self.mouse_click_monitor.wait(1000)
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-
 def main():
     logger.info("=" * 60)
     logger.info("[*] snbld resvap (QML + PySide6)")
@@ -1026,7 +980,6 @@ def main():
     set_sound_files(
         os.path.join(app_path, "onn.mp3"),
         os.path.join(app_path, "off.mp3"),
-        os.path.join(app_path, "exit.mp3"),
     )
 
     os.environ["QML_DISABLE_DISK_CACHE"] = "1"
@@ -1120,10 +1073,55 @@ def main():
             except Exception as e:
                 logger.debug(f"[DWM] \u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c: {e}")
 
-        from PySide6.QtCore import QTimer
+        def remove_window_border():
+            try:
+                hwnd = ctypes.c_void_p(int(window.winId()))
+                DWMWA_BORDER_COLOR = 34
+                DWMWA_COLOR_NONE = 0xFFFFFFFD
+                border_color = ctypes.c_int(DWMWA_COLOR_NONE)
+                DwmSetWindowAttribute(
+                    hwnd, DWMWA_BORDER_COLOR,
+                    ctypes.byref(border_color), ctypes.sizeof(border_color)
+                )
+                logger.info("[DWM] \u0420\u0430\u043c\u043a\u0430 \u0443\u0431\u0440\u0430\u043d\u0430 (DWMWA_BORDER_COLOR)")
+            except Exception:
+                pass
+            try:
+                class MARGINS(ctypes.Structure):
+                    _fields_ = [("cxLeftWidth", ctypes.c_int),
+                                ("cxRightWidth", ctypes.c_int),
+                                ("cyTopHeight", ctypes.c_int),
+                                ("cyBottomHeight", ctypes.c_int)]
+                DwmExtendFrameIntoClientArea = dwmapi.DwmExtendFrameIntoClientArea
+                DwmExtendFrameIntoClientArea.restype = ctypes.HRESULT
+                DwmExtendFrameIntoClientArea.argtypes = [ctypes.c_void_p, ctypes.POINTER(MARGINS)]
+                margins = MARGINS(-1, -1, -1, -1)
+                DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(margins))
+            except Exception:
+                pass
+
+        from PySide6.QtCore import QTimer, QAbstractNativeEventFilter
+
+        class BorderlessNativeFilter(QAbstractNativeEventFilter):
+            def nativeEventFilter(self, eventType, message):
+                if eventType == "windows_generic_MSG":
+                    try:
+                        msg = ctypes.wintypes.MSG.from_address(message.__int__())
+                        if msg.message == 0x0083:
+                            return True, 0
+                    except Exception:
+                        pass
+                return False, 0
+
+        borderless_filter = BorderlessNativeFilter()
+        app.installNativeEventFilter(borderless_filter)
+
         QTimer.singleShot(500, apply_rounded_corners)
+        QTimer.singleShot(500, remove_window_border)
         QTimer.singleShot(2000, apply_rounded_corners)
+        QTimer.singleShot(2000, remove_window_border)
         window.visibleChanged.connect(apply_rounded_corners)
+        window.visibleChanged.connect(remove_window_border)
     except Exception as e:
         logger.debug(f"[DWM] API \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d: {e}")
 

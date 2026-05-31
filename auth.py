@@ -97,8 +97,10 @@ def _decrypt_data(data: bytes) -> bytes:
 def _save_encrypted(file_path: Path, data: dict):
     json_bytes = json.dumps(data, ensure_ascii=False, indent=2).encode('utf-8')
     encrypted = _encrypt_data(json_bytes)
-    with open(file_path, 'wb') as f:
+    tmp_path = file_path.with_suffix(file_path.suffix + ".tmp")
+    with open(tmp_path, 'wb') as f:
         f.write(encrypted)
+    tmp_path.replace(file_path)
 
 
 def _load_encrypted(file_path: Path) -> dict:

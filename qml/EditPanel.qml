@@ -143,7 +143,7 @@ Item {
 
     Loader {
         id: simpleLoader
-        active: currentType === "simple"
+        active: visible && currentType === "simple"
         sourceComponent: simpleEditForm
         onLoaded: {
             console.log("simpleLoader loaded")
@@ -159,7 +159,7 @@ Item {
 
     Loader {
         id: zoneLoader
-        active: currentType === "zone"
+        active: visible && currentType === "zone"
         sourceComponent: zoneEditFormComponent
         onLoaded: {
             console.log("zoneLoader loaded")
@@ -175,13 +175,13 @@ Item {
 
     Loader {
         id: skillMainLoader
-        active: currentType === "skill"
+        active: visible && currentType === "skill"
         sourceComponent: skillMainComponent
     }
 
     Loader {
         id: buffLoader
-        active: currentType === "buff"
+        active: visible && currentType === "buff"
         sourceComponent: buffEditFormComponent
         onLoaded: {
             console.log("buffLoader loaded")

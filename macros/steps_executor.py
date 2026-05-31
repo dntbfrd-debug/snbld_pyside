@@ -64,7 +64,12 @@ class StepsExecutor:
                 _get_logger().debug(f"Окно неактивно на шаге {i+1}")
                 return False
 
-            action, value, delay_ms = step
+            if not isinstance(step, (list, tuple)) or len(step) < 2:
+                _get_logger().error(f"Шаг {i+1} имеет неверный формат: {step}, пропускаем")
+                continue
+            action = step[0]
+            value = step[1] if len(step) > 1 else ""
+            delay_ms = step[2] if len(step) > 2 else 0
             if not self.execute_step(action, value, delay_ms, check_window):
                 _get_logger().warning(f"Шаг {i+1} не выполнен")
                 self.reset()

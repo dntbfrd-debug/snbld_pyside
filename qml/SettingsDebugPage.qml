@@ -165,70 +165,67 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 160
 
-            ColumnLayout {
+            Item {
                 anchors.fill: parent
-                anchors.margins: 12
-                spacing: 4
 
-                Text {
-                    text: "Диагностика мониторов и окон"
-                    color: "#a2a2a2"
-                    font.pointSize: 10
-                    font.bold: true
+                ColumnLayout {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.margins: 12
+                    spacing: 4
+
+                    Text {
+                        text: "Диагностика мониторов и окон"
+                        color: "#a2a2a2"
+                        font.pointSize: 10
+                        font.bold: true
+                    }
+
+                    GridLayout {
+                        columns: 2
+                        Layout.fillWidth: true
+                        columnSpacing: 10
+                        rowSpacing: 2
+
+                        Text { text: "Мониторы:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 80 }
+                        Text { id: monitorsCount; text: "-"; color: "#a2a2a2"; font.pointSize: 9; font.bold: true; Layout.fillWidth: true }
+
+                        Text { text: "DPI:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 80 }
+                        Text { id: currentDpi; text: "-"; color: "#a2a2a2"; font.pointSize: 9; font.bold: true; Layout.fillWidth: true }
+
+                        Text { text: "Разрешение:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 80 }
+                        Text { id: monitorResolution; text: "-"; color: "#a2a2a2"; font.pointSize: 9; font.bold: true; Layout.fillWidth: true }
+
+                        Text { text: "Последняя:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 80 }
+                        Text { id: lastActivation; text: "-"; color: "#a2a2a2"; font.pointSize: 9; font.bold: true; Layout.fillWidth: true }
+
+                        Text { text: "Активное окно:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 80 }
+                        Text { id: activeWindowTitle; text: "-"; color: "#a2a2a2"; font.pointSize: 9; elide: Text.ElideRight; Layout.fillWidth: true }
+
+                        Text { text: "Целевое окно:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 80 }
+                        Text { id: targetWindowTitle; text: "-"; color: "#a2a2a2"; font.pointSize: 9; elide: Text.ElideRight; Layout.fillWidth: true }
+                    }
                 }
-                
-                GridLayout {
-                    columns: 4
-                    Layout.fillWidth: true
-                    columnSpacing: 10
-                    rowSpacing: 2
 
-                    Text { text: "Мониторы:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 65 }
-                    Text { id: monitorsCount; text: "-"; color: "#a2a2a2"; font.pointSize: 9; font.bold: true; Layout.preferredWidth: 55 }
+                BaseButton {
+                    anchors.centerIn: parent
+                    text: "Обновить"
+                    implicitWidth: 130
+                    implicitHeight: 28
+                    iconSize: 10
+                    textSize: 9
+                    onClicked: {
+                        var info = backend.get_window_manager_diagnostic()
+                        monitorsCount.text = info.monitors_count
+                        currentDpi.text = info.current_dpi + " DPI"
+                        monitorResolution.text = (info.monitor_right - info.monitor_left) + "x" + (info.monitor_bottom - info.monitor_top)
+                        activeWindowTitle.text = info.foreground_title
 
-                    Text { text: "DPI:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 65 }
-                    Text { id: currentDpi; text: "-"; color: "#a2a2a2"; font.pointSize: 9; font.bold: true; Layout.preferredWidth: 55 }
-
-                    Text { text: "Разрешение:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 65 }
-                    Text { id: monitorResolution; text: "-"; color: "#a2a2a2"; font.pointSize: 9; font.bold: true; Layout.preferredWidth: 55 }
-
-                    Text { text: "Последняя:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 65 }
-                    Text { id: lastActivation; text: "-"; color: "#a2a2a2"; font.pointSize: 9; font.bold: true; Layout.preferredWidth: 55 }
-
-                    Text { text: "Активное:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 65 }
-                    Text { id: activeWindowTitle; text: "-"; color: "#a2a2a2"; font.pointSize: 9; elide: Text.ElideRight; Layout.columnSpan: 3; Layout.fillWidth: true }
-
-                    Text { text: "Целевое:"; color: "#a0a0a0"; font.pointSize: 9; Layout.preferredWidth: 65 }
-                    Text { id: targetWindowTitle; text: "-"; color: "#a2a2a2"; font.pointSize: 9; elide: Text.ElideRight; Layout.columnSpan: 3; Layout.fillWidth: true }
-                }
-
-                Item { Layout.fillHeight: true }
-
-                RowLayout {
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.bottomMargin: 4
-                    spacing: 8
-
-                    BaseButton {
-                        text: "Обновить"
-                        implicitWidth: 140
-                        implicitHeight: 28
-                        iconSize: 10
-                        textSize: 9
-                        onClicked: {
-                            var info = backend.get_window_manager_diagnostic()
-                            monitorsCount.text = info.monitors_count
-                            currentDpi.text = info.current_dpi + " DPI"
-                            monitorResolution.text = (info.monitor_right - info.monitor_left) + "x" + (info.monitor_bottom - info.monitor_top)
-                            activeWindowTitle.text = info.foreground_title
-
-                            if (info.target_title && info.target_title != "") {
-                                targetWindowTitle.text = info.target_title
-                            } else {
-                                targetWindowTitle.text = backend.settings.target_window_title || "Не выбрано"
-                            }
-
-                            lastActivation.text = info.last_activation > 0 ? Math.round((Date.now() / 1000 - info.last_activation)) + " сек назад" : "Никогда"
+                        if (info.target_title && info.target_title != "") {
+                            targetWindowTitle.text = info.target_title
+                        } else {
+                            targetWindowTitle.text = backend.settings.target_window_title || "Не выбрано"
                         }
                     }
                 }
@@ -331,7 +328,7 @@ Item {
                     }
                 }
 
-                // Анимация — волна бежит слева направо по верхнему краю
+                // Волна — полная линия + серый градиент слева направо
                 Item {
                     anchors.top: parent.top
                     anchors.left: parent.left
@@ -342,29 +339,31 @@ Item {
                     visible: backend && backend.isSendingLogs
 
                     Rectangle {
-                        id: logWave
-                        width: 120
+                        anchors.fill: parent
+                        color: settingsDebugPage.accentColor
+                    }
+
+                    Rectangle {
+                        id: logWaveBar
+                        width: 300
                         height: 3
-                        radius: 1.5
+                        color: "transparent"
                         gradient: Gradient {
                             orientation: Gradient.Horizontal
                             GradientStop { position: 0.0; color: "transparent" }
-                            GradientStop { position: 0.3; color: settingsDebugPage.accentColor }
-                            GradientStop { position: 0.5; color: Qt.lighter(settingsDebugPage.accentColor, 1.5) }
-                            GradientStop { position: 0.7; color: settingsDebugPage.accentColor }
+                            GradientStop { position: 0.25; color: "#AA444444" }
+                            GradientStop { position: 0.5; color: "#DD000000" }
+                            GradientStop { position: 0.75; color: "#AA444444" }
                             GradientStop { position: 1.0; color: "transparent" }
                         }
 
                         SequentialAnimation on x {
-                            id: waveAnim
-                            running: backend && backend.isSendingLogs
+                            running: parent.visible
                             loops: Animation.Infinite
-
-                            PropertyAction { target: logWave; property: "x"; value: -logWave.width }
+                            PropertyAction { value: -logWaveBar.width }
                             NumberAnimation {
-                                from: -logWave.width
-                                to: logWave.parent ? logWave.parent.width : 400
-                                duration: 2000
+                                to: logWaveBar.parent.width
+                                duration: 2500
                                 easing.type: Easing.Linear
                             }
                         }

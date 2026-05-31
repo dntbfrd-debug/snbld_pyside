@@ -7,136 +7,30 @@ SELECTEL_SECRET_KEY = os.environ.get("SELECTEL_SECRET_KEY", "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
-SELECTEL_BUCKET = "snbldfile"
-SELECTEL_ENDPOINT = "https://s3.ru-3.storage.selcloud.ru"
-SELECTEL_REGION = "ru-3"
-UPDATE_BASE_URL = "https://snbld.ru"
-PUBLIC_DOMAIN = "snbld.ru"
-
 CURRENT_VERSION = "1.3.56"
 
-DEFAULT_SWAP_KEY_CHANT = "e"
-DEFAULT_SWAP_KEY_PA = "e"
-DEFAULT_BASE_CHANNELING = 91
 DEFAULT_CASTBAR_SWAP_DELAY = 10
 DEFAULT_COOLDOWN_MARGIN = 0.45
 DEFAULT_CAST_LOCK_MARGIN = 0.45
-DEFAULT_MOVEMENT_DELAY_ENABLED = True
-DEFAULT_MOVEMENT_DELAY_MS = 500
-DEFAULT_CHECK_DISTANCE = False
-DEFAULT_DISTANCE_TOLERANCE = 1.0
-DEFAULT_TARGET_INTERVAL = 0.5
-DEFAULT_WINDOW_OPACITY = 1.0
-
-DEFAULT_THEME = "glass"
-DEFAULT_ACCENT_COLOR = "#495d68"
-DEFAULT_BG_COLOR = "#3d3d3d"
-DEFAULT_SECONDARY_BG = "#000000"
-DEFAULT_FG_COLOR = "#7793a1"
-DEFAULT_HOVER_COLOR = "#313f46"
-DEFAULT_SELECTION_BG = "#4b626e"
-DEFAULT_SELECTION_FG = "#515151"
-DEFAULT_BORDER_COLOR = "#4b626e"
-DEFAULT_TITLE_BAR_COLOR = "#3a3a3a"
-DEFAULT_GROUP_TITLE_COLOR = "#babbbb"
-DEFAULT_SELECTION_BORDER_COLOR = "#cccccc"
-
-DEFAULT_TITLE_BAR_OPACITY = 1
-DEFAULT_PANEL_OPACITY = 1
-DEFAULT_UI_SCALE = 1.0
-
-DEFAULT_BG_IMAGE_MODE = "cover"
-DEFAULT_BG_IMAGE_OPACITY = 1
-
-DEFAULT_SKILL_ICON_SIZE = 36
-DEFAULT_STATUS_ICON_SIZE = 36
-DEFAULT_CELL_PADDING = 10
-DEFAULT_ROW_HEIGHT = 100
-DEFAULT_SHOW_MACRO_NAMES = True
-
 DEFAULT_CASTBAR_THRESHOLD = 90
-DEFAULT_TARGET_INTERVAL = 0.5
-DEFAULT_OCR_SCALE = 10
-DEFAULT_OCR_PSM = 10
-DEFAULT_OCR_USE_MORPH = True
-
-DEFAULT_PING_AUTO = True
-DEFAULT_PING_CHECK_INTERVAL = 5
-DEFAULT_PROCESS_NAME = "ElementClient_x64.exe"
-DEFAULT_SERVER_IP = "147.45.96.78"
 
 DEFAULT_MOB_AREA = (1084, 271, 1545, 358)
 DEFAULT_PLAYER_AREA = (1271, 16, 1294, 32)
-
-DEFAULT_COLOR_THRESHOLD = 30
 
 MAIN_WINDOW_SIZE = "1300x750"
 MIN_WINDOW_WIDTH = 1100
 MIN_WINDOW_HEIGHT = 650
 
-FONT_FAMILY = "Rubik"
-FONT_SIZE_NORMAL = 10
-FONT_SIZE_TITLE = 13
-
-ICON_FILE = "123.ico"
-LOGO_FILE = "logo.png"
 SKILLS_JSON_FILE = "asgard_skills.json"
 MACROS_JSON_FILE = "macros.json"
-LOG_FILE = "debug.log"
 
-ICONS_DIR = "icons"
-SKILL_ICONS_DIR = "icons/skills"
-PROFILES_DIR = "profiles"
-CACHE_DIR = "cache"
-TESSERACT_DIR = "tesseract"
 
-ICON_FILES = [
-    "add.png", "archer_icon.png", "buff.png", "calibrate.png",
-    "cancel.png", "delete.png", "down.png", "edit.png",
-    "keyboard.png", "load.png", "macros.png", "mage_icon.png",
-    "mouse.png", "off.png", "ok.png", "on.png",
-    "play.png", "save.png", "settings.png", "skill.png",
-    "stop.png", "swap.png", "up.png"
-]
-
-DEFAULT_MACRO_STEPS = [
-    ("key", "", 0),
-    ("left", "", 0),
-    ("wait", "", 100)
-]
-
-PING_CHECK_INTERVAL = 30
-BUFF_CHECK_INTERVAL = 0.5
 MOVEMENT_MONITOR_BASE_INTERVAL = 0.02
 MOVEMENT_MONITOR_IDLE_INTERVAL = 0.05
 
-PING_COMPENSATION_BASE_MS = 30
-PING_COMPENSATION_FACTOR = 0.7
-PING_COMPENSATION_BASE_S = 0.02
-PING_COMPENSATION_MAX_S = 0.3
-PING_GAME_MULTIPLIER = 2.0
 
-DIALOG_TITLE = "snbld resvap"
 
-ANIMATION_DURATION = 150
-ANIMATION_OPACITY_START = 0
-ANIMATION_OPACITY_END = 1
 
-LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
-LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
-LOG_BACKUP_COUNT = 1
-LOG_ROTATION_INTERVAL = 10
-
-SSL_CERT_REQUIRED = True
-SSL_VERIFY_TIMEOUT = 10
-
-UPDATE_CHECK_ENABLED = True
-UPDATE_DOWNLOAD_TIMEOUT = 30
-UPDATE_CHUNK_SIZE = 8192
-
-TELEGRAM_BOT_NAME = "snbld_bot"
-TELEGRAM_WEBAPP_URL = "https://snbld.ru/webapp"
-TELEGRAM_BIND_URL_TEMPLATE = f"https://t.me/{TELEGRAM_BOT_NAME}?start=bind_{{hwid}}"
 
 VIRTUAL_KEYS = {
     'a': 0x41, 'b': 0x42, 'c': 0x43, 'd': 0x44, 'e': 0x45,
@@ -187,29 +81,7 @@ def parse_hotkey(hotkey_str: str):
     return vk, mods
 
 
-MACRO_TYPES = {
-    "SIMPLE": "simple",
-    "ZONE": "zone",
-    "BUFF": "buff",
-    "SKILL": "skill"
-}
-
-TARGET_TYPES = {
-    "ENEMY": "enemy",
-    "SELF": "self",
-    "PARTY": "party",
-    "AREA": "area"
-}
-
-OCR_PSM_MODES = {
-    6: "Предположить единый блок текста",
-    7: "Предположить одну строку текста",
-    10: "Предположить одно символ",
-    13: "Сырой текст. Найти как можно больше текста"
-}
-
 OCR_TARGET_INTERVAL = 0.2
-OCR_DISTANCE_TOLERANCE = 1.0
 
 ALLOWED_SETTINGS = {
     "swap_key_chant": (str, None, None),
@@ -261,22 +133,5 @@ ALLOWED_SETTINGS = {
     "log_level_shiboken": (str, None, None),
 }
 
-class ColorScheme:
-    BG_PRIMARY = "#2b2b2b"
-    BG_SECONDARY = "#3a3a3a"
-    FG_PRIMARY = "#f0f0f0"
-    FG_SECONDARY = "#a2a2a2"
-    ACCENT = "#4a6a8a"
-    ACCENT_AREA = "#ff6b6b"
-    SELECTION_BG = "#4a6a8a"
-    SELECTION_FG = "#ffffff"
-    ROW_EVEN_BG = "#353535"
-    ROW_ODD_BG = "#2f2f2f"
-    HOVER_BG = "#4f4f4f"
-    BORDER_COLOR = "#5a5a5a"
-    DISABLED_BG = "#3a3a3a"
-    DISABLED_FG = "#777777"
-    ERROR_BG = "#8b3a3a"
-    WARNING_BG = "#b8860b"
-    SUCCESS_BG = "#2e7d32"
+
 

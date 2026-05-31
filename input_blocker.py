@@ -6,6 +6,7 @@ from backend.logger_manager import get_logger
 import concurrent.futures
 
 from backend.hooks_guard import try_register_hook, unregister_hook
+from constants import parse_hotkey as _constants_parse_hotkey
 
 logger = get_logger('input_blocker')
 
@@ -180,17 +181,10 @@ _MODIFIER_MAP = {
 def _parse_hotkey(hotkey_str: str):
     if not hotkey_str:
         return None, None
-    modifier = None
-    key = None
-    for part in hotkey_str.lower().strip().split('+'):
-        part = part.strip()
-        if part in _MODIFIER_MAP:
-            modifier = _MODIFIER_MAP[part]
-        elif part in _VK_NAME:
-            key = _VK_NAME[part]
-        elif len(part) == 1 and part.isalnum():
-            key = ord(part.upper())
-    return modifier, key
+    vk, mods = _constants_parse_hotkey(hotkey_str)
+    if vk == 0:
+        return None, None
+    return mods, vk
 
 
 
@@ -221,6 +215,7 @@ class InputBlocker:
         
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=5, thread_name_prefix="InputBlocker")
         self._executor_shutdown = False
+        self._emergency_stop_requested = False
 
         # Регистрация дополнительных callback'ов горячих клавиш
         # (чтобы не создавать отдельный WH_KEYBOARD_LL в HotkeyManager)
@@ -313,20 +308,16 @@ class InputBlocker:
         shift_held = self._is_async_pressed(VK_SHIFT)
         alt_held   = self._is_async_pressed(VK_MENU)
         mods = 0
-        if ctrl_held:  mods |= 1
-        if shift_held: mods |= 2
-        if alt_held:   mods |= 4
+        if ctrl_held:  mods |= 0x0002
+        if shift_held: mods |= 0x0004
+        if alt_held:   mods |= 0x0001
 
         suppress_all = False
         with self._hotkey_lock:
-            for (mod_vk_arr, key_vk), callbacks in list(self._hotkey_callbacks.items()):
+            for (mod_mask, key_vk), callbacks in list(self._hotkey_callbacks.items()):
                 if vk_code != key_vk:
                     continue
-                mod = 0
-                if mod_vk_arr == VK_CONTROL: mod = 1
-                elif mod_vk_arr == VK_SHIFT: mod = 2
-                elif mod_vk_arr == VK_MENU:  mod = 4
-                if mods != mod and not (mod_vk_arr is None and mods == 0):
+                if mods != (mod_mask or 0) and not (mod_mask == 0 and mods == 0):
                     continue
                 for cb, suppress in callbacks:
                     try:
@@ -378,37 +369,6 @@ class InputBlocker:
     def _is_async_pressed(self, vk: int) -> bool:
         return (user32.GetAsyncKeyState(vk) & 0x8000) != 0
 
-    def _match_hotkey(self, vk_code: int) -> object:
-        be = self._get_backend()
-        if be is None:
-            return None
-        macros = be._get_macros_copy()
-        for m in macros:
-            hk = getattr(m, 'hotkey', None)
-            if not hk:
-                continue
-            mod_vk, key_vk = _parse_hotkey(hk)
-            if key_vk is None:
-                continue
-            if vk_code != key_vk:
-                continue
-
-            ctrl_held  = self._is_async_pressed(VK_CONTROL)
-            shift_held = self._is_async_pressed(VK_SHIFT)
-            alt_held   = self._is_async_pressed(VK_MENU)
-
-            if mod_vk == VK_CONTROL and not ctrl_held:
-                continue
-            if mod_vk == VK_SHIFT  and not shift_held:
-                continue
-            if mod_vk == VK_MENU   and not alt_held:
-                continue
-            if mod_vk is None and (ctrl_held or shift_held or alt_held):
-                continue
-
-            return m
-        return None
-
     def _match_zone(self, x: int, y: int) -> object:
         be = self._get_backend()
         if be is None:
@@ -430,15 +390,17 @@ class InputBlocker:
                 if wParam in (WM_KEYDOWN, WM_SYSKEYDOWN):
                     vk = ctypes.cast(lParam_ptr, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents.vkCode
                     if vk == 0x1B and (user32.GetAsyncKeyState(VK_CONTROL) & 0x8000) and (user32.GetAsyncKeyState(VK_SHIFT) & 0x8000):
-                        logger.warning("[InputBlocker]  ЭКСТРЕННАЯ ОСТАНОВКА по Ctrl+Shift+Esc!")
-                        hook_handle = self._keyboard_hook
-                        self.stop()
-                        return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
+                        logger.warning("[InputBlocker] ЭКСТРЕННАЯ ОСТАНОВКА по Ctrl+Shift+Esc!")
+                        self._emergency_stop_requested = True
+                        if self._thread_id:
+                            user32.PostThreadMessageW(self._thread_id, WM_QUIT, 0, 0)
+                        return 1
                     if vk == 0x7B and (user32.GetAsyncKeyState(VK_CONTROL) & 0x8000) and (user32.GetAsyncKeyState(VK_SHIFT) & 0x8000):
-                        logger.warning("[InputBlocker]  ЭКСТРЕННАЯ ОСТАНОВКА по Ctrl+Shift+F12!")
-                        hook_handle = self._keyboard_hook
-                        self.stop()
-                        return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
+                        logger.warning("[InputBlocker] ЭКСТРЕННАЯ ОСТАНОВКА по Ctrl+Shift+F12!")
+                        self._emergency_stop_requested = True
+                        if self._thread_id:
+                            user32.PostThreadMessageW(self._thread_id, WM_QUIT, 0, 0)
+                        return 1
             except:
                 pass
 
@@ -493,15 +455,6 @@ class InputBlocker:
                 self.stats['kb_passed'] += 1
                 hook_handle = self._keyboard_hook
                 return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
-
-            macro = self._match_hotkey(kb.vkCode)
-            if macro is not None:
-                self.stats['kb_blocked'] += 1
-                logger.debug(f"[InputBlocker]  Клавиша ЗАБЛОКИРОВАНА: vk=0x{kb.vkCode:02X}  → макрос '{macro.name}'")
-                self._blocked_keys.add(kb.vkCode)
-                self._blocked_keys_time[kb.vkCode] = time.time()
-                self._trigger_macro_async(macro)
-                return 1
 
             self.stats['kb_passed'] += 1
         except Exception as e:
@@ -569,11 +522,11 @@ class InputBlocker:
                 logger.debug(f"[InputBlocker]  Клик мыши ЗАБЛОКИРОВАН: ({x},{y})  → макрос '{macro.name}'")
                 self._blocked_buttons.add(wParam)
                 self._blocked_buttons_time[wParam] = time.time()
-                self._trigger_macro_async(macro)
+                self._executor.submit(macro.on_mouse_click, x, y)
                 return 1
 
             # Клик не заблокирован — уведомляем колбэки (MouseClickMonitor и др.)
-            self._notify_mouse_click_callbacks(x, y, wParam)
+            self._executor.submit(self._notify_mouse_click_callbacks, x, y, wParam)
 
             self.stats['ms_passed'] += 1
         except Exception as e:
@@ -586,35 +539,6 @@ class InputBlocker:
         
         hook_handle = self._mouse_hook
         return user32.CallNextHookEx(hook_handle, nCode, wParam, lParam_ptr)
-
-
-    def _trigger_macro_async(self, macro):
-        try:
-            if getattr(self, '_executor_shutdown', False):
-                return
-            if hasattr(self, '_executor') and self._executor is not None:
-                self._executor.submit(self._do_trigger, macro)
-            else:
-                self._do_trigger(macro)
-        except RuntimeError:
-            pass
-        except Exception as e:
-            logger.error(f"[InputBlocker] Ошибка запуска макроса: {e}", exc_info=True)
-
-    def _do_trigger(self, macro):
-        be = self._get_backend()
-        if be is None:
-            return
-        try:
-            if not macro.running:
-                if hasattr(be, 'dispatcher') and be.dispatcher:
-                    ok = be.dispatcher.request_macro(macro)
-                    if ok:
-                        logger.info(f"[InputBlocker]  Макрос '{macro.name}' запущен (через хук)")
-                    else:
-                        logger.debug(f"[InputBlocker]  Макрос '{macro.name}' отклонён диспетчером")
-        except Exception as e:
-            logger.error(f"[InputBlocker] Ошибка запуска макроса: {e}", exc_info=True)
 
 
     def _hook_thread_proc(self):
@@ -668,6 +592,15 @@ class InputBlocker:
             logger.error(f"[InputBlocker] Ошибка в потоке хуков: {e}", exc_info=True)
         finally:
             self._cleanup_hooks()
+            if self._emergency_stop_requested:
+                logger.info("[InputBlocker] Экстренная остановка — очистка executor'а")
+                self._emergency_stop_requested = False
+                if hasattr(self, '_executor') and self._executor is not None:
+                    try:
+                        self._executor.shutdown(wait=True, timeout=1)
+                    except Exception:
+                        pass
+                    self._executor = None
             logger.info("[InputBlocker] Поток хуков завершён")
 
     def _cleanup_hooks(self):

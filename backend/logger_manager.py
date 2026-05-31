@@ -158,26 +158,6 @@ class LoggerManager:
         if category in cls._loggers:
             cls._loggers[category].setLevel(level)
 
-    @classmethod
-    def cleanup_old_logs(cls, days: int = 7) -> int:
-        import time
-        deleted_count = 0
-        current_time = time.time()
-        max_age_seconds = days * 24 * 60 * 60
-        try:
-            for filename in os.listdir(cls._log_dir):
-                if not filename.endswith('.log'):
-                    continue
-                file_path = os.path.join(cls._log_dir, filename)
-                file_age = current_time - os.path.getmtime(file_path)
-                if file_age > max_age_seconds:
-                    os.remove(file_path)
-                    deleted_count += 1
-        except Exception as e:
-            logger = cls.get_logger('errors')
-            logger.error(f"Ошибка очистки старых логов: {e}")
-        return deleted_count
-
     def _setup_log_directory(self) -> None:
         try:
             is_packaged = (getattr(sys, 'frozen', False) or

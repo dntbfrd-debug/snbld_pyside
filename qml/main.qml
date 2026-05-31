@@ -17,7 +17,7 @@ ApplicationWindow {
     minimumHeight: 300
     visible: true
     title: "snbld resvap"
-    color: "#1e1e2f"
+    color: "#151515"
     flags: Qt.FramelessWindowHint | Qt.Window
     // Иконка устанавливается программно в qml_main.py
 
@@ -48,43 +48,47 @@ ApplicationWindow {
         closeSubmenu()
         slideMenu.forceClose()
         if (pageFile === "SettingsPage.qml" || pageFile === "SettingsMainPage.qml") {
-            stackView.replace("SettingsMainPage.qml")
+            stackView.clear()
+            stackView.push("SettingsMainPage.qml")
             currentActiveButtonId = "settings"
             slideMenu.setActiveById("settings")
         } else if (pageFile === "SettingsAppearancePage.qml") {
-            stackView.push(pageFile)
+            stackView.clear()
+            stackView.push("SettingsAppearancePage.qml")
         } else if (pageFile === "MacrosListPage.qml") {
             currentActiveButtonId = "macros"
             slideMenu.setActiveById("macros")
-            stackView.replace("MacrosListPage.qml")
+            stackView.clear()
+            stackView.push("MacrosListPage.qml")
         } else if (pageFile === "MacrosEditPage.qml") {
             currentActiveButtonId = "macros"
             slideMenu.setActiveById("macros")
-            stackView.replace("MacrosEditPage.qml")
+            stackView.clear()
+            stackView.push("MacrosEditPage.qml")
         } else if (pageFile === "EditSimplePage.qml" || pageFile === "EditZonePage.qml" || pageFile === "EditSkillPage.qml" || pageFile === "EditBuffPage.qml") {
-            currentActiveButtonId = "macros"
-            slideMenu.setActiveById("macros")
-            stackView.push(pageFile)
+            pageFile = "MacrosEditPage.qml"
         } else if (pageFile === "BuffListPage.qml" || pageFile === "BuffEditForm.qml") {
-            currentActiveButtonId = "macros"
-            slideMenu.setActiveById("macros")
-            stackView.push(pageFile)
+            pageFile = "MacrosEditPage.qml"
         } else if (pageFile === "ProfilesPage.qml") {
             currentActiveButtonId = "profiles"
             slideMenu.setActiveById("profiles")
-            stackView.replace(pageFile)
+            stackView.clear()
+            stackView.push(pageFile)
         } else if (pageFile === "SubscriptionPage.qml") {
             currentActiveButtonId = "subscription"
             slideMenu.setActiveById("subscription")
-            stackView.replace(pageFile)
+            stackView.clear()
+            stackView.push(pageFile)
         } else if (pageFile === "HelpPage.qml") {
             currentActiveButtonId = "help"
             slideMenu.setActiveById("help")
-            stackView.replace(pageFile)
+            stackView.clear()
+            stackView.push(pageFile)
         } else if (pageFile === "DebugPage.qml") {
             currentActiveButtonId = "debug"
             slideMenu.setActiveById("debug")
-            stackView.replace(pageFile)
+            stackView.clear()
+            stackView.push(pageFile)
         }
     }
 
@@ -189,9 +193,9 @@ ApplicationWindow {
                         Rectangle {
                             anchors.fill: parent
                             radius: parent.radius
-                            color: root.accentColor
+                            color: "#4CAF50"
                             opacity: startAllBtn.isActive ? 0.25 : 0.0
-                            border.color: startAllBtn.isActive ? root.accentColor : "transparent"
+                            border.color: startAllBtn.isActive ? "#4CAF50" : "transparent"
                             border.width: startAllBtn.isActive ? 2 : 0
                             Behavior on opacity { NumberAnimation { duration: 200 } }
                             Behavior on border.color { ColorAnimation { duration: 200 } }
@@ -244,9 +248,9 @@ ApplicationWindow {
                         Rectangle {
                             anchors.fill: parent
                             radius: parent.radius
-                            color: root.accentColor
+                            color: "#F44336"
                             opacity: stopAllBtn.isActive ? 0.25 : 0.0
-                            border.color: stopAllBtn.isActive ? root.accentColor : "transparent"
+                            border.color: stopAllBtn.isActive ? "#F44336" : "transparent"
                             border.width: stopAllBtn.isActive ? 2 : 0
                             Behavior on opacity { NumberAnimation { duration: 200 } }
                             Behavior on border.color { ColorAnimation { duration: 200 } }
@@ -918,69 +922,39 @@ ApplicationWindow {
                 }
             }
 
-            // Контейнер с обрезкой для волны
+            // Волна — полная линия + серый градиент слева направо
             Item {
                 anchors.top: parent.top
                 width: parent.width
                 height: 3
                 clip: true
 
-                // Первая волна
                 Rectangle {
-                    id: waveBar1
-                    x: -120
-                    width: 120
-                    height: 3
-                    radius: 1.5
-                    z: 2
-
-                    gradient: Gradient {
-                        orientation: Gradient.Horizontal
-                        GradientStop { position: 0.0; color: "transparent" }
-                        GradientStop { position: 0.3; color: root.accentColor }
-                        GradientStop { position: 0.5; color: Qt.lighter(root.accentColor, 1.5) }
-                        GradientStop { position: 0.7; color: root.accentColor }
-                        GradientStop { position: 1.0; color: "transparent" }
-                    }
-
-                    SequentialAnimation on x {
-                        running: licenseOverlay.visible
-                        loops: Animation.Infinite
-                        NumberAnimation {
-                            from: -120
-                            to: 360
-                            duration: 2000
-                            easing.type: Easing.Linear
-                        }
-                    }
+                    anchors.fill: parent
+                    color: root.accentColor
                 }
 
-                // Вторая волна (с задержкой для плавного перехода)
                 Rectangle {
-                    id: waveBar2
-                    x: -120
-                    width: 120
+                    id: licenseWaveBar
+                    width: 300
                     height: 3
-                    radius: 1.5
-                    z: 2
-
+                    color: "transparent"
                     gradient: Gradient {
                         orientation: Gradient.Horizontal
                         GradientStop { position: 0.0; color: "transparent" }
-                        GradientStop { position: 0.3; color: root.accentColor }
-                        GradientStop { position: 0.5; color: Qt.lighter(root.accentColor, 1.5) }
-                        GradientStop { position: 0.7; color: root.accentColor }
+                        GradientStop { position: 0.25; color: "#AA444444" }
+                        GradientStop { position: 0.5; color: "#DD000000" }
+                        GradientStop { position: 0.75; color: "#AA444444" }
                         GradientStop { position: 1.0; color: "transparent" }
                     }
 
                     SequentialAnimation on x {
                         running: licenseOverlay.visible
                         loops: Animation.Infinite
-                        PauseAnimation { duration: 1000 }
+                        PropertyAction { value: -licenseWaveBar.width }
                         NumberAnimation {
-                            from: -120
-                            to: 360
-                            duration: 2000
+                            to: licenseWaveBar.parent.width
+                            duration: 2500
                             easing.type: Easing.Linear
                         }
                     }

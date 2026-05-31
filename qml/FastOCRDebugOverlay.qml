@@ -20,7 +20,7 @@ Window {
     property color accentColor: backend && backend.settings && backend.settings.accent_color ? backend.settings.accent_color : "#7793a1"
 
     Timer {
-        interval: 200
+        interval: 500
         running: overlay.visible
         repeat: true
         onTriggered: {

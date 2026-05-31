@@ -1,5 +1,4 @@
 import json
-import csv
 import os
 import time
 from pathlib import Path
@@ -172,77 +171,6 @@ class Skill:
             icon=data.get("icon", "")
         )
     
-    def to_csv_row(self) -> List[str]:
-        return [
-            str(self.id),
-            self.name,
-            self.skill_class.value if isinstance(self.skill_class, SkillClass) else str(self.skill_class),
-            str(self.level),
-            str(self.range),
-            str(self.magic_cost),
-            str(self.cast_time),
-            str(self.apply_time),
-            str(self.cooldown),
-            str(self.chi_gain),
-            str(self.base_damage),
-            str(self.weapon_damage_percent),
-            self.status
-        ]
-    
-    @classmethod
-    def from_csv_row(cls, row: List[str]) -> 'Skill':
-        return cls(
-            id=int(row[0]) if len(row) > 0 else 0,
-            name=row[1] if len(row) > 1 else "",
-            skill_class=row[2] if len(row) > 2 else "неизвестно",
-            level=int(row[3]) if len(row) > 3 else 1,
-            range=float(row[4]) if len(row) > 4 and row[4] else 0.0,
-            magic_cost=int(row[5]) if len(row) > 5 and row[5] else 0,
-            cast_time=float(row[6]) if len(row) > 6 and row[6] else 0.0,
-            apply_time=float(row[7]) if len(row) > 7 and row[7] else 0.0,
-            cooldown=float(row[8]) if len(row) > 8 and row[8] else 0.0,
-            chi_gain=float(row[9]) if len(row) > 9 and row[9] else 0.0,
-            base_damage=int(row[10]) if len(row) > 10 and row[10] else 0,
-            weapon_damage_percent=int(row[11]) if len(row) > 11 and row[11] else 0,
-            status=row[12] if len(row) > 12 else ""
-        )
-    
-    def get_total_cast_time(self) -> float:
-        return self.cast_time + self.apply_time
-    
-    def get_description_formatted(self) -> str:
-        lines = []
-        lines.append(f"=== {self.name} (Уровень {self.level}) ===")
-        lines.append(f"Класс: {self.skill_class.value if isinstance(self.skill_class, SkillClass) else self.skill_class}")
-        lines.append(f"Дистанция: {self.range} м | Маг.энергия: {self.magic_cost}")
-        lines.append(f"Каст: {self.cast_time} сек + {self.apply_time} сек | КД: {self.cooldown} сек")
-        
-        if self.status:
-            lines.append(f"Статус: {self.status}")
-        
-        if self.description:
-            lines.append(f"Описание: {self.description}")
-        
-        damage_parts = []
-        if self.base_damage > 0:
-            damage_parts.append(f"базовый {self.base_damage}")
-        if self.weapon_damage_percent > 0:
-            damage_parts.append(f"{self.weapon_damage_percent}% от оружия")
-        if self.element_damage:
-            for element, dmg in self.element_damage.items():
-                element_name = element.value if isinstance(element, ElementType) else str(element)
-                damage_parts.append(f"{dmg} {element_name}")
-        
-        if damage_parts:
-            lines.append("Урон: " + " + ".join(damage_parts))
-        
-        if self.push_back > 0:
-            lines.append(f"Отталкивание: {self.push_back} м")
-        
-        if self.area_size > 0:
-            lines.append(f"Радиус: {self.area_size} м")
-        
-        return "\n".join(lines)
 
 
 class SkillDatabase:
@@ -345,27 +273,6 @@ class SkillDatabase:
                     results.extend(skills)
             return results
     
-    def get_skills_by_class(self, skill_class: SkillClass) -> List[Skill]:
-        if isinstance(skill_class, str):
-            try:
-                skill_class = SkillClass(skill_class)
-            except ValueError:
-                pass
-        
-        results = []
-        for skill in self.skills.values():
-            if skill.skill_class == skill_class:
-                results.append(skill)
-        return results
-    
-    def get_skills_by_status(self, status: str) -> List[Skill]:
-        results = []
-        status_lower = status.lower()
-        for skill in self.skills.values():
-            if status_lower in skill.status.lower():
-                results.append(skill)
-        return results
-    
     def add_skill(self, skill: Skill) -> bool:
         if skill.id in self.skills:
             return False
@@ -402,13 +309,6 @@ class SkillDatabase:
                     results.extend(buffs)
             return results
     
-    def get_buffs_by_class(self, skill_class: SkillClass) -> List[Buff]:
-        results = []
-        for buff in self.buffs.values():
-            if buff.skill_class is None or buff.skill_class == skill_class:
-                results.append(buff)
-        return results
-    
     def add_buff(self, buff: Buff) -> bool:
         if buff.id in self.buffs:
             return False
@@ -430,50 +330,6 @@ class SkillDatabase:
         self._build_name_index()
         return True
     
-    
-    def import_from_csv(self, csv_path: str) -> int:
-        imported = 0
-        try:
-            with open(csv_path, 'r', encoding='utf-8') as f:
-                reader = csv.reader(f)
-                next(reader)
-                
-                for row in reader:
-                    if len(row) >= 7:
-                        skill = Skill.from_csv_row(row)
-                        if skill.id not in self.skills:
-                            self.skills[skill.id] = skill
-                            imported += 1
-                        else:
-                            self.skills[skill.id] = skill
-                            imported += 1
-            
-            self._build_name_index()
-            self.save()
-            return imported
-            
-        except Exception as e:
-            print(f"Ошибка импорта из CSV: {e}")
-            return 0
-    
-    def export_to_csv(self, csv_path: str) -> bool:
-        try:
-            with open(csv_path, 'w', encoding='utf-8', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow([
-                    "id", "name", "class", "level", "range", 
-                    "magic_cost", "cast_time", "apply_time", 
-                    "cooldown", "chi_gain", "base_damage", 
-                    "weapon_damage_percent", "status"
-                ])
-                
-                for skill in self.skills.values():
-                    writer.writerow(skill.to_csv_row())
-            
-            return True
-        except Exception as e:
-            print(f"Ошибка экспорта в CSV: {e}")
-            return False
     
     def create_demo_skills(self):
         demo_skills = [
@@ -711,9 +567,6 @@ if __name__ == "__main__":
     print("\n" + "=" * 50)
     print("Демо-скиллы:")
     print("=" * 50)
-    for skill_id, skill in db.skills.items():
-        print("\n" + skill.get_description_formatted())
-        print("-" * 30)
     print("\n" + "=" * 50)
     print("Демо-баффы:")
     print("=" * 50)
@@ -725,8 +578,6 @@ if __name__ == "__main__":
         print(f"Описание: {buff.description}")
         print(f"Класс: {buff.skill_class.value if buff.skill_class else 'все'}")
         print("-" * 30)
-    db.export_to_csv("test_skills.csv")
-    print("\n Экспорт в test_skills.csv выполнен")
     simple_list = db.get_all_skills_simple()
     print("\nУпрощенный список для main.py:")
     for skill in simple_list[:5]:

@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
 
 from .logger_manager import get_logger
+from constants import DEFAULT_CAST_LOCK_MARGIN
 
 logger = get_logger('macros')
 
@@ -35,6 +36,7 @@ class MacroDispatcher:
         self.backend = backend
         self.cast_lock_until = 0.0
         self.lock = threading.RLock()
+        self.active_macros_lock = threading.Lock()
 
         self.last_launch_time = 0.0
         self.launch_debounce = 0.08
@@ -56,19 +58,65 @@ class MacroDispatcher:
             'blocked_cooldown': 0,
             'blocked_running': 0,
         }
-        
+
+        self._macro_last_launch: Dict[str, float] = {}
+
+        self._queue_thread = None
         self._start_queue_processor()
         
         self.running = True
+
+    def _get_active_macros(self):
+        if hasattr(self.backend, 'active_macros'):
+            return self.backend.active_macros
+        return {}
+
+    def _active_macros_clear(self):
+        with self.active_macros_lock:
+            if hasattr(self.backend, 'active_macros'):
+                self.backend.active_macros.clear()
+
+    def _active_macros_set(self, name, macro):
+        with self.active_macros_lock:
+            if hasattr(self.backend, 'active_macros'):
+                self.backend.active_macros[name] = macro
+
+    def _active_macros_pop(self, name):
+        with self.active_macros_lock:
+            if hasattr(self.backend, 'active_macros'):
+                return self.backend.active_macros.pop(name, None)
+        return None
+
+    def _active_macros_items(self):
+        with self.active_macros_lock:
+            if hasattr(self.backend, 'active_macros'):
+                return list(self.backend.active_macros.items())
+        return []
     
     def _start_queue_processor(self):
-        queue_thread = threading.Thread(target=self._process_queue, daemon=True, name="MacroQueueProcessor")
-        queue_thread.start()
+        self._queue_thread = threading.Thread(target=self._process_queue, daemon=True, name="MacroQueueProcessor")
+        self._queue_thread.start()
         logger.info("[DISPATCHER] Обработчик очереди запущен")
+
+    def health_check(self) -> dict:
+        status = {
+            'queue_processor_alive': self._queue_thread is not None and self._queue_thread.is_alive(),
+            'active_macros_count': len(self._get_active_macros()),
+            'queue_size': len(self.macro_queue) if hasattr(self, 'macro_queue') else 0,
+            'cast_locked': time.time() < self.cast_lock_until,
+        }
+        if not status['queue_processor_alive'] and self.running:
+            logger.warning("[DISPATCHER] Поток обработчика очереди неактивен — перезапуск")
+            self._start_queue_processor()
+            status['queue_processor_alive'] = True
+        return status
     
     def request_macro(self, macro, priority=5) -> bool:
         now = time.time()
-        
+
+        cooldown = getattr(macro, 'cooldown', 0)
+        should_set_cast = getattr(macro, 'cast_time', 0) > 0
+
         with self.lock:
             self._ensure_stats_exists(macro.name)
 
@@ -79,7 +127,6 @@ class MacroDispatcher:
                 self._update_stats(macro.name, 'blocked_cast')
                 return False
 
-            cooldown = getattr(macro, 'cooldown', 0)
             cooldown_margin = self.backend.settings.get("cooldown_margin", 0.3)
             effective_cooldown = cooldown + cooldown_margin
 
@@ -92,11 +139,10 @@ class MacroDispatcher:
                 return False
 
             any_macro_running = False
-            if hasattr(self.backend, 'active_macros'):
-                for name, m in list(self.backend.active_macros.items()):
-                    if m is not macro and hasattr(m, 'running') and m.running:
-                        any_macro_running = True
-                        break
+            for name, m in self._active_macros_items():
+                if m is not macro and hasattr(m, 'running') and m.running.is_set():
+                    any_macro_running = True
+                    break
             
             if any_macro_running:
                 logger.debug(f" {macro.name}: ЗАБЛОКИРОВАНО (выполняется другой макрос)")
@@ -104,7 +150,7 @@ class MacroDispatcher:
                 self._update_stats(macro.name, 'blocked_running')
                 return False
             
-            if getattr(macro, 'running', False):
+            if getattr(macro, 'running', threading.Event()).is_set():
                 logger.debug(f" {macro.name}: ЗАБЛОКИРОВАНО (выполняется)")
                 self.stats['blocked_running'] += 1
                 self._update_stats(macro.name, 'blocked_running')
@@ -114,21 +160,21 @@ class MacroDispatcher:
                 logger.debug(f" {macro.name}: ЗАБЛОКИРОВАНО (макросы остановлены)")
                 return False
 
-            if now - self.last_launch_time < self.launch_debounce:
-                remaining = self.launch_debounce - (now - self.last_launch_time)
+            macro_last_launch = self._macro_last_launch.get(macro.name, 0.0)
+            if now - max(self.last_launch_time, macro_last_launch) < self.launch_debounce:
+                remaining = self.launch_debounce - (now - max(self.last_launch_time, macro_last_launch))
                 logger.debug(f" {macro.name}: ЗАБЛОКИРОВАНО (debounce, ост. {remaining:.3f}с)")
                 return False
 
-            if cooldown > 0:
-                if hasattr(macro, 'last_used'):
-                    if hasattr(macro, 'cooldown_lock'):
-                        with macro.cooldown_lock:
-                            macro.last_used = now
-                    else:
+            if cooldown > 0 and hasattr(macro, 'last_used'):
+                lock = getattr(macro, 'cooldown_lock', None)
+                if lock:
+                    with lock:
                         macro.last_used = now
-                    logger.debug(f" {macro.name}: last_used = {now:.2f} (КД {effective_cooldown:.2f}с)")
-            
-            should_set_cast = getattr(macro, 'cast_time', 0) > 0
+                else:
+                    macro.last_used = now
+                logger.debug(f" {macro.name}: last_used = {now:.2f} (КД {effective_cooldown:.2f}с)")
+
             if should_set_cast:
                 try:
                     self.set_cast_lock(macro)
@@ -136,28 +182,21 @@ class MacroDispatcher:
                     logger.warning(f" {macro.name}: ошибка set_cast_lock: {e}")
 
             self.last_launch_time = now
+            self._macro_last_launch[macro.name] = now
 
             self.stats['launched'] += 1
             self._update_stats_launch(macro.name, now)
 
-            self.backend.active_macros[macro.name] = macro
+            self._active_macros_set(macro.name, macro)
 
-            _should_start = True
-            
-        # macro.start() ВНЕ блокировки — не блокируем поток хука во время запуска макроса
-        if _should_start:
-            self._launch_macro_async(macro, cooldown)
-
-        return True
-
-    def _launch_macro_async(self, macro, cooldown):
-        """Запускает макрос асинхронно, вне блокировки диспетчера."""
+        # Запуск макроса ВНЕ блокировки — start() может блокироваться (join внутри)
         try:
             macro.start()
             logger.info(f" {macro.name}: ЗАПУЩЕН")
         except Exception as e:
             logger.error(f" {macro.name}: ОШИБКА при запуске: {str(e)}", exc_info=True)
             with self.lock:
+                self._active_macros_pop(macro.name)
                 if cooldown > 0 and hasattr(macro, 'last_used'):
                     try:
                         if hasattr(macro, 'cooldown_lock'):
@@ -165,9 +204,12 @@ class MacroDispatcher:
                                 macro.last_used = 0
                         else:
                             macro.last_used = 0
-                    except Exception as e:
-                        logger.error(f"[DISPATCHER] Failed to reset cooldown for {macro.name}: {e}", exc_info=True)
+                    except Exception:
+                        pass
                 self.cast_lock_until = 0.0
+            return False
+
+        return True
 
     def set_cast_lock(self, macro):
         with self.lock:
@@ -183,10 +225,10 @@ class MacroDispatcher:
                     logger.warning(f"[DISPATCHER] get_actual_cast_time failed: {e}")
                     actual_cast_time = 0.5
                 
-                margin = self.backend.settings.get("cast_lock_margin", 0.4)
+                margin = self.backend.settings.get("cast_lock_margin", DEFAULT_CAST_LOCK_MARGIN)
                 lock_duration = actual_cast_time + margin
             else:
-                margin = self.backend.settings.get("cast_lock_margin", 0.4)
+                margin = self.backend.settings.get("cast_lock_margin", DEFAULT_CAST_LOCK_MARGIN)
                 lock_duration = margin
             
             lock_duration = min(lock_duration, 5.0)
@@ -202,7 +244,7 @@ class MacroDispatcher:
 
     def on_macro_finished(self, macro_name: str):
         with self.lock:
-            finish_delay = self.backend.settings.get("cast_lock_margin", 0.4)
+            finish_delay = self.backend.settings.get("cast_lock_margin", DEFAULT_CAST_LOCK_MARGIN)
 
             if finish_delay > 0:
                 self.cast_lock_until = time.time() + finish_delay
@@ -211,8 +253,7 @@ class MacroDispatcher:
                 self.cast_lock_until = 0.0
                 logger.debug(f" {macro_name}: cast_lock сброшен (без задержки)")
 
-            if macro_name in self.backend.active_macros:
-                del self.backend.active_macros[macro_name]
+            self._active_macros_pop(macro_name)
 
     def _process_queue(self):
         logger.info("[QUEUE] Обработчик очереди запущен")
@@ -256,10 +297,11 @@ class MacroDispatcher:
                     queued = heapq.heappop(self.macro_queue)
                     macro = queued.macro
 
+                    cooldown = getattr(macro, 'cooldown', 0)
+                    cooldown_margin = self.backend.settings.get("cooldown_margin", 0.3)
+                    effective_cooldown = cooldown + cooldown_margin
+
                     with self.lock:
-                        cooldown = getattr(macro, 'cooldown', 0)
-                        cooldown_margin = self.backend.settings.get("cooldown_margin", 0.3)
-                        effective_cooldown = cooldown + cooldown_margin
                         last_used = getattr(macro, 'last_used', 0)
 
                         if now < last_used + effective_cooldown:
@@ -281,12 +323,9 @@ class MacroDispatcher:
                         cast_time = getattr(macro, 'cast_time', 0)
                         if cast_time > 0:
                             actual_cast_time = self.backend.get_actual_cast_time(cast_time)
-                            margin = self.backend.settings.get("cast_lock_margin", 0.4)
+                            margin = self.backend.settings.get("cast_lock_margin", DEFAULT_CAST_LOCK_MARGIN)
                             lock_duration = actual_cast_time + margin
                             self.cast_lock_until = now + lock_duration
-
-                        logger.info(f" {macro.name}: запуск из очереди (приоритет {queued.priority}, ждал {now - queued.timestamp:.2f}с)")
-                        self.stats['launched'] += 1
 
                         if cooldown > 0 and hasattr(macro, 'last_used'):
                             if hasattr(macro, 'cooldown_lock'):
@@ -302,18 +341,22 @@ class MacroDispatcher:
                         self._update_stats_launch(macro.name, now)
                         self._update_stats(macro.name, 'queued_launched')
 
-                        _macro_to_start = macro
+                        self.stats['launched'] += 1
+                        logger.info(f" {macro.name}: запуск из очереди (приоритет {queued.priority}, ждал {now - queued.timestamp:.2f}с)")
 
-                if _macro_to_start:
+                    # Запуск макроса ВНЕ блокировок
                     try:
-                        _macro_to_start.start()
+                        macro.start()
+                        logger.info(f" {macro.name}: запущен из очереди")
                     except Exception as e:
-                        logger.error(f" {_macro_to_start.name}: ошибка при запуске из очереди: {e}", exc_info=True)
-                        self.cast_lock_until = 0.0
+                        logger.error(f" {macro.name}: ошибка при запуске из очереди: {e}", exc_info=True)
+                        with self.lock:
+                            self.cast_lock_until = 0.0
 
             except Exception as e:
                 logger.error(f" Ошибка в обработчике очереди: {str(e)}", exc_info=True)
-                self.cast_lock_until = 0.0
+                with self.lock:
+                    self.cast_lock_until = 0.0
                 with self.queue_lock:
                     self.macro_queue.clear()
                 logger.warning("[QUEUE] Очередь очищена после ошибки")
@@ -324,30 +367,6 @@ class MacroDispatcher:
             self.macro_queue.clear()
             logger.info(f"[QUEUE] Очередь очищена ({count} макросов удалено)")
             return count
-
-    def invalidate_cooldown_cache(self, macro_name: Optional[str] = None):
-        with self.cache_lock:
-            if macro_name is not None:
-                if macro_name in self.cooldown_cache:
-                    del self.cooldown_cache[macro_name]
-                    logger.debug(f" {macro_name}: кэш КД инвалидирован")
-            else:
-                count = len(self.cooldown_cache)
-                self.cooldown_cache.clear()
-                logger.info(f" Кэш кулдаунов полностью очищен ({count} записей)")
-
-    def get_cooldown_cache_info(self, macro_name: str) -> dict:
-        with self.cache_lock:
-            cached_end = self.cooldown_cache.get(macro_name)
-            if cached_end:
-                now = time.time()
-                remaining = max(0, cached_end - now)
-                return {
-                    'cached': True,
-                    'remaining': remaining,
-                    'end_time': cached_end
-                }
-            return {'cached': False, 'remaining': 0}
 
     def _ensure_stats_exists(self, macro_name: str):
         with self.stats_lock:
@@ -381,15 +400,15 @@ class MacroDispatcher:
         stopped_count = 0
         killed_count = 0
         
-        if hasattr(self.backend, 'active_macros'):
-            for name, macro in list(self.backend.active_macros.items()):
-                if hasattr(macro, 'is_alive') and macro.is_alive():
+        for name, macro in self._active_macros_items():
+                macro_thread = getattr(macro, 'thread', None)
+                if macro_thread and macro_thread.is_alive():
                     try:
                         if hasattr(macro, 'stop'):
                             macro.stop()
-                        macro.join(timeout=timeout)
+                        macro_thread.join(timeout=timeout)
                         
-                        if macro.is_alive():
+                        if macro_thread.is_alive():
                             logger.warning(f"Макрос {name} не завершился за {timeout}с, принудительное отключение")
                             killed_count += 1
                         else:

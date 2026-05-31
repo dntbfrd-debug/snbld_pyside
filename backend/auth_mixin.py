@@ -14,6 +14,15 @@ from constants import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, SELECTEL_ACCESS_KEY,
 logger = get_logger('backend')
 
 
+def _sanitize_error(msg):
+    if not msg:
+        return ""
+    sanitized = msg.replace("\n", " ").replace("\r", " ").strip()
+    if len(sanitized) > 200:
+        sanitized = sanitized[:200] + "..."
+    return sanitized
+
+
 class AuthMixin:
 
     activationResult = Signal(str, str)  # status, message ("success"/"error", details)
@@ -27,7 +36,7 @@ class AuthMixin:
             valid, session_info = check_session(session_data['session_id'])
             if valid and session_info:
                 if session_info.get('blocked'):
-                    logger.warning(f"[AUTH] Сессия ЗАБЛОКИРОВАНА! Причина: {session_info.get('error', '')}")
+                    logger.warning(f"[AUTH] Сессия ЗАБЛОКИРОВАНА! Причина: {_sanitize_error(session_info.get('error', ''))}")
                     self._is_activated = False
                     self._activation_status = "error"
                     self._subscription_info = {'blocked': True, 'error': session_info.get('error', '')}
@@ -39,9 +48,9 @@ class AuthMixin:
                     save_key_to_file(self._activation_key)
                 key_valid, key_info = check_key(self._activation_key, hwid=get_hwid()) if self._activation_key else (False, None)
                 if key_info:
-                    logger.info(f"[AUTH] check_key: valid={key_valid}, blocked={key_info.get('blocked')}, error={key_info.get('error', '')}")
-                    if key_info.get('blocked') or (not key_valid and 'соединен' not in key_info.get('error', '').lower() and 'таймаут' not in key_info.get('error', '').lower()):
-                        reason = key_info.get('error', 'Ключ заблокирован или недействителен')
+                    logger.info(f"[AUTH] check_key: valid={key_valid}, blocked={key_info.get('blocked')}, error={_sanitize_error(key_info.get('error', ''))}")
+                    if key_info.get('blocked') or (not key_valid and 'соединен' not in _sanitize_error(key_info.get('error', '')).lower() and 'таймаут' not in _sanitize_error(key_info.get('error', '')).lower()):
+                        reason = _sanitize_error(key_info.get('error', 'Ключ заблокирован или недействителен'))
                         logger.warning(f"[AUTH] Ключ ЗАБЛОКИРОВАН/НЕДЕЙСТВИТЕЛЕН! Причина: {reason}")
                         self._is_activated = False
                         self._activation_status = "error"
@@ -76,7 +85,7 @@ class AuthMixin:
             if valid:
                 server_activated = key_data.get('activated', False)
                 if is_blocked:
-                    logger.warning(f"[AUTH] Ключ ЗАБЛОКИРОВАН! Причина: {key_data.get('error', '')}")
+                    logger.warning(f"[AUTH] Ключ ЗАБЛОКИРОВАН! Причина: {_sanitize_error(key_data.get('error', ''))}")
                     self._is_activated = False
                     self._activation_status = "error"
                     self._subscription_info = {'blocked': True, 'error': key_data.get('error', '')}
@@ -180,7 +189,7 @@ class AuthMixin:
                     error_lower = error_msg.lower()
                     is_blocked = any(w in error_lower for w in ['blocked', 'disabled', 'inactive', 'no longer active', 'expired', 'not found'])
             if is_blocked:
-                logger.warning(f"[AUTH] Ключ заблокирован! Причина: {data.get('error', '')}")
+                logger.warning(f"[AUTH] Ключ заблокирован! Причина: {_sanitize_error(data.get('error', ''))}")
                 self._is_activated = False
                 self._subscription_info = {}
                 self.activationStatusChanged.emit()
@@ -190,7 +199,7 @@ class AuthMixin:
             else:
                 logger.debug("[AUTH] Heartbeat OK")
         elif not valid:
-            error_msg = data.get('error', '') if data else 'Нет данных'
+            error_msg = _sanitize_error(data.get('error', '') if data else 'Нет данных')
             logger.warning(f"[AUTH] Ключ НЕВАЛИДЕН! Причина: {error_msg}")
             self._is_activated = False
             self._subscription_info = {}
@@ -243,7 +252,7 @@ class AuthMixin:
                     logger.info(f"[AUTH] Программа активирована! Тип: {data.get('key_type')}, До: {data.get('expires_at')}")
                     self.activationResult.emit("success", "Программа активирована!")
                 else:
-                    error_msg = data.get('error', 'Неизвестная ошибка')
+                    error_msg = _sanitize_error(data.get('error', 'Неизвестная ошибка'))
                     logger.error(f"[AUTH] Ошибка активации: {error_msg}")
                     self.activationResult.emit("error", error_msg)
             except Exception as e:
@@ -286,43 +295,69 @@ class AuthMixin:
             logger.debug(f"[UPDATE] Ошибка проверки обновлений: {e}")
 
     @Slot(str, str)
-    def download_update_async(self, download_url, version):
+    def download_update_async(self, download_url, version, expected_checksum=""):
         if not download_url or not version:
             return
         def download_worker():
             try:
+                import hashlib
                 import requests
                 updates_dir = os.path.join(self.app_dir, 'updates')
                 os.makedirs(updates_dir, exist_ok=True)
                 filename = f"update_{version}.zip"
                 filepath = os.path.join(updates_dir, filename)
-                if os.path.exists(filepath) and os.path.getsize(filepath) > 1_000_000:
-                    logger.info(f"[UPDATE] Обновление уже загружено: {filepath}")
-                    self.updateDownloadComplete.emit(filepath, version)
-                    return
+                if expected_checksum and os.path.exists(filepath) and os.path.getsize(filepath) > 1_000_000:
+                    sha256 = hashlib.sha256()
+                    with open(filepath, 'rb') as f:
+                        for chunk in iter(lambda: f.read(65536), b''):
+                            sha256.update(chunk)
+                    if sha256.hexdigest() == expected_checksum:
+                        logger.info(f"[UPDATE] Обновление уже загружено и проверено: {filepath}")
+                        self.updateDownloadComplete.emit(filepath, version)
+                        return
+                    else:
+                        logger.warning(f"[UPDATE] Кэшированный файл не совпадает по checksum, перезагрузка")
+                        os.remove(filepath)
+
                 logger.info(f"[UPDATE] Загрузка обновления: {download_url}")
                 self.updateDownloadProgress.emit(0, 0)
                 resp = requests.get(download_url, timeout=300, stream=True)
                 resp.raise_for_status()
                 total_size = int(resp.headers.get('content-length', 0))
                 downloaded = 0
-                with open(filepath, 'wb') as f:
+
+                tmp_path = filepath + ".tmp"
+                sha256 = hashlib.sha256()
+                with open(tmp_path, 'wb') as f:
                     for chunk in resp.iter_content(chunk_size=65536):
                         if chunk:
                             f.write(chunk)
+                            sha256.update(chunk)
                             downloaded += len(chunk)
                             if total_size > 0:
                                 self.updateDownloadProgress.emit(downloaded, total_size)
-                file_size = os.path.getsize(filepath)
-                if file_size > 1_000_000:
-                    logger.info(f"[UPDATE] Обновление загружено: {filepath} ({file_size / 1_000_000:.1f}MB)")
-                    self.updateDownloadProgress.emit(file_size, file_size)
-                    self.updateDownloadComplete.emit(filepath, version)
-                else:
+
+                if expected_checksum:
+                    actual_checksum = sha256.hexdigest()
+                    if actual_checksum != expected_checksum:
+                        logger.error(f"[UPDATE] Контрольная сумма не совпадает! Ожидалось: {expected_checksum}, получено: {actual_checksum}")
+                        self.notification.emit("Ошибка: файл обновления повреждён (checksum mismatch)", "error")
+                        if os.path.exists(tmp_path):
+                            os.remove(tmp_path)
+                        return
+
+                file_size = os.path.getsize(tmp_path)
+                if file_size < 1_000_000:
                     logger.error(f"[UPDATE] Загруженный файл слишком мал: {file_size} байт")
                     self.notification.emit("Ошибка загрузки: файл повреждён", "error")
-                    if os.path.exists(filepath):
-                        os.remove(filepath)
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+                    return
+
+                os.replace(tmp_path, filepath)
+                logger.info(f"[UPDATE] Обновление загружено и проверено: {filepath} ({file_size / 1_000_000:.1f}MB)")
+                self.updateDownloadProgress.emit(file_size, file_size)
+                self.updateDownloadComplete.emit(filepath, version)
             except Exception as e:
                 logger.error(f"[UPDATE] Ошибка загрузки обновления: {e}")
                 self.notification.emit(f"Ошибка загрузки: {e}", "error")

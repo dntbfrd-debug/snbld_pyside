@@ -33,7 +33,50 @@ Page {
     // Активация ключом
     function activateWithKey(key) {
         statusText = "Проверка ключа..."
+        showSuccess = false
         // backend.activateWithKey(key)
+    }
+
+    // Волна — полная линия + серый градиент слева направо
+    Item {
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 3
+        z: 10
+        clip: true
+        visible: statusText.length > 0 && !showSuccess
+
+        Rectangle {
+            anchors.fill: parent
+            color: accentColor
+        }
+
+        Rectangle {
+            id: actWaveBar
+            width: 300
+            height: 3
+            color: "transparent"
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: "transparent" }
+                GradientStop { position: 0.25; color: "#AA444444" }
+                GradientStop { position: 0.5; color: "#DD000000" }
+                GradientStop { position: 0.75; color: "#AA444444" }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
+
+            SequentialAnimation on x {
+                running: parent.visible
+                loops: Animation.Infinite
+                PropertyAction { value: -actWaveBar.width }
+                NumberAnimation {
+                    to: actWaveBar.parent.width
+                    duration: 2500
+                    easing.type: Easing.Linear
+                }
+            }
+        }
     }
     
     GlassBlurPanel {

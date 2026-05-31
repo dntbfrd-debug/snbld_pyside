@@ -7,7 +7,7 @@ import zipfile
 import io
 import requests
 from datetime import datetime
-from PySide6.QtCore import Slot
+from PySide6.QtCore import Slot, Qt
 
 from backend.logger_manager import get_logger
 from threads import MouseClickMonitor
@@ -218,7 +218,17 @@ class QMLBridgeMixin:
             self._finish_log_send(False, f"Ошибка: {str(e)}")
 
     def _finish_log_send(self, success, message):
-        """Завершение отправки логов (вызывается из фонового потока)."""
+        """Завершение отправки логов — перебрасываем на главный поток."""
+        from PySide6.QtCore import QMetaObject, Qt, Q_ARG
+        QMetaObject.invokeMethod(
+            self, "_finish_log_send_main",
+            Qt.QueuedConnection,
+            Q_ARG(bool, success),
+            Q_ARG(str, message)
+        )
+
+    @Slot(bool, str)
+    def _finish_log_send_main(self, success, message):
         self._is_sending_logs = False
         self.logSendStatusChanged.emit()
         if success:

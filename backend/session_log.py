@@ -56,8 +56,9 @@ class SessionLogger:
                 f.write(json.dumps(entry, ensure_ascii=False) + "\n")
                 f.flush()
 
-        except Exception:
-            pass
+        except Exception as e:
+            import logging
+            logging.getLogger('session_log').warning(f"Ошибка записи лога: {e}")
 
 _instance: Optional[SessionLogger] = None
 _instance_lock = threading.Lock()

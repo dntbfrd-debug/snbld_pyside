@@ -101,7 +101,7 @@ def build_nuitka(base_dir):
         "version.json", "qtquickcontrols2.conf",
         "macros.json", "requirements.txt",
         "12.mp4",
-        "onn.mp3", "off.mp3", "exit.mp3"
+        "onn.mp3", "off.mp3"
     ]
     for f in root_files:
         if (base_dir / f).exists():

@@ -143,6 +143,9 @@ class FastDistanceReader(threading.Thread):
 
     def stop(self):
         self._running = False
+        with self._debug_lock:
+            self._last_image = None
+            self._last_raw_text = ""
 
     def _correct_number(self, text: str) -> str:
         if not text:
@@ -303,9 +306,12 @@ class FastDistanceReader(threading.Thread):
                     self._last_raw_text = text if text else ""
                     self._last_image = binary.copy() if text else None
 
-            except Exception:
-                pass
-            time.sleep(0.02)
+            except Exception as ex:
+                logger.debug(f"[FAST_OCR] Ошибка OCR: {ex}")
+            if candidate is not None:
+                time.sleep(0.02)
+            else:
+                time.sleep(0.05)
 
 class BuffCheckThread(QThread):
     buffExpired = Signal(int)
@@ -360,7 +366,7 @@ class MouseClickMonitor(QThread):
         except Exception:
             pass
         self.daemon = True
-        self._paused = False
+        self._paused_event = threading.Event()
         logger.info("[MOUSE] MouseClickMonitor created (WH_MOUSE_LL real-time detector)")
 
     def get_inner_monitor_name(self) -> str:
@@ -374,7 +380,7 @@ class MouseClickMonitor(QThread):
         logger.info(f"[MOUSE] Фильтр окна установлен: '{self._target_window_title}'")
 
     def _on_click(self, x, y):
-        if self._paused:
+        if self._paused_event.is_set():
             return
         if self._target_window_title:
             try:
@@ -405,10 +411,10 @@ class MouseClickMonitor(QThread):
         logger.info("[MOUSE] Stopped")
 
     def pause(self):
-        self._paused = True
+        self._paused_event.set()
 
     def resume(self):
-        self._paused = False
+        self._paused_event.clear()
 
     def stop(self):
         self._stop_event.set()
@@ -485,20 +491,20 @@ class PingMonitor(QThread):
 
             try:
                 result = subprocess.run(
-                    ['ping', '-n', '4', ip],
+                    ['ping', '-n', '2', ip],
                     capture_output=True,
                     text=True,
-                    timeout=10,
+                    timeout=8,
                     encoding='cp866',
                     startupinfo=startupinfo,
                     creationflags=creationflags
                 )
             except (LookupError, UnicodeDecodeError):
                 result = subprocess.run(
-                    ['ping', '-n', '4', ip],
+                    ['ping', '-n', '2', ip],
                     capture_output=True,
                     text=True,
-                    timeout=10,
+                    timeout=8,
                     encoding='utf-8',
                     errors='replace',
                     startupinfo=startupinfo,

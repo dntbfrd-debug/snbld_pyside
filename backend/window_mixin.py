@@ -225,16 +225,6 @@ class WindowMixin:
         for hotkey in list(self._hotkey_registered):
             self.unregister_hotkey(hotkey)
 
-    @Slot(int, int)
-    def save_window_position(self, x, y):
-        self.window_x = x
-        self.window_y = y
-        self.save_macros()
-
-    @Slot(result=dict)
-    def get_window_position(self):
-        return {"x": self.window_x, "y": self.window_y}
-
     def is_game_window_active(self):
         window_title = self._settings.get("target_window_title", "")
         if not window_title:

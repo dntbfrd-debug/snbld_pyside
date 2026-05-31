@@ -10,6 +10,8 @@ from backend.win32_api import (MapVirtualKey, PostMessage, ScreenToClient,
     WM_KEYDOWN, WM_KEYUP, WM_LBUTTONDOWN, WM_LBUTTONUP,
     WM_RBUTTONDOWN, WM_RBUTTONUP, MK_LBUTTON, MK_RBUTTON)
 
+GetSystemMetrics = ctypes.windll.user32.GetSystemMetrics
+
 logger = get_logger('input')
 
 KEYEVENTF_KEYDOWN = 0x0000
@@ -78,11 +80,6 @@ class InputSystem:
     def set_use_sendinput(self, enabled: bool) -> None:
         self.use_sendinput = bool(enabled)
         logger.info(f"[INPUT]  Принудительный SendInput: {'ВКЛ' if enabled else 'ВЫКЛ'}")
-
-    def _use_sendinput_fallback(self, key_name: str) -> bool:
-        """Отправляет клавишу через SendInput (активация окна + глобальный ввод).
-        Используется, когда AttachThreadInput не работает (UIPI на Windows 8+)."""
-        return key_down_sendinput(key_name) and key_up_sendinput(key_name)
 
     def key(self, key_name: str) -> None:
         if not self.target_hwnd:
@@ -265,12 +262,9 @@ class InputSystem:
         if not get_window_manager().skip_window_activation:
             SetForegroundWindow(self.target_hwnd)
             time.sleep(0.05)
-        hdc = GetDC(0)
-        if hdc:
-            screen_w = GetDeviceCaps(hdc, 118)
-            screen_h = GetDeviceCaps(hdc, 117)
-            ReleaseDC(0, hdc)
-        else:
+        screen_w = GetSystemMetrics(0)
+        screen_h = GetSystemMetrics(1)
+        if screen_w == 0 or screen_h == 0:
             screen_w, screen_h = 1920, 1080
         norm_x = int(x * 65535 / screen_w)
         norm_y = int(y * 65535 / screen_h)
@@ -364,10 +358,6 @@ def key_down_sendinput(key):
 
 def key_up_sendinput(key):
     input_system.key_up_sendinput(key)
-
-
-def click_at_position(x, y):
-    input_system.click_at_position(x, y)
 
 
 def set_use_sendinput(enabled: bool):

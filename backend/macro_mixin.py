@@ -22,18 +22,18 @@ class MacroMixin:
                 "type": macro.type,
                 "hotkey": macro.hotkey or "",
                 "running": macro.running,
-                "cooldown": getattr(macro, 'cooldown', 0),
-                "skill_range": getattr(macro, 'skill_range', 0),
-                "icon": getattr(macro, 'icon', ""),
+                "steps": macro.steps,
+                "zone_rect": macro.zone_rect,
             }
-            if hasattr(macro, "skill_id"):
+            if macro.type in ("skill", "zone"):
+                item["cooldown"] = macro.cooldown
+                item["skill_range"] = macro.skill_range
+            if macro.type == "skill":
                 item["skill_id"] = macro.skill_id
-            if hasattr(macro, "buff_id"):
+                item["icon"] = getattr(macro, 'icon', "")
+            if macro.type == "buff":
                 item["buff_id"] = macro.buff_id
-            if hasattr(macro, "zone_rect"):
-                item["zone_rect"] = macro.zone_rect
-            if hasattr(macro, "steps"):
-                item["steps"] = macro.steps
+                item["icon"] = getattr(macro, 'icon', "")
             new_list.append(item)
         self._macros_dicts = list(new_list)
         self.macrosChanged.emit()
@@ -199,7 +199,10 @@ class MacroMixin:
                 logger.debug(f"[START_ALL] Диспетчер не имеет метода restart_queue_processor, пропускаем: {e}")
         self._global_stopped = False
         self.globalStoppedChanged.emit()
-        self.active_macros.clear()
+        if hasattr(self, 'dispatcher') and self.dispatcher:
+            self.dispatcher._active_macros_clear()
+        elif hasattr(self, 'active_macros'):
+            self.active_macros.clear()
         self.register_all_hotkeys()
         try:
             if self.mouse_click_monitor:
@@ -227,6 +230,16 @@ class MacroMixin:
     def delete_macro(self, name):
         for macro in self._macros:
             if macro.name == name:
+                # Отключаем сигналы мыши для зональных макросов
+                if hasattr(macro, '_mouse_click_connected') and macro._mouse_click_connected:
+                    try:
+                        if hasattr(macro, '_connect_mouse_click'):
+                            macro._connect_mouse_click(self)
+                            macro._mouse_click_connected = False
+                            logger.debug(f"[DELETE] Сигналы мыши для '{name}' отключены")
+                    except Exception as e:
+                        logger.warning(f"[DELETE] Ошибка отключения сигналов: {e}")
+                macro.stop()
                 self._macros.remove(macro)
                 self.save_macros()
                 self._update_macros_dicts()
@@ -547,7 +560,8 @@ class MacroMixin:
                     buff_id=data.get("buff_id", 0),
                     duration=data.get("duration", 60.0),
                     channeling_bonus=data.get("channeling_bonus", 0),
-                    steps=data.get("steps", [])
+                    steps=data.get("steps", []),
+                    icon=data.get("icon", "buff.png")
                 )
                 if zone_rect and len(zone_rect) == 4:
                     macro.zone_rect = zone_rect
@@ -564,30 +578,28 @@ class MacroMixin:
             data = {
                 "type": macro.type,
                 "name": macro.name,
-                "hotkey": macro.hotkey,
+                "hotkey": macro.hotkey or "",
                 "steps": macro.steps
             }
-            if hasattr(macro, 'skill_id'):
+            if macro.type == "skill":
                 data["skill_id"] = macro.skill_id
                 data["cooldown"] = macro.cooldown
                 data["skill_range"] = macro.skill_range
                 data["cast_time"] = macro.cast_time
                 data["castbar_swap_delay"] = macro.castbar_swap_delay
-                if hasattr(macro, 'zone_rect') and macro.zone_rect:
+                if macro.zone_rect:
                     data["zone_rect"] = list(macro.zone_rect)
-                logger.debug(f"[PROFILE] SkillMacro: skill_id={macro.skill_id}, cooldown={macro.cooldown}")
-            if hasattr(macro, 'buff_id'):
+            elif macro.type == "buff":
                 data["buff_id"] = macro.buff_id
                 data["duration"] = macro.duration
                 data["channeling_bonus"] = macro.channeling_bonus
-                if hasattr(macro, 'zone_rect') and macro.zone_rect:
+                if macro.zone_rect:
                     data["zone_rect"] = list(macro.zone_rect)
-                logger.debug(f"[PROFILE] BuffMacro: buff_id={macro.buff_id}, duration={macro.duration}, channeling_bonus={macro.channeling_bonus}")
-            if hasattr(macro, 'poll_interval'):
-                data["poll_interval"] = macro.poll_interval
-                if hasattr(macro, 'zone_rect') and macro.zone_rect:
+            elif macro.type == "zone":
+                data["trigger"] = getattr(macro, 'trigger', 'left_click')
+                data["poll_interval"] = getattr(macro, 'poll_interval', 10)
+                if macro.zone_rect:
                     data["zone_rect"] = list(macro.zone_rect)
-                logger.debug(f"[PROFILE] ZoneMacro: poll_interval={macro.poll_interval}")
             return data
         except Exception as e:
             logger.error(f"[PROFILE] Ошибка сериализации макроса: {e}", exc_info=True)
@@ -735,14 +747,11 @@ class MacroMixin:
         self._macro_for_edit = None
         self.macrosChanged.emit()
 
-    @Slot(dict)
     def save_macro(self, macro_dict):
-        import macros
         try:
+            self._validate_macro_dict(macro_dict)
             name = macro_dict.get("name", "")
-            macro_type = macro_dict.get("type", "simple")
             hotkey = macro_dict.get("hotkey", "")
-            steps = macro_dict.get("steps", [])
             if not name:
                 self.notification.emit("Имя макроса не может быть пустым", "error")
                 return
@@ -752,89 +761,46 @@ class MacroMixin:
                 if m.name == old_name:
                     existing_macro = m
                     break
-            new_macro = None
-            if macro_type == "simple":
-                new_macro = macros.SimpleMacro(name, steps, self, hotkey if hotkey else "")
-            elif macro_type == "zone":
-                zone_rect = macro_dict.get("zone_rect", [])
-                trigger = macro_dict.get("trigger", "left_click")
-                poll_interval = macro_dict.get("poll_interval", 10)
-                skill_id = macro_dict.get("skill_id")
-                cooldown = macro_dict.get("cooldown", 0)
-                skill_range = macro_dict.get("skill_range", 0)
-                cast_time = macro_dict.get("cast_time", 0.0)
-                castbar_swap_delay = macro_dict.get("castbar_swap_delay", 0)
-                new_macro = macros.ZoneMacro(name, zone_rect, steps, self, trigger=trigger,
-                    poll_interval=poll_interval, hotkey=hotkey if hotkey else "",
-                    skill_id=skill_id, cooldown=cooldown, skill_range=skill_range,
-                    cast_time=cast_time, castbar_swap_delay=castbar_swap_delay)
-            elif macro_type == "skill":
-                skill_id = macro_dict.get("skill_id")
-                cooldown = macro_dict.get("cooldown", 0)
-                skill_range = macro_dict.get("skill_range", 0)
-                cast_time = macro_dict.get("cast_time", 0.0)
-                castbar_swap_delay = macro_dict.get("castbar_swap_delay", 0)
-                zone_rect = macro_dict.get("zone_rect")
-                icon = ""
-                if skill_id and self.skill_db:
-                    skill = self.skill_db.get_skill(int(skill_id))
-                    if skill:
-                        icon = skill.icon
-                new_macro = macros.SkillMacro(name, steps, self, hotkey if hotkey else "",
-                    skill_id=skill_id, cooldown=cooldown, skill_range=skill_range,
-                    cast_time=cast_time, castbar_swap_delay=castbar_swap_delay, icon=icon)
-                if zone_rect and len(zone_rect) == 4:
-                    new_macro.zone_rect = zone_rect
-            elif macro_type == "buff":
-                buff_id = macro_dict.get("buff_id")
-                duration = macro_dict.get("duration", 0)
-                channeling_bonus = macro_dict.get("channeling_bonus", 0)
-                icon = macro_dict.get("icon", "buff.png")
-                zone_rect = macro_dict.get("zone_rect")
-                if buff_id and self.skill_db:
-                    buff = self.skill_db.get_buff(int(buff_id))
-                    if buff:
-                        icon = buff.icon
-                new_macro = macros.BuffMacro(name, steps, self, buff_id=buff_id,
-                    duration=duration, channeling_bonus=channeling_bonus,
-                    hotkey=hotkey if hotkey else "", icon=icon)
-                if zone_rect and len(zone_rect) == 4:
-                    new_macro.zone_rect = zone_rect
-            if new_macro:
-                if existing_macro:
-                    if existing_macro.hotkey and existing_macro.hotkey != hotkey:
-                        self.unregister_hotkey(existing_macro.hotkey)
-                    index = self._macros.index(existing_macro)
-                    self._macros[index] = new_macro
-                    self.notification.emit(f"Макрос '{name}' обновлён", "success")
-                else:
-                    for existing_m in self._macros:
-                        if existing_m.hotkey == hotkey:
-                            logger.debug(f"Горячая клавиша '{hotkey}' уже используется макросом '{existing_m.name}', удаляем")
-                            self.unregister_hotkey(hotkey)
-                            existing_m.hotkey = None
-                            break
-                    self._macros.append(new_macro)
-                    self.notification.emit(f"Макрос '{name}' создан", "success")
-                if hotkey:
-                    for existing_m in self._macros:
-                        if existing_m.hotkey == hotkey and existing_m != new_macro:
-                            logger.debug(f"Горячая клавиша '{hotkey}' уже используется макросом '{existing_m.name}', удаляем")
-                            self.unregister_hotkey(hotkey)
-                            break
-                    def make_callback(m):
-                        def callback(e=None):
-                            if not m.running:
-                                if not self.dispatcher.request_macro(m):
-                                    logger.warning(f" '{m.name}': ЗАБЛОКИРОВАНО диспетчером")
-                                    return
-                                logger.info(f" '{m.name}': ЗАПУЩЕН через hotkey")
-                            else:
-                                logger.debug(f"[HOTKEY] '{m.name}': уже выполняется, игнорируем")
-                        return callback
-                    self.register_hotkey(hotkey, make_callback(new_macro))
-                self.save_macros()
-                self._update_macros_dicts()
+            new_macro = self._create_macro_from_dict(macro_dict)
+            if new_macro is None:
+                self.notification.emit("Не удалось создать макрос", "error")
+                return
+            new_macro.hotkey = hotkey if hotkey else ""
+
+            if existing_macro:
+                if existing_macro.hotkey and existing_macro.hotkey != hotkey:
+                    self.unregister_hotkey(existing_macro.hotkey)
+                index = self._macros.index(existing_macro)
+                self._macros[index] = new_macro
+                self.notification.emit(f"Макрос '{name}' обновлён", "success")
+            else:
+                for existing_m in self._macros:
+                    if existing_m.hotkey == hotkey:
+                        logger.debug(f"Горячая клавиша '{hotkey}' уже используется макросом '{existing_m.name}', удаляем")
+                        self.unregister_hotkey(hotkey)
+                        existing_m.hotkey = None
+                        break
+                self._macros.append(new_macro)
+                self.notification.emit(f"Макрос '{name}' создан", "success")
+            if hotkey:
+                for existing_m in self._macros:
+                    if existing_m.hotkey == hotkey and existing_m != new_macro:
+                        logger.debug(f"Горячая клавиша '{hotkey}' уже используется макросом '{existing_m.name}', удаляем")
+                        self.unregister_hotkey(hotkey)
+                        break
+                def make_callback(m):
+                    def callback(e=None):
+                        if not m.running:
+                            if not self.dispatcher.request_macro(m):
+                                logger.warning(f" '{m.name}': ЗАБЛОКИРОВАНО диспетчером")
+                                return
+                            logger.info(f" '{m.name}': ЗАПУЩЕН через hotkey")
+                        else:
+                            logger.debug(f"[HOTKEY] '{m.name}': уже выполняется, игнорируем")
+                    return callback
+                self.register_hotkey(hotkey, make_callback(new_macro))
+            self.save_macros()
+            self._update_macros_dicts()
         except Exception as e:
             logger.error(f"Ошибка сохранения макроса: {e}", exc_info=True)
             self.notification.emit(f"Ошибка: {e}", "error")
