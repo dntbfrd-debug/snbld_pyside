@@ -36,7 +36,6 @@ class MacroMixin:
                 item["icon"] = getattr(macro, 'icon', "")
             new_list.append(item)
         self._macros_dicts = list(new_list)
-        logger.debug(f"[UPDATE_MACROS_DICTS] new_list count={len(new_list)}")
         self.macrosChanged.emit()
 
     def recalculate_macro_delays(self):

@@ -333,11 +333,7 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
 
     @Property(list, notify=macrosChanged)
     def macros(self):
-        result = list(self._macros_dicts)
-        logger.debug(f"[MACROS_PROP] getter called, dicts count={len(result)}, _macros count={len(getattr(self, '_macros', []))}")
-        if result:
-            logger.debug(f"[MACROS_PROP] first item: {result[0].get('name')}")
-        return result
+        return list(self._macros_dicts)
 
     @Property(bool, notify=globalStoppedChanged)
     def global_stopped(self):

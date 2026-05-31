@@ -204,7 +204,7 @@ Item {
     }
 
     property var _macrosModel: []
-    property bool _modelDirty: true
+    property bool _modelDirty: false
 
     Connections {
         target: backend
