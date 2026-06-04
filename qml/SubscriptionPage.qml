@@ -34,10 +34,11 @@ Item {
             visible: !subscriptionPage.isActivated
 
             // Волна — полная линия + серый градиент слева направо
-            Item {
+            Rectangle {
                 anchors.top: parent.top
                 width: parent.width
                 height: 3
+                radius: parent.radius
                 clip: true
                 visible: subscriptionPage.activationInProgress
                 z: 2
@@ -62,7 +63,7 @@ Item {
                     }
 
                     SequentialAnimation on x {
-                        running: parent.visible
+                        running: subWaveBar.visible
                         loops: Animation.Infinite
                         PropertyAction { value: -subWaveBar.width }
                         NumberAnimation {

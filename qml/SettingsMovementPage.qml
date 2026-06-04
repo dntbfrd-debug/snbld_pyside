@@ -287,9 +287,13 @@ Item {
 
                     CheckBox {
                         id: checkDistanceCheck
-                        checked: safeSettings.check_distance
                         font.pointSize: 11
                         property string accentColor: settingsMovementPage.accentColor
+
+                        Binding on checked {
+                            value: safeSettings.check_distance || false
+                            when: !checkDistanceCheck.pressed
+                        }
                         indicator: Rectangle {
                             implicitWidth: 20; implicitHeight: 20; radius: 4
                             color: checkDistanceCheck.checked ? checkDistanceCheck.accentColor : "#3a3a3a"

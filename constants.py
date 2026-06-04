@@ -133,5 +133,11 @@ ALLOWED_SETTINGS = {
     "log_level_shiboken": (str, None, None),
 }
 
+# Калиброванные баффы: для них требуется клик по сохранённым координатам
+# ПЕРЕД выполнением шагов. Ключ — buff_id, значение — настройка с координатами "x,y".
+CALIBRATED_BUFF_CLICKS = {
+    8004: "buff_8004_click_point",
+}
+
 
 

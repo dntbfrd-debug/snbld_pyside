@@ -3,6 +3,38 @@ from backend.input_system import click_left, click_right, send_key
 from backend.logger_manager import get_logger as _get_logger
 
 
+VALID_ACTIONS = ("key", "left", "right", "wait")
+MAX_DELAY_MS = 60000  # 60 секунд — потолок для одного шага, чтобы избежать "зависших" макросов
+
+
+def _validate_step(step) -> bool:
+    """Валидация одного шага. Возвращает True если шаг допустим."""
+    if not isinstance(step, (list, tuple)):
+        _get_logger().error(f"Шаг имеет неверный тип ({type(step).__name__}): {step!r}")
+        return False
+    if len(step) < 2:
+        _get_logger().error(f"Шаг слишком короткий: {step!r}")
+        return False
+    action = step[0]
+    if action not in VALID_ACTIONS:
+        _get_logger().error(f"Неизвестное действие: {action!r} (допустимо: {VALID_ACTIONS})")
+        return False
+    if action == "key":
+        value = step[1]
+        if not isinstance(value, str) or not value.strip():
+            _get_logger().error(f"Действие 'key' требует непустую строку, получено: {value!r}")
+            return False
+    if len(step) >= 3:
+        delay_ms = step[2]
+        if not isinstance(delay_ms, (int, float)) or delay_ms < 0:
+            _get_logger().error(f"Задержка должна быть числом >= 0, получено: {delay_ms!r}")
+            return False
+        if delay_ms > MAX_DELAY_MS:
+            _get_logger().error(f"Задержка слишком большая ({delay_ms}мс), максимум {MAX_DELAY_MS}мс")
+            return False
+    return True
+
+
 class StepsExecutor:
 
     def __init__(self, stop_event=None):
@@ -31,10 +63,10 @@ class StepsExecutor:
                 self._click_right()
             elif action == "wait":
                 _get_logger().debug(f"Пауза {delay_ms}мс")
-            
+
             if delay_ms > 0:
                 time.sleep(delay_ms / 1000.0)
-            
+
             return True
 
         except Exception as e:
@@ -66,6 +98,9 @@ class StepsExecutor:
 
             if not isinstance(step, (list, tuple)) or len(step) < 2:
                 _get_logger().error(f"Шаг {i+1} имеет неверный формат: {step}, пропускаем")
+                continue
+            if not _validate_step(step):
+                _get_logger().error(f"Шаг {i+1} не прошёл валидацию: {step}, пропускаем")
                 continue
             action = step[0]
             value = step[1] if len(step) > 1 else ""

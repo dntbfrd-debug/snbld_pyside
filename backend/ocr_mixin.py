@@ -150,9 +150,13 @@ class OCRMixin:
     def on_distance_updated(self, target_type, distance, numbers):
         if distance is not None:
             if 0.5 <= distance <= 200:
-                if self._target_distance != distance:
-                    self._target_distance = distance
-                    self._last_ocr_numbers = numbers if numbers is not None else []
+                should_emit = False
+                with self._distance_lock:
+                    if self._target_distance != distance:
+                        self._target_distance = distance
+                        self._last_ocr_numbers = numbers if numbers is not None else []
+                        should_emit = True
+                if should_emit:
                     self.distanceUpdated.emit(target_type, distance, self._last_ocr_numbers)
                 logger.debug(f"[DIST] {target_type}: {distance:.1f}м")
             else:

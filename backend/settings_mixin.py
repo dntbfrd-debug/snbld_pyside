@@ -41,9 +41,15 @@ class SettingsMixin:
 
     def _save_profile_no_notify(self, name):
         try:
+            macros_data = []
+            for m in self._macros:
+                try:
+                    macros_data.append(self._macro_to_dict(m))
+                except Exception as e:
+                    logger.error(f"[SETTINGS] Ошибка сериализации макроса '{m.name}': {e}", exc_info=True)
             profile_data = {
                 "settings": dict(self._settings),
-                "macros": [self._macro_to_dict(m) for m in self._macros],
+                "macros": macros_data,
                 "window_locked": self._settings.get("window_locked", False),
                 "target_window_title": self._settings.get("target_window_title", "")
             }

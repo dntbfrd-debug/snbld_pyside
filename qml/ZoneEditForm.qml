@@ -22,8 +22,9 @@ Item {
 
     Component.onCompleted: {
         console.log("ZoneEditForm Component.onCompleted, editingMacro=", editingMacro ? editingMacro.name : "null")
-        if (editingMacro) {
+        if (editingMacro && !dataLoaded) {
             loadFromMacro(editingMacro)
+            dataLoaded = true
         }
     }
     

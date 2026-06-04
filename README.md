@@ -60,6 +60,8 @@ snbld_pyside/
 ├── skill_database.py           # База данных скиллов (из asgard_skills.json)
 ├── tooltips_qml.py             # Тултипы для QML
 ├── utils_qml.py                # Утилиты для QML
+├── low_level_hook.py           # Низкоуровневые хуки (WH_KEYBOARD/MOUSE_LL)
+├── skill_generator.py          # Генератор данных скиллов
 ├── updater_main.py             # Автообновление
 ├── build_nuitka.py             # Сборка через Nuitka
 ├── release_tool.py             # Инструмент для создания релизов
@@ -85,7 +87,9 @@ snbld_pyside/
 │   ├── hooks_guard.py          # Страж глобальных хуков (восстановление)
 │   ├── attach_thread.py        # Context manager AttachThreadInput (с UIPI fallback)
 │   ├── auth_mixin.py           # Активация/подписка/ heartbeat
-│   ├── macro_mixin.py          # CRUD макросов + профили
+│   ├── macro_mixin.py          # Связка миксинов backend, регистрация слотов
+│   ├── macro_crud.py           # CRUD операции над макросами (create/update/delete)
+│   ├── profile_mixin.py        # Управление профилями (сохранение/загрузка)
 │   ├── ocr_mixin.py            # OCR + калибровка + тестирование
 │   ├── castbar_mixin.py        # Детекция кастбара (mss singleton)
 │   ├── window_mixin.py         # Регистрация хоткеев + управление окнами

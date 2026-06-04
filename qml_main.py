@@ -284,9 +284,10 @@ from backend.ocr_mixin import OCRMixin
 from backend.castbar_mixin import CastbarMixin
 from backend.window_mixin import WindowMixin
 from backend.settings_mixin import SettingsMixin
+from backend.profile_mixin import ProfileMixin
 
 
-class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarMixin, WindowMixin, SettingsMixin):
+class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarMixin, WindowMixin, SettingsMixin, ProfileMixin):
     macrosChanged = Signal()
     settingsChanged = Signal()
     subscriptionChanged = Signal()
@@ -296,6 +297,7 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
     profilesChanged = Signal()
     notification = Signal(str, str)
     pageChangeRequested = Signal(str)
+    editMacroRequested = Signal(str, 'QVariantMap')  # page, macro_dict — данные передаются напрямую, минуя Property binding
     globalStoppedChanged = Signal()
     activeBuffsUpdated = Signal()
 
@@ -422,10 +424,10 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
     def profiles_list(self):
         return self.get_profile_list()
 
-    @Property(dict, notify=macrosChanged)
+    @Property("QVariantMap", notify=macrosChanged)
     def macro_for_edit(self):
-        result = getattr(self, '_macro_for_edit', None)
-        return result if result is not None else {}
+        val = getattr(self, '_macro_for_edit', None)
+        return val if val is not None else {}
 
     @Property(int, notify=pingUpdated)
     def ping(self):
@@ -476,13 +478,19 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
 
     @Property(float, notify=distanceUpdated)
     def target_distance(self):
-        return self._target_distance if self._target_distance is not None else 0.0
+        with self._distance_lock:
+            return self._target_distance if self._target_distance is not None else 0.0
 
     @target_distance.setter
     def target_distance(self, value):
-        if self._target_distance != value:
-            self._target_distance = value
-            self.distanceUpdated.emit("target", value if value is not None else 0.0)
+        should_emit = False
+        with self._distance_lock:
+            if self._target_distance != value:
+                self._target_distance = value
+                emit_value = value if value is not None else 0.0
+                should_emit = True
+        if should_emit:
+            self.distanceUpdated.emit("target", emit_value)
 
     @Property(list, constant=True)
     def skill_list(self):
@@ -572,6 +580,7 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
         self.active_buffs = {}
         self.buff_lock = threading.Lock()
         self._settings_lock = threading.Lock()
+        self._distance_lock = threading.RLock()
         self._hotkey_registered = set()
         self.engine = None
         self._background_video_url = self._get_background_video_url()
@@ -743,15 +752,21 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
 
     def _save_macros_to_file(self):
         macro_file = os.path.join(self.app_dir, constants.MACROS_JSON_FILE)
+        macros_data = []
+        for m in self._macros:
+            try:
+                macros_data.append(self._macro_to_dict(m))
+            except Exception as e:
+                logger.error(f"[MACROS] Ошибка сериализации макроса '{m.name}': {e}", exc_info=True)
         data = {
             "window_locked": self._window_locked,
             "target_window_title": self._target_window_title,
-            "macros": [self._macro_to_dict(m) for m in self._macros]
+            "macros": macros_data
         }
         try:
             with open(macro_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
-            logger.info(f"[MACROS] \u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u043e {len(data['macros'])} \u043c\u0430\u043a\u0440\u043e\u0441\u043e\u0432 \u0432 {macro_file}")
+            logger.info(f"[MACROS] \u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u043e {len(macros_data)} \u043c\u0430\u043a\u0440\u043e\u0441\u043e\u0432 \u0432 {macro_file}")
         except Exception as e:
             logger.error(f"[MACROS] \u041e\u0448\u0438\u0431\u043a\u0430 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u044f \u043c\u0430\u043a\u0440\u043e\u0441\u043e\u0432: {e}")
 
@@ -820,7 +835,12 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
             self.ping_monitor.start()
         else:
             logger.info(f"[PING] PingMonitor \u043e\u0442\u043a\u043b\u044e\u0447\u0435\u043d (ping_auto=False)")
-        self.load_macros()
+        last_profile = self._settings.get("last_active_profile", "")
+        profile_path = os.path.join(self.profiles_dir, f"{last_profile}.json") if last_profile and hasattr(self, 'profiles_dir') else None
+        if not (last_profile and profile_path and os.path.exists(profile_path)):
+            self.load_macros()
+        else:
+            logger.info(f"[INIT] Пропускаю load_macros — будет загружен профиль: {last_profile}")
         if self._settings.get("use_ping_delays", False):
             self.recalculate_macro_delays()
         logger.info("[OCR] OCR \u043d\u0435 \u0437\u0430\u043f\u0443\u0449\u0435\u043d - \u043d\u0430\u0436\u043c\u0438\u0442\u0435 \u0421\u0422\u0410\u0420\u0422 \u0434\u043b\u044f \u0437\u0430\u043f\u0443\u0441\u043a\u0430")

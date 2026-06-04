@@ -62,7 +62,26 @@ ApplicationWindow {
             slideMenu.setActiveById("macros")
             stackView.replace("MacrosEditPage.qml")
         } else if (pageFile === "EditSimplePage.qml" || pageFile === "EditZonePage.qml" || pageFile === "EditSkillPage.qml" || pageFile === "EditBuffPage.qml") {
-            pageFile = "MacrosEditPage.qml"
+            // EditXxxPage открывается напрямую с уже установленным editingMacro из backend
+            currentActiveButtonId = "macros"
+            slideMenu.setActiveById("macros")
+            var editProps = {}
+            if (backend && backend.macro_for_edit && backend.macro_for_edit.name) {
+                editProps.editingMacro = backend.macro_for_edit
+            }
+            if (backend) backend.qmlLog("changeActivePage EditXxxPage, editProps.keys=" + JSON.stringify(Object.keys(editProps)) + ", macro_for_edit=" + (backend.macro_for_edit ? JSON.stringify(backend.macro_for_edit) : "null"))
+            stackView.replace("MacrosEditPage.qml", editProps)
+            return
+        } else if (pageFile === "MacrosEditPage.qml") {
+            currentActiveButtonId = "macros"
+            slideMenu.setActiveById("macros")
+            var editProps2 = {}
+            if (backend && backend.macro_for_edit && backend.macro_for_edit.name) {
+                editProps2.editingMacro = backend.macro_for_edit
+            }
+            if (backend) backend.qmlLog("changeActivePage MacrosEditPage, editProps.keys=" + JSON.stringify(Object.keys(editProps2)) + ", macro_for_edit=" + (backend.macro_for_edit ? JSON.stringify(backend.macro_for_edit) : "null"))
+            stackView.replace("MacrosEditPage.qml", editProps2)
+            return
         } else if (pageFile === "BuffListPage.qml" || pageFile === "BuffEditForm.qml") {
             pageFile = "MacrosEditPage.qml"
         } else if (pageFile === "ProfilesPage.qml") {
@@ -692,8 +711,18 @@ ApplicationWindow {
         function onNotification(message, type) {
             notificationPopup.show(message, type)
         }
+        function onMacrosChanged() {
+            backend.qmlLog("main.qml onMacrosChanged, macro_for_edit=" + (backend && backend.macro_for_edit ? JSON.stringify(backend.macro_for_edit) : "null"))
+        }
         function onPageChangeRequested(pageFile) {
             changeActivePage(pageFile)
+        }
+        function onEditMacroRequested(pageFile, macroDict) {
+            // Сигнал с данными напрямую — 100% надёжно, минует Property binding timing
+            backend.qmlLog("main.qml onEditMacroRequested: page=" + pageFile + ", name=" + (macroDict && macroDict.name ? macroDict.name : "null") + ", type=" + (macroDict && macroDict.type ? macroDict.type : "null"))
+            currentActiveButtonId = "macros"
+            slideMenu.setActiveById("macros")
+            stackView.replace(pageFile, { "editingMacro": macroDict })
         }
         function onOcrAreaSelectorRequested(target_type) {
             // Открываем AreaSelector для выбора области OCR
@@ -915,10 +944,11 @@ ApplicationWindow {
             }
 
             // Волна — полная линия + серый градиент слева направо
-            Item {
+            Rectangle {
                 anchors.top: parent.top
                 width: parent.width
                 height: 3
+                radius: licenseCard.radius
                 clip: true
 
                 Rectangle {

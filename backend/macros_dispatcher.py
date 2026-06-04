@@ -48,7 +48,7 @@ class MacroDispatcher:
 
         self.cooldown_cache: Dict[str, float] = {}
         self.cache_lock = threading.Lock()
-        
+
         self.macro_stats: Dict[str, MacroStats] = {}
         self.stats_lock = threading.Lock()
 
@@ -61,9 +61,15 @@ class MacroDispatcher:
 
         self._macro_last_launch: Dict[str, float] = {}
 
+        # Rate-limit для рестарта обработчика очереди — иначе при сбое потока
+        # health_check/restart_queue_processor могут зациклиться и засрать лог.
+        self._queue_restart_times: list = []
+        self._max_restarts_per_minute = 6
+        self._restart_window_sec = 60.0
+
         self._queue_thread = None
         self._start_queue_processor()
-        
+
         self.running = True
 
     def _get_active_macros(self):
@@ -94,9 +100,21 @@ class MacroDispatcher:
         return []
     
     def _start_queue_processor(self):
-        self._queue_thread = threading.Thread(target=self._process_queue, daemon=True, name="MacroQueueProcessor")
-        self._queue_thread.start()
-        logger.info("[DISPATCHER] Обработчик очереди запущен")
+        if self._can_restart_queue_processor():
+            self._queue_thread = threading.Thread(target=self._process_queue, daemon=True, name="MacroQueueProcessor")
+            self._queue_thread.start()
+            logger.info("[DISPATCHER] Обработчик очереди запущен")
+        else:
+            logger.error("[DISPATCHER] Превышен лимит рестартов обработчика очереди — остановлен")
+
+    def _can_restart_queue_processor(self) -> bool:
+        now = time.time()
+        with self.lock:
+            self._queue_restart_times = [t for t in self._queue_restart_times if now - t < self._restart_window_sec]
+            if len(self._queue_restart_times) >= self._max_restarts_per_minute:
+                return False
+            self._queue_restart_times.append(now)
+            return True
 
     def health_check(self) -> dict:
         status = {
@@ -108,7 +126,9 @@ class MacroDispatcher:
         if not status['queue_processor_alive'] and self.running:
             logger.warning("[DISPATCHER] Поток обработчика очереди неактивен — перезапуск")
             self._start_queue_processor()
-            status['queue_processor_alive'] = True
+            status['queue_processor_alive'] = (
+                self._queue_thread is not None and self._queue_thread.is_alive()
+            )
         return status
     
     def request_macro(self, macro, priority=5) -> bool:
@@ -181,9 +201,6 @@ class MacroDispatcher:
                 except Exception as e:
                     logger.warning(f" {macro.name}: ошибка set_cast_lock: {e}")
 
-            self.last_launch_time = now
-            self._macro_last_launch[macro.name] = now
-
             self.stats['launched'] += 1
             self._update_stats_launch(macro.name, now)
 
@@ -192,7 +209,6 @@ class MacroDispatcher:
         # Запуск макроса ВНЕ блокировки — start() может блокироваться (join внутри)
         try:
             macro.start()
-            logger.info(f" {macro.name}: ЗАПУЩЕН")
         except Exception as e:
             logger.error(f" {macro.name}: ОШИБКА при запуске: {str(e)}", exc_info=True)
             with self.lock:
@@ -209,6 +225,12 @@ class MacroDispatcher:
                 self.cast_lock_until = 0.0
             return False
 
+        # Записываем время запуска ТОЛЬКО после успешного start() — иначе debounce
+        # может блокировать следующие вызовы, хотя макрос ещё не запущен.
+        with self.lock:
+            self.last_launch_time = time.time()
+            self._macro_last_launch[macro.name] = self.last_launch_time
+        logger.info(f" {macro.name}: ЗАПУЩЕН")
         return True
 
     def set_cast_lock(self, macro):

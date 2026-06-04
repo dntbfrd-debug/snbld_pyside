@@ -40,6 +40,8 @@ Item {
                                 id: tileWrapper
                                 implicitWidth: 160
                                 implicitHeight: 160
+                                property int macroIndex: index
+                                property var macroData: modelData
 
                                 property bool _tileHovered: tileRoot.hovered || btnEdit.hovered || btnDelete.hovered
 
@@ -51,15 +53,7 @@ Item {
                                     text: ""
 
                                     onClicked: {
-                                        backend.set_macro_for_edit(modelData)
-                                        if (modelData.type === "simple")
-                                            backend.pageChangeRequested("EditSimplePage.qml")
-                                        else if (modelData.type === "zone")
-                                            backend.pageChangeRequested("EditZonePage.qml")
-                                        else if (modelData.type === "skill")
-                                            backend.pageChangeRequested("EditSkillPage.qml")
-                                        else if (modelData.type === "buff")
-                                            backend.pageChangeRequested("EditBuffPage.qml")
+                                        backend.edit_macro_by_index(tileWrapper.macroIndex)
                                     }
 
                                     contentItem: ColumnLayout {
@@ -138,15 +132,7 @@ Item {
                                                 iconSize: 10
                                                 textSize: 8
                                                 onClicked: {
-                                                    backend.set_macro_for_edit(modelData)
-                                                    if (modelData.type === "simple")
-                                                        backend.pageChangeRequested("EditSimplePage.qml")
-                                                    else if (modelData.type === "zone")
-                                                        backend.pageChangeRequested("EditZonePage.qml")
-                                                    else if (modelData.type === "skill")
-                                                        backend.pageChangeRequested("EditSkillPage.qml")
-                                                    else if (modelData.type === "buff")
-                                                        backend.pageChangeRequested("EditBuffPage.qml")
+                                                    backend.edit_macro_by_index(tileWrapper.macroIndex)
                                                 }
                                             }
                                             BaseButton {
@@ -157,7 +143,7 @@ Item {
                                                 iconSize: 10
                                                 textSize: 8
                                                 onClicked: {
-                                                    _pendingDeleteName = modelData.name
+                                                    _pendingDeleteName = tileWrapper.macroData.name
                                                     _showDeleteConfirm = true
                                                 }
                                             }
@@ -203,29 +189,15 @@ Item {
         }
     }
 
-    property var _macrosModel: []
-    property bool _modelDirty: false
-
     Connections {
         target: backend
         function onMacrosChanged() {
-            _macrosModel = backend.macros
-            _modelDirty = true
+            macrosRepeater.model = null
+            macrosRepeater.model = target.macros
         }
         function onMacroStatusChanged() {
-            _macrosModel = backend.macros
-            _modelDirty = true
-        }
-    }
-
-    Timer {
-        interval: 100
-        repeat: false
-        running: _modelDirty
-        onTriggered: {
             macrosRepeater.model = null
-            macrosRepeater.model = _macrosModel
-            _modelDirty = false
+            macrosRepeater.model = target.macros
         }
     }
 

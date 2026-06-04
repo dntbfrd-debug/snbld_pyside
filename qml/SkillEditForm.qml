@@ -26,12 +26,18 @@ Item {
     property alias editStackView: root.parent
 
     Component.onCompleted: {
-        console.log("SkillEditForm Component.onCompleted, editingMacro=", editingMacro ? editingMacro.name : "null", "skill=", skill ? skill.name : "null")
-        if (editingMacro) {
+        if (typeof backend !== "undefined" && backend) {
+            backend.qmlLog("SkillEditForm Component.onCompleted, editingMacro=" + (editingMacro ? JSON.stringify(editingMacro) : "null"))
+        }
+        if (editingMacro && !dataLoaded) {
             loadFromMacro(editingMacro)
-        } else if (skill) {
-            console.log("SkillEditForm Component.onCompleted: вызываю onSkillSelected для", skill.name)
+            dataLoaded = true
+        } else if (skill && !dataLoaded) {
+            if (typeof backend !== "undefined" && backend) {
+                backend.qmlLog("SkillEditForm: вызываю onSkillSelected для " + skill.name)
+            }
             onSkillSelected(skill)
+            dataLoaded = true
         }
     }
 
@@ -91,9 +97,6 @@ Item {
             var skillData = findSkillById(skillId)
             if (skillData) {
                 skillName = skillData.name
-                skillCooldown = skillData.cooldown
-                skillRange = skillData.range
-                skillCastTime = skillData.cast_time
                 if (nameField.text === "") {
                     nameField.text = skillName
                 }
@@ -181,7 +184,7 @@ Item {
         stepsModel.push({ action: "key", value: swapChant, delay: firstStepDelay })
 
         if (macroType === 0) {
-            stepsModel.push({ action: "key", value: macroHotkey || "1", delay: delay })
+                stepsModel.push({ action: "key", value: getLastKey(macroHotkey) || "1", delay: delay })
         } else {
             stepsModel.push({ action: "left", value: "", delay: 10 })
         }
