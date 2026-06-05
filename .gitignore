@@ -91,6 +91,9 @@ build.bat
 dist_updater/
 *.onefile-build/
 
+# Сервер
+server/
+
 # Системные
 desktop.ini
 Thumbs.db
@@ -104,6 +107,9 @@ winapi_mouse_monitor.py
 _replace_favicon.ps1
 shiboken_debug.log
 debug.txt
+
+# Локальная рабочая копия
+main/
 
 # Данные пользователя (не коммитить!)
 macros.json
