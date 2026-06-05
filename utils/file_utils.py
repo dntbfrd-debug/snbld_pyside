@@ -15,7 +15,7 @@ def ensure_directory(directory: str) -> bool:
         Path(directory).mkdir(parents=True, exist_ok=True)
         return True
     except Exception as e:
-        logger.error(f"╨Ю╤И╨╕╨▒╨║╨░ ╤Б╨╛╨╖╨┤╨░╨╜╨╕╤П ╨┤╨╕╤А╨╡╨║╤В╨╛╤А╨╕╨╕ {directory}: {e}", exc_info=True)
+        logger.error(f"Ошибка создания директории {directory}: {e}", exc_info=True)
         return False
 
 
@@ -142,7 +142,7 @@ def resource_path(relative_path: str) -> str:
         _logger.debug(f"  [Dev mode] FOUND: {script_path}")
         return script_path
 
-    logger.warning(f"╨а╨╡╤Б╤Г╤А╤Б ╨╜╨╡ ╨╜╨░╨╣╨┤╨╡╨╜: {relative_path}")
+    logger.warning(f"Ресурс не найден: {relative_path}")
     return ""
 
 
