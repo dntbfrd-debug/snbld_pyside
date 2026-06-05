@@ -13,7 +13,7 @@ def ensure_resource(filename: str, subdir: str = "", source_dir: Optional[str] =
     try:
         res = resource_path(os.path.join(subdir, filename))
         if res and os.path.exists(res):
-            logger.debug(f"Ресурс {filename} присутствует")
+            logger.debug(f"╨а╨╡╤Б╤Г╤А╤Б {filename} ╨┐╤А╨╕╤Б╤Г╤В╤Б╤В╨▓╤Г╨╡╤В")
             return True
     except Exception:
         pass
@@ -35,10 +35,10 @@ def ensure_resource(filename: str, subdir: str = "", source_dir: Optional[str] =
     if src_path and os.path.exists(src_path) and src_path != dest_path:
         try:
             shutil.copy2(src_path, dest_path)
-            logger.debug(f" Ресурс {filename} скопирован в кэш")
+            logger.debug(f" ╨а╨╡╤Б╤Г╤А╤Б {filename} ╤Б╨║╨╛╨┐╨╕╤А╨╛╨▓╨░╨╜ ╨▓ ╨║╤Н╤И")
             return os.path.exists(dest_path)
         except Exception as e:
-            logger.warning(f" Не удалось скопировать ресурс {filename}: {e}", exc_info=True)
+            logger.warning(f" ╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╤Б╨║╨╛╨┐╨╕╤А╨╛╨▓╨░╤В╤М ╤А╨╡╤Б╤Г╤А╤Б {filename}: {e}", exc_info=True)
     
     return os.path.exists(dest_path)
 
@@ -85,9 +85,9 @@ def ensure_skill_icons(skill_list: List[Any], icons_dir: Optional[str] = None) -
             if src_path and os.path.exists(src_path) and src_path != local_path:
                 try:
                     shutil.copy2(src_path, local_path)
-                    logger.debug(f" Иконка {skill_id}.png скопирована в кэш")
+                    logger.debug(f" ╨Ш╨║╨╛╨╜╨║╨░ {skill_id}.png ╤Б╨║╨╛╨┐╨╕╤А╨╛╨▓╨░╨╜╨░ ╨▓ ╨║╤Н╤И")
                 except Exception as e:
-                    logger.warning(f" Не удалось скопировать иконку {skill_id}.png: {e}", exc_info=True)
+                    logger.warning(f" ╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╤Б╨║╨╛╨┐╨╕╤А╨╛╨▓╨░╤В╤М ╨╕╨║╨╛╨╜╨║╤Г {skill_id}.png: {e}", exc_info=True)
 
 
 

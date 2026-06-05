@@ -65,23 +65,23 @@ class TrayIconManager:
             }
         """)
 
-        action_show = QAction("Показать окно", menu)
+        action_show = QAction("╨Я╨╛╨║╨░╨╖╨░╤В╤М ╨╛╨║╨╜╨╛", menu)
         action_show.triggered.connect(self._on_show_window)
         menu.addAction(action_show)
 
         menu.addSeparator()
 
-        action_start = QAction(" Старт макросов", menu)
+        action_start = QAction(" ╨б╤В╨░╤А╤В ╨╝╨░╨║╤А╨╛╤Б╨╛╨▓", menu)
         action_start.triggered.connect(self._on_start_all)
         menu.addAction(action_start)
 
-        action_stop = QAction("■ Стоп макросов", menu)
+        action_stop = QAction("тЦа ╨б╤В╨╛╨┐ ╨╝╨░╨║╤А╨╛╤Б╨╛╨▓", menu)
         action_stop.triggered.connect(self._on_stop_all)
         menu.addAction(action_stop)
 
         menu.addSeparator()
 
-        action_quit = QAction("Выход", menu)
+        action_quit = QAction("╨Т╤Л╤Е╨╛╨┤", menu)
         action_quit.triggered.connect(self._on_quit)
         menu.addAction(action_quit)
 
@@ -96,7 +96,7 @@ class TrayIconManager:
         pixmap = _create_indicator_pixmap(STATUS_STOPPED)
         icon = QIcon(pixmap)
         self._tray.setIcon(icon)
-        self._tray.setToolTip("snbld resvap — Остановлен")
+        self._tray.setToolTip("snbld resvap тАФ ╨Ю╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜")
 
         self._menu = self._create_menu()
 
@@ -123,17 +123,17 @@ class TrayIconManager:
 
         if message:
             try:
-                self._tray.setToolTip(f"snbld resvap — {message}")
+                self._tray.setToolTip(f"snbld resvap тАФ {message}")
             except RuntimeError:
                 pass
         else:
             labels = {
-                STATUS_RUNNING: "Работает",
-                STATUS_STOPPED: "Остановлен",
-                STATUS_ERROR: "Ошибка",
+                STATUS_RUNNING: "╨а╨░╨▒╨╛╤В╨░╨╡╤В",
+                STATUS_STOPPED: "╨Ю╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜",
+                STATUS_ERROR: "╨Ю╤И╨╕╨▒╨║╨░",
             }
             try:
-                self._tray.setToolTip(f"snbld resvap — {labels.get(status, 'Неизвестно')}")
+                self._tray.setToolTip(f"snbld resvap тАФ {labels.get(status, '╨Э╨╡╨╕╨╖╨▓╨╡╤Б╤В╨╜╨╛')}")
             except RuntimeError:
                 pass
 
@@ -180,11 +180,11 @@ class TrayIconManager:
 
     def _on_start_all(self):
         self.backend.start_all_macros()
-        self.update_status(STATUS_RUNNING, "Макросы запущены")
+        self.update_status(STATUS_RUNNING, "╨Ь╨░╨║╤А╨╛╤Б╤Л ╨╖╨░╨┐╤Г╤Й╨╡╨╜╤Л")
 
     def _on_stop_all(self):
         self.backend.stop_all_macros()
-        self.update_status(STATUS_STOPPED, "Макросы остановлены")
+        self.update_status(STATUS_STOPPED, "╨Ь╨░╨║╤А╨╛╤Б╤Л ╨╛╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜╤Л")
 
     def disconnect_signals(self):
         try:
