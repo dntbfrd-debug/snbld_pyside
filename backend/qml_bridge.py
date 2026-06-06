@@ -36,7 +36,7 @@ class QMLBridgeMixin:
         try:
             from packaging import version
             version_url = "https://snbld.ru/version.json"
-            resp = requests.get(version_url, timeout=3, verify=True)
+            resp = requests.get(version_url, timeout=10, verify=True)
             if resp.status_code == 200:
                 data = resp.json()
                 current = self._get_current_version()
@@ -61,6 +61,10 @@ class QMLBridgeMixin:
     @Slot(str)
     def open_url(self, url):
         webbrowser.open(url)
+
+    @Slot(str)
+    def openUrl(self, url):
+        self.open_url(url)
         
     @property
     def window_manager_skip_activation(self):
@@ -135,8 +139,8 @@ class QMLBridgeMixin:
         self.logSendStatusChanged.emit()
         self.notification.emit("Подготовка логов...", "info")
 
-        import threading
-        threading.Thread(target=self._send_logs_worker, daemon=True, name="LogSender").start()
+        from utils.thread_utils import run_async
+        run_async(self._send_logs_worker)
 
     def _send_logs_worker(self):
         """Асинхронная отправка логов в фоновом потоке."""
@@ -144,8 +148,8 @@ class QMLBridgeMixin:
         _vlogger = logging.getLogger('debug')
 
         try:
-            from backend.logger_manager import LoggerManager
-            logs_dir = LoggerManager._log_dir
+            import backend.logger_manager as lm
+            logs_dir = lm._log_dir
 
             if not os.path.exists(logs_dir):
                 os.makedirs(logs_dir, exist_ok=True)

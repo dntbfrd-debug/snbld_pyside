@@ -60,6 +60,25 @@ class OCRMixin:
 
     @Slot(str, int, int, int, int)
     def onOCRAreaSelected(self, target_type, x1, y1, x2, y2):
+        import mss
+        with mss.mss() as sct:
+            monitor = sct.monitors[1] if len(sct.monitors) > 1 else sct.monitors[0]
+            screen_w, screen_h = monitor["width"], monitor["height"]
+        if x1 >= x2 or y1 >= y2:
+            msg = f"Некорректная область: x1={x1} >= x2={x2} или y1={y1} >= y2={y2}"
+            logger.warning(f"[OCR] {msg}")
+            self.validationError.emit(msg)
+            return
+        if (x2 - x1) < 10 or (y2 - y1) < 10:
+            msg = f"Область слишком мала: {x2 - x1}x{y2 - y1} (минимум 10x10)"
+            logger.warning(f"[OCR] {msg}")
+            self.validationError.emit(msg)
+            return
+        if not (0 <= x1 <= screen_w and 0 <= x2 <= screen_w and 0 <= y1 <= screen_h and 0 <= y2 <= screen_h):
+            msg = f"Область выходит за границы экрана: ({x1},{y1})-({x2},{y2}) при размере {screen_w}x{screen_h}"
+            logger.warning(f"[OCR] {msg}")
+            self.validationError.emit(msg)
+            return
         area = f"{x1},{y1},{x2},{y2}"
         logger.info(f"[OCR] Выбрана область OCR для {target_type}: {area}")
         if target_type == "mob":
@@ -97,9 +116,15 @@ class OCRMixin:
                 logger.debug(f"[testOCRArea] Окно активировано: {window_title}")
         except Exception as e:
             logger.debug(f"[testOCRArea] Не удалось активировать окно: {e}")
-        import mss
-        import numpy as np
-        try:
+
+        area_str = self._settings.get(f"{target_type}_area", (0, 0, 0, 0))
+        scale = self._settings.get("ocr_scale", 10)
+        psm = self._settings.get("ocr_psm", 7)
+        use_morph = self._settings.get("ocr_use_morph", True)
+
+        def _ocr_worker():
+            import mss
+            import numpy as np
             with mss.mss() as sct:
                 mon = sct.monitors[1] if len(sct.monitors) > 1 else sct.monitors[0]
                 screenshot = sct.grab(mon)
@@ -110,18 +135,12 @@ class OCRMixin:
                 import tesseract_reader
                 from tesseract_reader import TargetWorker
                 import constants
-                areas = {
-                    target_type: self._settings.get(f"{target_type}_area", (0, 0, 0, 0))
-                }
+                areas = {target_type: area_str}
                 worker = TargetWorker(
-                    areas,
-                    interval=OCR_TARGET_INTERVAL,
-                    scale=self._settings.get("ocr_scale", 10),
-                    psm=self._settings.get("ocr_psm", 7),
-                    use_morph=self._settings.get("ocr_use_morph", True)
+                    areas, interval=OCR_TARGET_INTERVAL,
+                    scale=scale, psm=psm, use_morph=use_morph
                 )
                 result = worker.test_area(screenshot_np, target_type)
-            logger.info(f"[OCR] Тест OCR для {target_type}: {result}")
             image_source = None
             if result.get("image") is not None:
                 import io
@@ -131,6 +150,11 @@ class OCRMixin:
                 buffered = io.BytesIO()
                 img.save(buffered, format="PNG")
                 image_source = "data:image/png;base64," + base64.b64encode(buffered.getvalue()).decode()
+            return result, image_source
+
+        def _on_done(worker_result):
+            result, image_source = worker_result
+            logger.info(f"[OCR] Тест OCR для {target_type}: {result}")
             self.ocrTestResult.emit(target_type, {
                 "success": result.get("success", False),
                 "distance": result.get("distance"),
@@ -143,9 +167,9 @@ class OCRMixin:
                 self.notification.emit(f"Распознано: {result['distance']} м (Tesseract)", "success")
             else:
                 self.notification.emit("Не распознано. Попробуйте другую область.", "warning")
-        except Exception as e:
-            logger.error(f"Ошибка тестирования OCR: {e}", exc_info=True)
-            self.notification.emit(f"Ошибка: {e}", "error")
+
+        from utils.thread_utils import run_async
+        run_async(_ocr_worker, _on_done)
 
     def on_distance_updated(self, target_type, distance, numbers):
         if distance is not None:

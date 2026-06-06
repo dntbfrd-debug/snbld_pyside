@@ -8,6 +8,7 @@ import ctypes.wintypes as wintypes
 import os
 import sys
 import time
+import threading
 from pathlib import Path
 from datetime import datetime
 from functools import lru_cache
@@ -15,17 +16,35 @@ from functools import lru_cache
 from backend.logger_manager import get_logger
 
 API_URL = "https://snbld.ru"
+TIMEOUT = 10
 CACHE_DIR = Path(os.environ['APPDATA']) / "snbld_resvap"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 SESSION_FILE = CACHE_DIR / "session.json"
 KEY_FILE = CACHE_DIR / "activation_key.txt"
 
+_session_lock = threading.Lock()
+
 logger = get_logger('auth')
 CREATE_NO_WINDOW = 0x08000000
+CRYPTPROTECT_UI = 0x01
+_DPAPI_ENTROPY = None
 
 
 def _get_verify_param() -> bool:
     return True
+
+
+def _get_dpapi_entropy() -> bytes:
+    global _DPAPI_ENTROPY
+    if _DPAPI_ENTROPY is not None:
+        return _DPAPI_ENTROPY
+    try:
+        hwid = get_hwid()
+        _DPAPI_ENTROPY = hashlib.sha256(f"snbld_v1:{hwid}".encode()).digest()
+    except Exception:
+        _DPAPI_ENTROPY = hashlib.sha256(b"snbld_fallback").digest()
+    return _DPAPI_ENTROPY
+
 
 class DATA_BLOB(ctypes.Structure):
     _fields_ = [("cbData", wintypes.DWORD),
@@ -34,7 +53,11 @@ class DATA_BLOB(ctypes.Structure):
 
 def _encrypt_data(data: bytes) -> bytes:
     try:
-        CRYPTPROTECT_UI = 0x01
+        entropy = _get_dpapi_entropy()
+        entropy_blob = DATA_BLOB(len(entropy), ctypes.cast(
+            ctypes.create_string_buffer(entropy),
+            ctypes.POINTER(ctypes.c_char)
+        ))
 
         blob_in = DATA_BLOB(len(data), ctypes.cast(
             ctypes.create_string_buffer(data),
@@ -45,7 +68,7 @@ def _encrypt_data(data: bytes) -> bytes:
         result = ctypes.windll.crypt32.CryptProtectData(
             ctypes.byref(blob_in),
             None,
-            None,
+            ctypes.byref(entropy_blob),
             None,
             None,
             CRYPTPROTECT_UI,
@@ -65,7 +88,11 @@ def _encrypt_data(data: bytes) -> bytes:
 
 def _decrypt_data(data: bytes) -> bytes:
     try:
-        CRYPTPROTECT_UI = 0x01
+        entropy = _get_dpapi_entropy()
+        entropy_blob = DATA_BLOB(len(entropy), ctypes.cast(
+            ctypes.create_string_buffer(entropy),
+            ctypes.POINTER(ctypes.c_char)
+        ))
 
         blob_in = DATA_BLOB(len(data), ctypes.cast(
             ctypes.create_string_buffer(data),
@@ -76,7 +103,7 @@ def _decrypt_data(data: bytes) -> bytes:
         result = ctypes.windll.crypt32.CryptUnprotectData(
             ctypes.byref(blob_in),
             None,
-            None,
+            ctypes.byref(entropy_blob),
             None,
             None,
             CRYPTPROTECT_UI,
@@ -89,23 +116,46 @@ def _decrypt_data(data: bytes) -> bytes:
             return decrypted
         else:
             raise ctypes.WinError()
-    except Exception as e:
-        logger.error(f"[AUTH] DPAPI дешифрование не удалось: {e}", exc_info=True)
-        raise RuntimeError("DPAPI дешифрование недоступно") from e
+    except Exception:
+        try:
+            blob_in = DATA_BLOB(len(data), ctypes.cast(
+                ctypes.create_string_buffer(data),
+                ctypes.POINTER(ctypes.c_char)
+            ))
+            blob_out = DATA_BLOB()
+            result = ctypes.windll.crypt32.CryptUnprotectData(
+                ctypes.byref(blob_in),
+                None,
+                None,
+                None,
+                None,
+                CRYPTPROTECT_UI,
+                ctypes.byref(blob_out)
+            )
+            if result:
+                decrypted = ctypes.string_at(blob_out.pbData, blob_out.cbData)
+                ctypes.windll.kernel32.LocalFree(blob_out.pbData)
+                return decrypted
+            raise ctypes.WinError()
+        except Exception as e2:
+            logger.error(f"[AUTH] DPAPI дешифрование не удалось: {e2}", exc_info=True)
+            raise RuntimeError("DPAPI дешифрование недоступно") from e2
 
 
 def _save_encrypted(file_path: Path, data: dict):
     json_bytes = json.dumps(data, ensure_ascii=False, indent=2).encode('utf-8')
     encrypted = _encrypt_data(json_bytes)
-    tmp_path = file_path.with_suffix(file_path.suffix + ".tmp")
-    with open(tmp_path, 'wb') as f:
-        f.write(encrypted)
-    tmp_path.replace(file_path)
+    with _session_lock:
+        tmp_path = file_path.with_suffix(file_path.suffix + ".tmp")
+        with open(tmp_path, 'wb') as f:
+            f.write(encrypted)
+        tmp_path.replace(file_path)
 
 
 def _load_encrypted(file_path: Path) -> dict:
-    with open(file_path, 'rb') as f:
-        encrypted = f.read()
+    with _session_lock:
+        with open(file_path, 'rb') as f:
+            encrypted = f.read()
     decrypted = _decrypt_data(encrypted)
     return json.loads(decrypted.decode('utf-8'))
 
@@ -433,36 +483,44 @@ def check_subscription_by_hwid(hwid=None):
 
 
 def get_server_tokens(session_id: str = None, key: str = None):
-    try:
-        payload = {}
-        if session_id:
-            payload['session_id'] = session_id
-        elif key:
-            payload['key'] = key
-        else:
-            logger.warning("[AUTH] Нет session_id или key для получения токенов")
+    max_retries = 2
+    retry_delay = 2
+    for attempt in range(max_retries):
+        try:
+            payload = {}
+            if session_id:
+                payload['session_id'] = session_id
+            elif key:
+                payload['key'] = key
+            else:
+                logger.warning("[AUTH] Нет session_id или key для получения токенов")
+                return None
+
+            response = requests.post(
+                f"{API_URL}/api/get_tokens",
+                json=payload,
+                timeout=TIMEOUT,
+                verify=_get_verify_param()
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                tokens = data.get('tokens', {})
+                expires_in = data.get('expires_in', 3600)
+                logger.info(f"[AUTH] Токены получены с сервера (expires_in={expires_in}с)")
+                return {'tokens': tokens, 'expires_in': expires_in}
+            else:
+                logger.error(f"[AUTH] Ошибка получения токенов: {response.status_code}", exc_info=True)
+                return None
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"[AUTH] Ошибка соединения при получении токенов: {e} (попытка {attempt+1}/{max_retries})", exc_info=True)
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                continue
             return None
-        
-        response = requests.post(
-            f"{API_URL}/api/get_tokens",
-            json=payload,
-            timeout=15,
-            verify=_get_verify_param()
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            tokens = data.get('tokens', {})
-            expires_in = data.get('expires_in', 3600)
-            logger.info(f"[AUTH] Токены получены с сервера (expires_in={expires_in}с)")
-            return {'tokens': tokens, 'expires_in': expires_in}
-        else:
-            logger.error(f"[AUTH] Ошибка получения токенов: {response.status_code}", exc_info=True)
+        except Exception as e:
+            logger.error(f"[AUTH] Неизвестная ошибка при получении токенов: {e}", exc_info=True)
             return None
-            
-    except requests.exceptions.RequestException as e:
-        logger.error(f"[AUTH] Ошибка соединения при получении токенов: {e}", exc_info=True)
-        return None
-    except Exception as e:
-        logger.error(f"[AUTH] Неизвестная ошибка при получении токенов: {e}", exc_info=True)
-        return None
+
+    return None

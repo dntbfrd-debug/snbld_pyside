@@ -1,11 +1,11 @@
 API_URL = "https://snbld.ru"
 
-import os
-
-SELECTEL_ACCESS_KEY = os.environ.get("SELECTEL_ACCESS_KEY", "")
-SELECTEL_SECRET_KEY = os.environ.get("SELECTEL_SECRET_KEY", "")
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+# Секреты получаются с сервера через API get_tokens (auth_mixin._load_server_tokens).
+# Эти константы — заглушки для dev-режима. В продакшене всегда пустые.
+SELECTEL_ACCESS_KEY = ""
+SELECTEL_SECRET_KEY = ""
+TELEGRAM_BOT_TOKEN = ""
+TELEGRAM_CHAT_ID = ""
 
 CURRENT_VERSION = "1.3.56"
 

@@ -1,13 +1,7 @@
 import sys
 import ctypes
 
-# Немедленное скрытие консоли (до main()) — только для собранного .exe
 is_packaged = getattr(sys, 'frozen', False) or hasattr(sys, 'compiled') or hasattr(sys, '_MEIPASS')
-if is_packaged:
-    try:
-        ctypes.windll.kernel32.FreeConsole()
-    except Exception:
-        pass
 
 import builtins
 _original_print = builtins.print
@@ -34,7 +28,6 @@ except:
             pass
 
 import os
-import re
 import atexit
 import threading
 from backend.win32_api import CreateMutex, ReleaseMutex, GetLastError, MessageBox, ERROR_ALREADY_EXISTS
@@ -116,8 +109,7 @@ def _global_exception_handler(exc_type, exc_value, exc_traceback):
     crash_file = os.path.join(_get_app_dir(), f"crash_{crash_time}.log")
     try:
         from backend.logger_manager import LoggerManager
-        logger_errors = LoggerManager.get_logger('errors')
-        logger_errors.critical(
+        LoggerManager.get_logger('debug').critical(
             "КРИТИЧЕСКАЯ ОШИБКА",
             exc_info=(exc_type, exc_value, exc_traceback)
         )
@@ -170,8 +162,7 @@ def _thread_exception_handler(args):
     crash_file = os.path.join(_get_app_dir(), f"crash_{crash_time}.log")
     try:
         from backend.logger_manager import LoggerManager
-        logger_errors = LoggerManager.get_logger('errors')
-        logger_errors.critical(
+        LoggerManager.get_logger('debug').critical(
             "КРИТИЧЕСКАЯ ОШИБКА В ПОТОКЕ",
             exc_info=(args.exc_type, args.exc_value, args.exc_traceback)
         )
@@ -240,13 +231,12 @@ os.environ['QML_DEBUG_DISABLED'] = '1'
 from typing import Dict
 import json
 import time
-import webbrowser
 import threading
 
 from PySide6.QtCore import QObject, Signal, Slot, Property, QUrl, Qt
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import QApplication
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQml import QQmlApplicationEngine
 
 try:
     from PySide6.QtQuick import QQuickStyle
@@ -255,26 +245,20 @@ except ImportError:
     pass
 
 import constants
-from constants import ALLOWED_SETTINGS, OCR_TARGET_INTERVAL
-import auth
-import macros
-from macros import (
-    Macro, SimpleMacro, ZoneMacro, SkillMacro, BuffMacro,
-)
+from constants import ALLOWED_SETTINGS
 import skill_database
 import tesseract_reader
 import threads
 from utils import resource_path, ensure_all_resources
 from utils_qml import QMLResourceHelper
 from tooltips_qml import get_tooltips_provider
-from backend.logger_manager import LoggerManager, get_logger, log_error
+from backend.logger_manager import get_logger
 
 logger = get_logger('debug')
-logger_errors = get_logger('errors')
 logger.info("=== \u0417\u0430\u043f\u0443\u0441\u043a \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u044f snbld resvap QML ===")
-logger_errors.info("=== \u0417\u0430\u043f\u0443\u0441\u043a \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u044f snbld resvap QML ===")
 
-threading.Thread(target=tesseract_reader.ensure_tesseract, daemon=True).start()
+from utils.thread_utils import run_async
+run_async(tesseract_reader.ensure_tesseract)
 logger.info("Tesseract OCR \u0438\u043d\u0438\u0446\u0438\u0430\u043b\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u043d \u0432 \u0444\u043e\u043d\u0435")
 
 from backend.qml_bridge import QMLBridgeMixin
@@ -309,6 +293,7 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
     updateAvailable = Signal(dict)
     updateDownloadProgress = Signal(int, int)
     updateDownloadComplete = Signal(str, str)
+    validationError = Signal(str)
     areaSelectedSignal = Signal(int, int, int, int)
     zoneAreaSelectedSignal = Signal(list)
     ocrAreaSelected = Signal(str, str)
@@ -630,8 +615,14 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
                 if isinstance(value, str) and ',' in value:
                     value = [int(x.strip()) for x in value.split(',')]
         except (ValueError, TypeError) as e:
-            logger.error(f"\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u0442\u0438\u043f \u0434\u043b\u044f {key}: {value} ({e})")
-            self.notification.emit(f" \u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u0444\u043e\u0440\u043c\u0430\u0442: {value}", "warning")
+            logger.error(f"Неверный тип для {key}: {value} ({e})")
+            self.notification.emit(f" Неверный формат: {value}", "warning")
+            return
+        try:
+            self._validate_setting(key, value)
+        except ValueError as e:
+            logger.error(str(e))
+            self.notification.emit(f" Некорректное значение: {value}", "warning")
             return
         if min_val is not None and max_val is not None:
             if value < min_val or value > max_val:
@@ -682,94 +673,6 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
             self.apply_settings_to_macros(key, value)
         self.settingsChanged.emit()
 
-    def _validate_macros_json(self, data):
-        if not isinstance(data, dict):
-            raise ValueError("macros.json \u0434\u043e\u043b\u0436\u0435\u043d \u0431\u044b\u0442\u044c \u043e\u0431\u044a\u0435\u043a\u0442\u043e\u043c (dict)")
-        if "macros" not in data:
-            raise ValueError("macros.json \u0434\u043e\u043b\u0436\u0435\u043d \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u0442\u044c \u043a\u043b\u044e\u0447 'macros'")
-        if not isinstance(data["macros"], list):
-            raise ValueError("'macros' \u0434\u043e\u043b\u0436\u0435\u043d \u0431\u044b\u0442\u044c \u0441\u043f\u0438\u0441\u043a\u043e\u043c")
-        logger.debug("[VALIDATION] \u0421\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430 macros.json \u0432\u0430\u043b\u0438\u0434\u043d\u0430")
-
-    def _validate_macro_dict(self, m_dict):
-        required_fields = ["type", "name", "steps"]
-        for field in required_fields:
-            if field not in m_dict:
-                raise ValueError(f"\u041c\u0430\u043a\u0440\u043e\u0441 '{m_dict.get('name', 'unknown')}' \u043d\u0435 \u0441\u043e\u0434\u0435\u0440\u0436\u0438\u0442 \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u043e\u0433\u043e \u043f\u043e\u043b\u044f '{field}'")
-        if not isinstance(m_dict["steps"], list):
-            raise ValueError(f"\u041c\u0430\u043a\u0440\u043e\u0441 '{m_dict['name']}': 'steps' \u0434\u043e\u043b\u0436\u0435\u043d \u0431\u044b\u0442\u044c \u0441\u043f\u0438\u0441\u043a\u043e\u043c")
-        if m_dict["type"] == "zone":
-            if "zone_rect" not in m_dict:
-                raise ValueError(f"\u0417\u043e\u043d\u0430\u043b\u044c\u043d\u044b\u0439 \u043c\u0430\u043a\u0440\u043e\u0441 '{m_dict['name']}' \u043d\u0435 \u0441\u043e\u0434\u0435\u0440\u0436\u0438\u0442 'zone_rect'")
-            zone_rect = m_dict["zone_rect"]
-            if not isinstance(zone_rect, list) or len(zone_rect) != 4:
-                raise ValueError(f"\u041c\u0430\u043a\u0440\u043e\u0441 '{m_dict['name']}': 'zone_rect' \u0434\u043e\u043b\u0436\u0435\u043d \u0431\u044b\u0442\u044c \u0441\u043f\u0438\u0441\u043a\u043e\u043c \u0438\u0437 4 \u0447\u0438\u0441\u0435\u043b")
-            if not all(isinstance(x, (int, float)) for x in zone_rect):
-                raise ValueError(f"\u041c\u0430\u043a\u0440\u043e\u0441 '{m_dict['name']}': 'zone_rect' \u0434\u043e\u043b\u0436\u0435\u043d \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u0442\u044c \u0442\u043e\u043b\u044c\u043a\u043e \u0447\u0438\u0441\u043b\u0430")
-        logger.debug(f"[VALIDATION] \u041c\u0430\u043a\u0440\u043e\u0441 '{m_dict['name']}' \u0432\u0430\u043b\u0438\u0434\u0435\u043d")
-
-    def load_macros(self):
-        macro_file = os.path.join(self.app_dir, constants.MACROS_JSON_FILE)
-        if not os.path.exists(macro_file):
-            self._macros = []
-            self._update_macros_dicts()
-            return
-        try:
-            with open(macro_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            self._validate_macros_json(data)
-            self._window_locked = data.get("window_locked", False)
-            self._target_window_title = data.get("target_window_title", "")
-            self.window_locked = self._window_locked
-            self.target_window_title = self._target_window_title
-            self.macrosChanged.emit()
-            self._macros = []
-            for m_dict in data.get("macros", []):
-                self._validate_macro_dict(m_dict)
-                macro = self._create_macro_from_dict(m_dict)
-                if macro is None:
-                    continue
-                if macro.type == "zone":
-                    macro._connect_mouse_click(self)
-                    macro.start()
-                    logger.info(f"[ZONE] \u041c\u0430\u043a\u0440\u043e\u0441 '{macro.name}' \u0437\u0430\u043f\u0443\u0449\u0435\u043d \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438")
-                self._macros.append(macro)
-            self._update_macros_dicts()
-            logger.info(f"\u0417\u0430\u0433\u0440\u0443\u0436\u0435\u043d\u043e {len(self._macros)} \u043c\u0430\u043a\u0440\u043e\u0441\u043e\u0432")
-        except Exception as e:
-            logger.error(f"\u041e\u0448\u0438\u0431\u043a\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438 \u043c\u0430\u043a\u0440\u043e\u0441\u043e\u0432: {e}")
-            self._macros = []
-            self._update_macros_dicts()
-
-    def save_macros(self):
-        logger.debug(f"[MACROS] save_macros \u0432\u044b\u0437\u0432\u0430\u043d | _current_profile={self._current_profile} | \u043c\u0430\u043a\u0440\u043e\u0441\u043e\u0432={len(self._macros)}")
-        if self._current_profile:
-            logger.info(f"[MACROS] \u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435 \u0432 \u043f\u0440\u043e\u0444\u0438\u043b\u044c: {self._current_profile}")
-            self.save_profile(self._current_profile)
-            logger.debug(f"[PROFILE] \u041c\u0430\u043a\u0440\u043e\u0441\u044b \u0430\u0432\u0442\u043e\u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u044b \u0432 \u043f\u0440\u043e\u0444\u0438\u043b\u044c: {self._current_profile}")
-        self._save_macros_to_file()
-        logger.debug("[MACROS] \u041c\u0430\u043a\u0440\u043e\u0441\u044b \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u044b \u0432 macros.json")
-
-    def _save_macros_to_file(self):
-        macro_file = os.path.join(self.app_dir, constants.MACROS_JSON_FILE)
-        macros_data = []
-        for m in self._macros:
-            try:
-                macros_data.append(self._macro_to_dict(m))
-            except Exception as e:
-                logger.error(f"[MACROS] Ошибка сериализации макроса '{m.name}': {e}", exc_info=True)
-        data = {
-            "window_locked": self._window_locked,
-            "target_window_title": self._target_window_title,
-            "macros": macros_data
-        }
-        try:
-            with open(macro_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            logger.info(f"[MACROS] \u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u043e {len(macros_data)} \u043c\u0430\u043a\u0440\u043e\u0441\u043e\u0432 \u0432 {macro_file}")
-        except Exception as e:
-            logger.error(f"[MACROS] \u041e\u0448\u0438\u0431\u043a\u0430 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u044f \u043c\u0430\u043a\u0440\u043e\u0441\u043e\u0432: {e}")
-
     def _init_icons_async(self):
         """Загрузка иконок скиллов в фоновом потоке — не блокирует запуск UI."""
         def _do_icons():
@@ -782,7 +685,8 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
                 logger.info(f"[ICONS] [+] \u0418\u043a\u043e\u043d\u043a\u0438 \u0441\u043a\u0438\u043b\u043b\u043e\u0432 \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d\u044b \u0432 \u043a\u0435\u0448")
             except Exception as e:
                 logger.error(f"[ICONS] \u041e\u0448\u0438\u0431\u043a\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438 \u0438\u043a\u043e\u043d\u043e\u043a: {e}", exc_info=True)
-        threading.Thread(target=_do_icons, daemon=True, name="IconLoader").start()
+        from utils.thread_utils import run_async
+        run_async(_do_icons)
 
     def _run_auth_async(self):
         """Запускает проверку активации в фоновом потоке.
@@ -795,7 +699,8 @@ class Backend(QObject, QMLBridgeMixin, AuthMixin, MacroMixin, OCRMixin, CastbarM
                 self._is_activated = False
                 self._activation_status = "error"
                 self.activationStatusChanged.emit()
-        threading.Thread(target=_network_part, daemon=True, name="AuthAsync").start()
+        from utils.thread_utils import run_async
+        run_async(_network_part)
 
     def init_subsystems(self):
         self.skill_db = skill_database.SkillDatabase(constants.SKILLS_JSON_FILE)
@@ -1040,7 +945,6 @@ def main():
 
     if os.path.exists(icon_path):
         app_icon = QIcon(icon_path)
-        app.setWindowIcon(app_icon)
         window.setIcon(app_icon)
         try:
             hwnd = int(window.winId())

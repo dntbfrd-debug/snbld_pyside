@@ -262,33 +262,15 @@ Item {
                                     Layout.preferredWidth: 45
                                     horizontalAlignment: Text.AlignRight
                                 }
-                                Rectangle {
-                                    id: deleteBtn
-                                    implicitWidth: 18
-                                    implicitHeight: 18
-                                    radius: 9
-                                    color: deleteArea.containsMouse ? "#c74646" : "#50ffffff"
-                                    border.color: "#70ffffff"
-                                    border.width: 1
-
-                                    Text {
-                                        text: "×"
-                                        font.pointSize: 14
-                                        font.bold: true
-                                        color: "#ffffff"
-                                        anchors.centerIn: parent
-                                        renderType: Text.NativeRendering
-                                    }
-
-                                    MouseArea {
-                                        id: deleteArea
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            stepsModel.splice(index, 1)
-                                            stepsView.model = stepsModel
-                                        }
+                                BaseButton {
+                                    text: "X"
+                                    implicitWidth: 24
+                                    implicitHeight: 24
+                                    iconSize: 0
+                                    textSize: 10
+                                    onClicked: {
+                                        stepsModel.splice(index, 1)
+                                        stepsView.model = stepsModel
                                     }
                                 }
                             }

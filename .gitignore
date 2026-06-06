@@ -108,8 +108,6 @@ _replace_favicon.ps1
 shiboken_debug.log
 debug.txt
 
-# Локальная рабочая копия
-main/
 
 # Данные пользователя (не коммитить!)
 macros.json

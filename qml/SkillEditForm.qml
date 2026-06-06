@@ -193,6 +193,11 @@ Item {
         stepsView.model = stepsModel
     }
 
+    GlassBlurPanel {
+        anchors.fill: parent
+        z: 0
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 10

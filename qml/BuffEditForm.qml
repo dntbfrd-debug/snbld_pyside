@@ -196,6 +196,11 @@ Item {
         }
     }
 
+    GlassBlurPanel {
+        anchors.fill: parent
+        z: 0
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 20

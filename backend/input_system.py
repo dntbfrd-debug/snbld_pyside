@@ -272,12 +272,12 @@ class InputSystem:
         inputs[0].type = 0
         inputs[0].union.mi.dx = norm_x
         inputs[0].union.mi.dy = norm_y
-        inputs[0].union.mi.dwFlags = 0x8000 | 0x0002
+        inputs[0].union.mi.dwFlags = 0x8000 | 0x0001 | 0x0002
         inputs[0].union.mi.time = 0
         inputs[1].type = 0
         inputs[1].union.mi.dx = norm_x
         inputs[1].union.mi.dy = norm_y
-        inputs[1].union.mi.dwFlags = 0x8000 | 0x0004
+        inputs[1].union.mi.dwFlags = 0x8000 | 0x0001 | 0x0004
         inputs[1].union.mi.time = 0
         SendInput(2, inputs, ctypes.sizeof(INPUT))
         logger.debug(f" Клик AT ({x},{y}) через SendInput")

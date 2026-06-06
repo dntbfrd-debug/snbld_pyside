@@ -150,8 +150,6 @@ def create_helper_files(base_dir):
     py_count = 0
     for root, dirs, files in os.walk(dist_dir):
         for file in files:
-            if file == "macros_core.py":
-                continue
             if file.endswith(".py") or file.endswith(".pyc") or file.endswith(".pyo"):
                 file_path = Path(root) / file
                 try:
@@ -160,7 +158,6 @@ def create_helper_files(base_dir):
                 except Exception as e:
                     print(f"    Не удалось удалить {file}: {e}")
     print(f"   [OK] Удалено исходных файлов: {py_count}")
-    print("   [OK] macros_core.py СОХРАНЁН!")
     
     print("\n   [ОЧИСТКА DLL] Удаление неиспользуемых Qt DLL...")
     dll_remove_patterns = [

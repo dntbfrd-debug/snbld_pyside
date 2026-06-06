@@ -42,7 +42,6 @@ class MacroDispatcher:
         self.launch_debounce = 0.08
 
         self.macro_queue: list = []
-        self.queue_lock = threading.Lock()
         self.MAX_QUEUE_SIZE = 100
         self._queue_stop_event = threading.Event()
 
@@ -68,6 +67,7 @@ class MacroDispatcher:
         self._restart_window_sec = 60.0
 
         self._queue_thread = None
+        self._stuck_skip_counter = {}
         self._start_queue_processor()
 
         self.running = True
@@ -117,11 +117,14 @@ class MacroDispatcher:
             return True
 
     def health_check(self) -> dict:
+        with self.lock:
+            queue_size = len(self.macro_queue) if hasattr(self, 'macro_queue') else 0
+            cast_locked = time.time() < self.cast_lock_until
         status = {
             'queue_processor_alive': self._queue_thread is not None and self._queue_thread.is_alive(),
             'active_macros_count': len(self._get_active_macros()),
-            'queue_size': len(self.macro_queue) if hasattr(self, 'macro_queue') else 0,
-            'cast_locked': time.time() < self.cast_lock_until,
+            'queue_size': queue_size,
+            'cast_locked': cast_locked,
         }
         if not status['queue_processor_alive'] and self.running:
             logger.warning("[DISPATCHER] Поток обработчика очереди неактивен — перезапуск")
@@ -206,12 +209,13 @@ class MacroDispatcher:
 
             self._active_macros_set(macro.name, macro)
 
-        # Запуск макроса ВНЕ блокировки — start() может блокироваться (join внутри)
-        try:
-            macro.start()
-        except Exception as e:
-            logger.error(f" {macro.name}: ОШИБКА при запуске: {str(e)}", exc_info=True)
-            with self.lock:
+        # Запуск под lock — закрывает гонку: другой поток не может пройти проверки
+        # между active_macros_set и macro.start(), т.к. все проверки внутри этого же lock.
+        # macro.start() использует отдельный start_lock, поэтому deadlock невозможен.
+            try:
+                macro.start()
+            except Exception as e:
+                logger.error(f" {macro.name}: ОШИБКА при запуске: {str(e)}", exc_info=True)
                 self._active_macros_pop(macro.name)
                 if cooldown > 0 and hasattr(macro, 'last_used'):
                     try:
@@ -223,11 +227,8 @@ class MacroDispatcher:
                     except Exception:
                         pass
                 self.cast_lock_until = 0.0
-            return False
+                return False
 
-        # Записываем время запуска ТОЛЬКО после успешного start() — иначе debounce
-        # может блокировать следующие вызовы, хотя макрос ещё не запущен.
-        with self.lock:
             self.last_launch_time = time.time()
             self._macro_last_launch[macro.name] = self.last_launch_time
         logger.info(f" {macro.name}: ЗАПУЩЕН")
@@ -286,10 +287,7 @@ class MacroDispatcher:
             try:
                 with self.lock:
                     now = time.time()
-                    cast_lock_ok = (now >= self.cast_lock_until)
-
-                with self.queue_lock:
-                    if not cast_lock_ok:
+                    if now < self.cast_lock_until:
                         continue
 
                     expired_count = 0
@@ -330,9 +328,16 @@ class MacroDispatcher:
                             heapq.heappush(self.macro_queue, queued)
                             continue
 
-                        if getattr(macro, 'running', False):
+                        if getattr(macro, 'running', threading.Event()).is_set():
+                            skip_count = self._stuck_skip_counter.get(macro.name, 0) + 1
+                            if skip_count >= 10:
+                                logger.warning(f" {macro.name}: удалён из очереди (running завис, {skip_count} пропусков)")
+                                self._stuck_skip_counter.pop(macro.name, None)
+                                continue
+                            self._stuck_skip_counter[macro.name] = skip_count
                             heapq.heappush(self.macro_queue, queued)
                             continue
+                        self._stuck_skip_counter.pop(macro.name, None)
 
                         if hasattr(self.backend, 'global_stopped') and self.backend.global_stopped:
                             heapq.heappush(self.macro_queue, queued)
@@ -341,13 +346,6 @@ class MacroDispatcher:
                         if now - self.last_launch_time < self.launch_debounce:
                             heapq.heappush(self.macro_queue, queued)
                             continue
-
-                        cast_time = getattr(macro, 'cast_time', 0)
-                        if cast_time > 0:
-                            actual_cast_time = self.backend.get_actual_cast_time(cast_time)
-                            margin = self.backend.settings.get("cast_lock_margin", DEFAULT_CAST_LOCK_MARGIN)
-                            lock_duration = actual_cast_time + margin
-                            self.cast_lock_until = now + lock_duration
 
                         if cooldown > 0 and hasattr(macro, 'last_used'):
                             if hasattr(macro, 'cooldown_lock'):
@@ -364,27 +362,54 @@ class MacroDispatcher:
                         self._update_stats(macro.name, 'queued_launched')
 
                         self.stats['launched'] += 1
+                        self._active_macros_set(macro.name, macro)
                         logger.info(f" {macro.name}: запуск из очереди (приоритет {queued.priority}, ждал {now - queued.timestamp:.2f}с)")
 
-                    # Запуск макроса ВНЕ блокировок
                     try:
                         macro.start()
                         logger.info(f" {macro.name}: запущен из очереди")
                     except Exception as e:
                         logger.error(f" {macro.name}: ошибка при запуске из очереди: {e}", exc_info=True)
-                        with self.lock:
-                            self.cast_lock_until = 0.0
+                        self._active_macros_pop(macro.name)
+                        self.cast_lock_until = 0.0
 
             except Exception as e:
                 logger.error(f" Ошибка в обработчике очереди: {str(e)}", exc_info=True)
                 with self.lock:
                     self.cast_lock_until = 0.0
-                with self.queue_lock:
-                    self.macro_queue.clear()
-                logger.warning("[QUEUE] Очередь очищена после ошибки")
+
+    def can_launch_zone(self, macro) -> bool:
+        """Проверить условия для ZoneMacro — без проверки running (поток-слушатель жив)
+        и без вызова macro.start(). Возвращает True, если можно выполнять steps.
+        Обновляет cooldown и статистику."""
+        now = time.time()
+        with self.lock:
+            self._ensure_stats_exists(macro.name)
+            if now < self.cast_lock_until:
+                self.stats['blocked_cast'] += 1
+                self._update_stats(macro.name, 'blocked_cast')
+                return False
+            cooldown_margin = self.backend.settings.get("cooldown_margin", 0.3)
+            effective_cooldown = getattr(macro, 'cooldown', 0) + cooldown_margin
+            if macro.cooldown > 0 and now < macro.last_used + effective_cooldown:
+                self.stats['blocked_cooldown'] += 1
+                self._update_stats(macro.name, 'blocked_cooldown')
+                return False
+            if now - self.last_launch_time < self.launch_debounce:
+                return False
+            if macro.cooldown > 0:
+                if hasattr(macro, 'cooldown_lock'):
+                    with macro.cooldown_lock:
+                        macro.last_used = now
+                else:
+                    macro.last_used = now
+            self.last_launch_time = now
+            self.stats['launched'] += 1
+            self._update_stats_launch(macro.name, now)
+        return True
 
     def clear_queue(self):
-        with self.queue_lock:
+        with self.lock:
             count = len(self.macro_queue)
             self.macro_queue.clear()
             logger.info(f"[QUEUE] Очередь очищена ({count} макросов удалено)")
@@ -450,11 +475,14 @@ class MacroDispatcher:
 
     def stop(self):
         self._queue_stop_event.set()
-        with self.queue_lock:
+        with self.lock:
             self.macro_queue.clear()
         logger.info("[DISPATCHER] Обработчик очереди остановлен")
         
     def restart_queue_processor(self):
+        self._queue_stop_event.set()
+        if self._queue_thread and self._queue_thread.is_alive():
+            self._queue_thread.join(timeout=2.0)
         self._queue_stop_event.clear()
         self._start_queue_processor()
         logger.info("[DISPATCHER] Обработчик очереди перезапущен")

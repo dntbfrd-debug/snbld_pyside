@@ -156,21 +156,6 @@ kernel32.GetModuleHandleW.argtypes = [ctypes.c_wchar_p]
 kernel32.GetCurrentThreadId.restype = ctypes.wintypes.DWORD
 
 
-_VK_NAME = {
-    'backspace': 0x08,  'tab': 0x09,   'enter': 0x0D,
-    'shift': 0x10,       'ctrl': 0x11,  'alt': 0x12,
-    'pause': 0x13,       'capslock': 0x14,  'esc': 0x1B,
-    'space': 0x20,       'pageup': 0x21,    'pagedown': 0x22,
-    'end': 0x23,         'home': 0x24,
-    'left': 0x25,        'up': 0x26,        'right': 0x27,  'down': 0x28,
-    'printscreen': 0x2C, 'insert': 0x2D,    'delete': 0x2E,
-    'f1': 0x70, 'f2': 0x71,  'f3': 0x72,  'f4': 0x73,
-    'f5': 0x74, 'f6': 0x75,  'f7': 0x76,  'f8': 0x77,
-    'f9': 0x78, 'f10': 0x79, 'f11': 0x7A,  'f12': 0x7B,
-}
-_VK_NAME.update({str(k): ord(str(k)) for k in range(10)})
-_VK_NAME.update({chr(c): ord(chr(c).upper()) for c in range(ord('a'), ord('z')+1)})
-
 _MODIFIER_MAP = {
     'ctrl': VK_CONTROL, 'control': VK_CONTROL,
     'shift': VK_SHIFT,
@@ -214,11 +199,9 @@ class InputBlocker:
         self._blocked_buttons = set()
         
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=5, thread_name_prefix="InputBlocker")
-        self._executor_shutdown = False
         self._emergency_stop_requested = False
 
         # Регистрация дополнительных callback'ов горячих клавиш
-        # (чтобы не создавать отдельный WH_KEYBOARD_LL в HotkeyManager)
         self._hotkey_callbacks = {}
         self._hotkey_lock = threading.Lock()
 
@@ -321,22 +304,13 @@ class InputBlocker:
                     continue
                 for cb, suppress in callbacks:
                     try:
-                        cb()
+                        cb(None)
                     except Exception as e:
                         logger.error(f"[InputBlocker] Ошибка в callback горячей клавиши: {e}", exc_info=True)
                     if suppress:
                         suppress_all = True
         return suppress_all
 
-
-    def _macros(self):
-        try:
-            be = self._get_backend()
-            if be is not None and hasattr(be, '_macros'):
-                return be._macros
-        except Exception:
-            pass
-        return []
 
     def _is_game_window_active(self) -> bool:
         try:
@@ -592,15 +566,7 @@ class InputBlocker:
             logger.error(f"[InputBlocker] Ошибка в потоке хуков: {e}", exc_info=True)
         finally:
             self._cleanup_hooks()
-            if self._emergency_stop_requested:
-                logger.info("[InputBlocker] Экстренная остановка — очистка executor'а")
-                self._emergency_stop_requested = False
-                if hasattr(self, '_executor') and self._executor is not None:
-                    try:
-                        self._executor.shutdown(wait=True, timeout=1)
-                    except Exception:
-                        pass
-                    self._executor = None
+            self._emergency_stop_requested = False
             logger.info("[InputBlocker] Поток хуков завершён")
 
     def _cleanup_hooks(self):
@@ -634,11 +600,6 @@ class InputBlocker:
                 logger.debug("[InputBlocker] Уже запущен")
                 return
 
-            if self._executor is None:
-                self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=5, thread_name_prefix="InputBlocker")
-                self._executor_shutdown = False
-                logger.info("[InputBlocker] ThreadPoolExecutor пересоздан")
-
             self._running = True
             self.stats = {k: 0 for k in self.stats}
 
@@ -668,7 +629,6 @@ class InputBlocker:
                 return
 
             self._running = False
-            self._executor_shutdown = True
 
             if self._thread_id:
                 try:
@@ -686,14 +646,6 @@ class InputBlocker:
             self._blocked_keys_time.clear()
             self._blocked_buttons.clear()
             self._blocked_buttons_time.clear()
-
-            if hasattr(self, '_executor') and self._executor is not None:
-                try:
-                    self._executor.shutdown(wait=True, timeout=1)
-                except Exception:
-                    pass
-                self._executor = None
-                logger.info("[InputBlocker] ThreadPoolExecutor остановлен и очищен")
 
             self._thread_id = None
 

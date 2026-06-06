@@ -1,42 +1,223 @@
-import logging
 import os
 import sys
-import time
-import json
+import ssl
 import threading
 import webbrowser
+import hashlib
+import tempfile
+import zipfile
+import ctypes
+from ctypes import wintypes
+
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.ssl_ import create_urllib3_context
 
 from PySide6.QtCore import Slot, Signal
 
 from backend.logger_manager import get_logger
-from constants import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, SELECTEL_ACCESS_KEY, SELECTEL_SECRET_KEY
+from auth import (load_session, check_session, check_key, load_key_from_file,
+                  save_key_to_file, get_hwid, activate_key, HeartbeatManager,
+                  get_server_tokens, check_subscription_by_hwid)
+
+
+# SPKI SHA256 сертификата snbld.ru для certificate pinning
+# Текущий сертификат: Let's Encrypt R12, истекает 2026-08-14
+UPDATE_CERT_SPKI_HASH = "39ef54f85357b610db14814ba3a6ef17efe4ed446f742b1487702329b91dd907"
+_DOWNLOAD_TIMEOUT = 300
+_DOWNLOAD_CHUNK_SIZE = 65536
+_MIN_UPDATE_SIZE = 1_000_000
 
 logger = get_logger('backend')
 
 
-def _sanitize_error(msg):
+def _sanitize_error(msg, secrets=None):
     if not msg:
         return ""
     sanitized = msg.replace("\n", " ").replace("\r", " ").strip()
+    if secrets:
+        for val in secrets.values():
+            if val and len(val) > 8:
+                sanitized = sanitized.replace(val, "***")
     if len(sanitized) > 200:
         sanitized = sanitized[:200] + "..."
     return sanitized
 
 
+class PinningAdapter(HTTPAdapter):
+    """Transport adapter с certificate pinning по SPKI хашу."""
+    def __init__(self, pin_spki_hex=None):
+        self.pin_spki_hex = pin_spki_hex or UPDATE_CERT_SPKI_HASH
+        super().__init__()
+
+    def init_poolmanager(self, *args, **kwargs):
+        ctx = create_urllib3_context(cert_reqs=ssl.CERT_REQUIRED)
+        ctx.check_hostname = True
+        ctx.verify_mode = ssl.CERT_REQUIRED
+        ctx.load_default_certs()
+        ctx.set_ciphers('DEFAULT@SECLEVEL=1')
+        kwargs['ssl_context'] = ctx
+        return super().init_poolmanager(*args, **kwargs)
+
+    def cert_verify(self, conn, url, verify, cert):
+        super().cert_verify(conn, url, verify, cert)
+        if conn.is_verified:
+            der = conn.sock.getpeercert(binary_form=True)
+            from cryptography import x509
+            from cryptography.hazmat.primitives import serialization
+            cert_obj = x509.load_der_x509_certificate(der)
+            pubkey = cert_obj.public_key()
+            spki = pubkey.public_bytes(
+                serialization.Encoding.DER,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo
+            )
+            actual = hashlib.sha256(spki).hexdigest()
+            if actual != self.pin_spki_hex:
+                raise requests.exceptions.SSLError(
+                    f"Certificate pinning failed: expected SPKI {self.pin_spki_hex}, got {actual}"
+                )
+
+
+def _create_pinned_session():
+    session = requests.Session()
+    adapter = PinningAdapter()
+    session.mount('https://', adapter)
+    return session
+
+
+def _verify_authenticode(file_path):
+    """Проверить цифровую подпись Authenticode файла через WinVerifyTrust."""
+    try:
+        wintrust = ctypes.windll.wintrust
+        WINTRUST_ACTION_GENERIC_VERIFY_V2 = (
+            wintypes.GUID(
+                0xAAC56B, 0xCD44, 0x11D0,
+                (0x8C, 0xC2, 0x0, 0x80, 0xC7, 0x3C, 0xE0, 0x86)
+            )
+        )
+        class WINTRUST_FILE_INFO(ctypes.Structure):
+            _fields_ = [
+                ("cbStruct", wintypes.DWORD),
+                ("pcwszFilePath", wintypes.LPCWSTR),
+                ("hFile", wintypes.HANDLE),
+                ("pgKnownSubject", ctypes.c_void_p),
+            ]
+        class WINTRUST_DATA(ctypes.Structure):
+            _fields_ = [
+                ("cbStruct", wintypes.DWORD),
+                ("pPolicyCallbackData", ctypes.c_void_p),
+                ("pSIPCallbackData", ctypes.c_void_p),
+                ("dwUIChoice", wintypes.DWORD),
+                ("fdwRevocationChecks", wintypes.DWORD),
+                ("dwUnionChoice", wintypes.DWORD),
+                ("pFile", ctypes.POINTER(WINTRUST_FILE_INFO)),
+                ("dwStateAction", wintypes.DWORD),
+                ("hWVTStateData", ctypes.c_void_p),
+                ("pwszURLReference", wintypes.LPCWSTR),
+                ("dwProvFlags", wintypes.DWORD),
+                ("dwUIContext", wintypes.DWORD),
+            ]
+        WTD_UI_NONE = 2
+        WTD_REVOKE_NONE = 0
+        WTD_CHOICE_FILE = 1
+        WTD_STATEACTION_IGNORE = 0
+        WTD_STATEACTION_VERIFY = 1
+        WTD_STATEACTION_CLOSE = 2
+        WTD_PROV_FLAGS_MASK = 0xFF
+        WTD_UICONTEXT_EXECUTE = 0
+
+        file_info = WINTRUST_FILE_INFO()
+        file_info.cbStruct = ctypes.sizeof(WINTRUST_FILE_INFO)
+        file_info.pcwszFilePath = file_path
+        file_info.hFile = None
+        file_info.pgKnownSubject = None
+
+        trust_data = WINTRUST_DATA()
+        trust_data.cbStruct = ctypes.sizeof(WINTRUST_DATA)
+        trust_data.pPolicyCallbackData = None
+        trust_data.pSIPCallbackData = None
+        trust_data.dwUIChoice = WTD_UI_NONE
+        trust_data.fdwRevocationChecks = WTD_REVOKE_NONE
+        trust_data.dwUnionChoice = WTD_CHOICE_FILE
+        trust_data.pFile = ctypes.pointer(file_info)
+        trust_data.dwStateAction = WTD_STATEACTION_VERIFY
+        trust_data.hWVTStateData = None
+        trust_data.pwszURLReference = None
+        trust_data.dwProvFlags = WTD_PROV_FLAGS_MASK
+        trust_data.dwUIContext = WTD_UICONTEXT_EXECUTE
+
+        result = wintrust.WinVerifyTrust(
+            wintypes.HANDLE(0),
+            ctypes.byref(WINTRUST_ACTION_GENERIC_VERIFY_V2),
+            ctypes.byref(trust_data)
+        )
+        trust_data.dwStateAction = WTD_STATEACTION_CLOSE
+        wintrust.WinVerifyTrust(
+            wintypes.HANDLE(0),
+            ctypes.byref(WINTRUST_ACTION_GENERIC_VERIFY_V2),
+            ctypes.byref(trust_data)
+        )
+        TRUST_E_SUBJECT_NOT_TRUSTED = 0x800B000B
+        if result == 0:
+            return True
+        elif result == TRUST_E_SUBJECT_NOT_TRUSTED:
+            logger.warning(f"[UPDATE] Authenticode: файл не от доверенного издателя: {file_path}")
+            return False
+        else:
+            logger.warning(f"[UPDATE] Authenticode: ошибка проверки 0x{result:08X}: {file_path}")
+            return False
+    except Exception as e:
+        logger.error(f"[UPDATE] Authenticode: исключение при проверке {file_path}: {e}")
+        return False
+
+
+def _verify_update_zip(zip_path, version):
+    """Распаковать ZIP с обновлением и проверить Authenticode подпись EXE внутри."""
+    tmp_dir = None
+    try:
+        tmp_dir = tempfile.mkdtemp(prefix=f"snbld_update_{version}_")
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            zf.extractall(tmp_dir)
+        exe_candidates = []
+        for root, dirs, files in os.walk(tmp_dir):
+            for f in files:
+                if f.lower().endswith('.exe'):
+                    exe_candidates.append(os.path.join(root, f))
+        if not exe_candidates:
+            logger.warning(f"[UPDATE] В ZIP не найдено EXE-файлов для проверки подписи")
+            return True
+        for exe_path in exe_candidates:
+            if not _verify_authenticode(exe_path):
+                logger.error(f"[UPDATE] Authenticode не прошёл: {exe_path}")
+                return False
+        logger.info(f"[UPDATE] Authenticode проверен: {len(exe_candidates)} exe")
+        return True
+    except Exception as e:
+        logger.error(f"[UPDATE] Ошибка проверки ZIP: {e}")
+        return False
+    finally:
+        if tmp_dir and os.path.exists(tmp_dir):
+            import shutil
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
 class AuthMixin:
+
+    _secrets: dict = {}
+
+    def _san(self, msg):
+        return _sanitize_error(msg, self._secrets)
 
     activationResult = Signal(str, str)  # status, message ("success"/"error", details)
     def _check_activation_on_startup(self):
         logger.info("[AUTH] Проверка активации...")
-        from auth import load_session, check_session, check_key, load_key_from_file, save_key_to_file, get_hwid
-
         session_data = load_session()
         if session_data and 'session_id' in session_data:
             logger.info(f"[AUTH] Сессия найдена: {session_data['session_id'][:16]}...")
             valid, session_info = check_session(session_data['session_id'])
             if valid and session_info:
                 if session_info.get('blocked'):
-                    logger.warning(f"[AUTH] Сессия ЗАБЛОКИРОВАНА! Причина: {_sanitize_error(session_info.get('error', ''))}")
+                    logger.warning(f"[AUTH] Сессия ЗАБЛОКИРОВАНА! Причина: {self._san(session_info.get('error', ''))}")
                     self._is_activated = False
                     self._activation_status = "error"
                     self._subscription_info = {'blocked': True, 'error': session_info.get('error', '')}
@@ -48,9 +229,9 @@ class AuthMixin:
                     save_key_to_file(self._activation_key)
                 key_valid, key_info = check_key(self._activation_key, hwid=get_hwid()) if self._activation_key else (False, None)
                 if key_info:
-                    logger.info(f"[AUTH] check_key: valid={key_valid}, blocked={key_info.get('blocked')}, error={_sanitize_error(key_info.get('error', ''))}")
-                    if key_info.get('blocked') or (not key_valid and 'соединен' not in _sanitize_error(key_info.get('error', '')).lower() and 'таймаут' not in _sanitize_error(key_info.get('error', '')).lower()):
-                        reason = _sanitize_error(key_info.get('error', 'Ключ заблокирован или недействителен'))
+                    logger.info(f"[AUTH] check_key: valid={key_valid}, blocked={key_info.get('blocked')}, error={self._san(key_info.get('error', ''))}")
+                    if key_info.get('blocked') or (not key_valid and 'соединен' not in self._san(key_info.get('error', '')).lower() and 'таймаут' not in self._san(key_info.get('error', '')).lower()):
+                        reason = self._san(key_info.get('error', 'Ключ заблокирован или недействителен'))
                         logger.warning(f"[AUTH] Ключ ЗАБЛОКИРОВАН/НЕДЕЙСТВИТЕЛЕН! Причина: {reason}")
                         self._is_activated = False
                         self._activation_status = "error"
@@ -85,7 +266,7 @@ class AuthMixin:
             if valid:
                 server_activated = key_data.get('activated', False)
                 if is_blocked:
-                    logger.warning(f"[AUTH] Ключ ЗАБЛОКИРОВАН! Причина: {_sanitize_error(key_data.get('error', ''))}")
+                    logger.warning(f"[AUTH] Ключ ЗАБЛОКИРОВАН! Причина: {self._san(key_data.get('error', ''))}")
                     self._is_activated = False
                     self._activation_status = "error"
                     self._subscription_info = {'blocked': True, 'error': key_data.get('error', '')}
@@ -94,7 +275,6 @@ class AuthMixin:
                     return
                 if not server_activated:
                     logger.warning("[AUTH] Ключ не активирован на сервере, активирую...")
-                    from auth import activate_key
                     success, act_data = activate_key(self._activation_key)
                     if success:
                         valid, key_data = check_key(self._activation_key, hwid=hwid)
@@ -128,8 +308,6 @@ class AuthMixin:
         logger.warning("[AUTH] Ключ не найден, программа не активирована")
 
     def _start_heartbeat(self):
-        from auth import HeartbeatManager, load_session
-
         session_data = load_session()
         if session_data and 'session_id' in session_data:
             self._heartbeat_manager = HeartbeatManager(check_interval=300)
@@ -155,7 +333,6 @@ class AuthMixin:
         self._heartbeat_timer.start(300000)
 
     def _load_server_tokens(self):
-        from auth import get_server_tokens, load_session
         session_data = load_session()
         session_id = session_data.get('session_id') if session_data else None
         key = self._activation_key
@@ -175,7 +352,6 @@ class AuthMixin:
         logger.info(f"[AUTH] check_session: valid={valid}, data={data}")
         if not valid and data and 'Session not found' in data.get('error', ''):
             logger.info("[AUTH] Сессия не найдена, проверяю ключ напрямую...")
-            from auth import check_key, get_hwid
             if self._activation_key:
                 hwid = get_hwid()
                 valid, data = check_key(self._activation_key, hwid=hwid)
@@ -189,7 +365,7 @@ class AuthMixin:
                     error_lower = error_msg.lower()
                     is_blocked = any(w in error_lower for w in ['blocked', 'disabled', 'inactive', 'no longer active', 'expired', 'not found'])
             if is_blocked:
-                logger.warning(f"[AUTH] Ключ заблокирован! Причина: {_sanitize_error(data.get('error', ''))}")
+                logger.warning(f"[AUTH] Ключ заблокирован! Причина: {self._san(data.get('error', ''))}")
                 self._is_activated = False
                 self._subscription_info = {}
                 self.activationStatusChanged.emit()
@@ -199,7 +375,7 @@ class AuthMixin:
             else:
                 logger.debug("[AUTH] Heartbeat OK")
         elif not valid:
-            error_msg = _sanitize_error(data.get('error', '') if data else 'Нет данных')
+            error_msg = self._san(data.get('error', '') if data else 'Нет данных')
             logger.warning(f"[AUTH] Ключ НЕВАЛИДЕН! Причина: {error_msg}")
             self._is_activated = False
             self._subscription_info = {}
@@ -209,17 +385,7 @@ class AuthMixin:
             self.notification.emit("Подписка истекла или заблокирована!", "warning")
 
     def get_secret(self, key: str) -> str:
-        if key in self._secrets:
-            return self._secrets[key]
-        if key == "TELEGRAM_BOT_TOKEN":
-            return TELEGRAM_BOT_TOKEN
-        if key == "TELEGRAM_CHAT_ID":
-            return TELEGRAM_CHAT_ID
-        if key == "SELECTEL_ACCESS_KEY":
-            return SELECTEL_ACCESS_KEY
-        if key == "SELECTEL_SECRET_KEY":
-            return SELECTEL_SECRET_KEY
-        return ""
+        return self._secrets.get(key, "")
 
     @Slot(str)
     def activateWithKey(self, key):
@@ -229,7 +395,6 @@ class AuthMixin:
         logger.info(f"[AUTH] Запрос асинхронной активации по ключу: {key_stripped[:4]}...{key_stripped[-4:] if len(key_stripped) > 4 else ''}")
 
         def _activate_worker():
-            from auth import activate_key, save_key_to_file
             try:
                 success, data = activate_key(key_stripped)
                 if success:
@@ -252,18 +417,18 @@ class AuthMixin:
                     logger.info(f"[AUTH] Программа активирована! Тип: {data.get('key_type')}, До: {data.get('expires_at')}")
                     self.activationResult.emit("success", "Программа активирована!")
                 else:
-                    error_msg = _sanitize_error(data.get('error', 'Неизвестная ошибка'))
+                    error_msg = self._san(data.get('error', 'Неизвестная ошибка'))
                     logger.error(f"[AUTH] Ошибка активации: {error_msg}")
                     self.activationResult.emit("error", error_msg)
             except Exception as e:
                 logger.error(f"[AUTH] Критическая ошибка при активации: {e}", exc_info=True)
                 self.activationResult.emit("error", str(e))
 
-        threading.Thread(target=_activate_worker, daemon=True, name="ActivateKey").start()
+        from utils.thread_utils import run_async
+        run_async(_activate_worker)
 
     @Slot(result=str)
     def getHwid(self):
-        from auth import get_hwid
         return get_hwid()
 
     def _get_current_version(self):
@@ -300,12 +465,11 @@ class AuthMixin:
             return
         def download_worker():
             try:
-                import hashlib
-                import requests
                 updates_dir = os.path.join(self.app_dir, 'updates')
                 os.makedirs(updates_dir, exist_ok=True)
                 filename = f"update_{version}.zip"
                 filepath = os.path.join(updates_dir, filename)
+
                 if expected_checksum and os.path.exists(filepath) and os.path.getsize(filepath) > 1_000_000:
                     sha256 = hashlib.sha256()
                     with open(filepath, 'rb') as f:
@@ -313,7 +477,11 @@ class AuthMixin:
                             sha256.update(chunk)
                     if sha256.hexdigest() == expected_checksum:
                         logger.info(f"[UPDATE] Обновление уже загружено и проверено: {filepath}")
-                        self.updateDownloadComplete.emit(filepath, version)
+                        if _verify_update_zip(filepath, version):
+                            self.updateDownloadComplete.emit(filepath, version)
+                        else:
+                            logger.error(f"[UPDATE] Authenticode кэшированного файла не прошёл, перезагрузка")
+                            os.remove(filepath)
                         return
                     else:
                         logger.warning(f"[UPDATE] Кэшированный файл не совпадает по checksum, перезагрузка")
@@ -321,7 +489,8 @@ class AuthMixin:
 
                 logger.info(f"[UPDATE] Загрузка обновления: {download_url}")
                 self.updateDownloadProgress.emit(0, 0)
-                resp = requests.get(download_url, timeout=300, stream=True)
+                session = _create_pinned_session()
+                resp = session.get(download_url, timeout=_DOWNLOAD_TIMEOUT, stream=True)
                 resp.raise_for_status()
                 total_size = int(resp.headers.get('content-length', 0))
                 downloaded = 0
@@ -329,7 +498,7 @@ class AuthMixin:
                 tmp_path = filepath + ".tmp"
                 sha256 = hashlib.sha256()
                 with open(tmp_path, 'wb') as f:
-                    for chunk in resp.iter_content(chunk_size=65536):
+                    for chunk in resp.iter_content(chunk_size=_DOWNLOAD_CHUNK_SIZE):
                         if chunk:
                             f.write(chunk)
                             sha256.update(chunk)
@@ -347,7 +516,7 @@ class AuthMixin:
                         return
 
                 file_size = os.path.getsize(tmp_path)
-                if file_size < 1_000_000:
+                if file_size < _MIN_UPDATE_SIZE:
                     logger.error(f"[UPDATE] Загруженный файл слишком мал: {file_size} байт")
                     self.notification.emit("Ошибка загрузки: файл повреждён", "error")
                     if os.path.exists(tmp_path):
@@ -355,13 +524,23 @@ class AuthMixin:
                     return
 
                 os.replace(tmp_path, filepath)
-                logger.info(f"[UPDATE] Обновление загружено и проверено: {filepath} ({file_size / 1_000_000:.1f}MB)")
+                if not _verify_update_zip(filepath, version):
+                    logger.error(f"[UPDATE] Authenticode не прошёл, удаление файла")
+                    os.remove(filepath)
+                    self.notification.emit("Ошибка: файл обновления недействителен (подпись не прошла)", "error")
+                    return
+
+                logger.info(f"[UPDATE] Обновление загружено и проверено: {filepath} ({file_size / _MIN_UPDATE_SIZE:.1f}MB)")
                 self.updateDownloadProgress.emit(file_size, file_size)
                 self.updateDownloadComplete.emit(filepath, version)
+            except requests.exceptions.SSLError as e:
+                logger.error(f"[UPDATE] Ошибка SSL/pinning: {e}")
+                self.notification.emit("Ошибка: сервер обновлений не прошёл проверку безопасности", "error")
             except Exception as e:
                 logger.error(f"[UPDATE] Ошибка загрузки обновления: {e}")
                 self.notification.emit(f"Ошибка загрузки: {e}", "error")
-        threading.Thread(target=download_worker, daemon=True).start()
+        from utils.thread_utils import run_async
+        run_async(download_worker)
 
     @Slot(str, str)
     def install_update(self, update_zip_path, version):
@@ -374,6 +553,15 @@ class AuthMixin:
             logger.error(f"[UPDATE] ZIP обновления не найден: {update_zip_path}")
             self.notification.emit("Файл обновления не найден", "error")
             return
+        current = self._get_current_version()
+        try:
+            from packaging import version
+            if version.parse(version) < version.parse(current):
+                logger.warning(f"[UPDATE] Попытка установки старой версии {version} < текущей {current}, отклонено")
+                self.notification.emit(f"Ошибка: версия {version} ниже текущей {current}", "error")
+                return
+        except Exception as e:
+            logger.warning(f"[UPDATE] Не удалось сравнить версии: {e}, продолжаем")
         install_dir = _get_app_dir()
         updater_path = os.path.join(install_dir, 'updater.exe')
         if not os.path.exists(updater_path):
@@ -417,7 +605,6 @@ class AuthMixin:
 
     @Slot(result='QVariant')
     def getActivationStatus(self):
-        from auth import load_session, load_key_from_file, get_hwid, check_subscription_by_hwid
         session = load_session()
         hwid = get_hwid()
         sub_status = check_subscription_by_hwid(hwid)

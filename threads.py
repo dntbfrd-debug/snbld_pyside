@@ -11,6 +11,16 @@ from typing import List, Optional, Tuple
 from backend.win32_api import process_exists, find_processes_by_name, get_process_tcp_connections
 from backend.logger_manager import get_logger
 
+_kernel32 = ctypes.windll.kernel32
+
+
+def _get_oem_encoding() -> str:
+    try:
+        cp = _kernel32.GetOEMCP()
+        return f'cp{cp}'
+    except Exception:
+        return 'utf-8'
+
 from PySide6.QtCore import QThread, Signal
 
 from constants import VIRTUAL_KEYS, MOVEMENT_MONITOR_BASE_INTERVAL, MOVEMENT_MONITOR_IDLE_INTERVAL
@@ -489,13 +499,14 @@ class PingMonitor(QThread):
                 startupinfo.wShowWindow = 0
                 creationflags = subprocess.CREATE_NO_WINDOW
 
+            encoding = _get_oem_encoding()
             try:
                 result = subprocess.run(
                     ['ping', '-n', '2', ip],
                     capture_output=True,
                     text=True,
                     timeout=8,
-                    encoding='cp866',
+                    encoding=encoding,
                     startupinfo=startupinfo,
                     creationflags=creationflags
                 )

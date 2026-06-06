@@ -189,6 +189,13 @@ Item {
         }
     }
 
+    onVisibleChanged: {
+        if (visible) {
+            macrosRepeater.model = null
+            macrosRepeater.model = backend.macros
+        }
+    }
+
     Connections {
         target: backend
         function onMacrosChanged() {

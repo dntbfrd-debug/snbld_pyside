@@ -511,14 +511,14 @@ class TargetWorker(QObject):
             try:
                 new_distance = float(num)
                 
-                if new_distance < 0.5 or new_distance >= 100:
-                    _get_logger().debug(f"[OCR] Отброшен мусор: {new_distance}")
-                    continue
-
                 if new_distance >= 100:
                     fixed = new_distance / 10
                     _get_logger().debug(f"[OCR] Автоматическое исправление: {new_distance} → {fixed:.1f}м (потеряна точка)")
                     new_distance = fixed
+
+                if new_distance < 0.5 or new_distance > 100:
+                    _get_logger().debug(f"[OCR] Отброшен мусор: {new_distance}")
+                    continue
 
                 self.last_distance[target_type] = new_distance
                 self.last_success_time[target_type] = time.time()

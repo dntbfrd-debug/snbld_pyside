@@ -2,7 +2,7 @@
 import ctypes
 from ctypes import wintypes, Structure, POINTER, byref
 from typing import Optional, List, Tuple
-from backend.logger_manager import get_logger
+
 
 _user32 = ctypes.windll.user32
 _kernel32 = ctypes.windll.kernel32
@@ -85,7 +85,7 @@ WM_LBUTTONUP = 0x0202
 WM_RBUTTONDOWN = 0x0204
 WM_RBUTTONUP = 0x0205
 WM_MOUSEMOVE = 0x0200
-WM_CLOSE = 0x0010
+
 
 MK_LBUTTON = 0x0001
 MK_RBUTTON = 0x0002
@@ -102,6 +102,7 @@ TH32CS_SNAPPROCESS = 0x00000002
 TH32CS_SNAPTHREAD = 0x00000004
 
 PROCESS_QUERY_INFORMATION = 0x0400
+PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 PROCESS_VM_READ = 0x0010
 STILL_ACTIVE = 259
 
@@ -263,10 +264,18 @@ def find_processes_by_name(name: str) -> List[Tuple[int, str]]:
         _kernel32.CloseHandle(snapshot)
 
 def get_process_name(pid) -> Optional[str]:
-    for pid2, name in find_processes_by_name(''):
-        if pid2 == pid:
-            return name
-    return None
+    handle = _kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+    if not handle:
+        return None
+    try:
+        buf = ctypes.create_unicode_buffer(260)
+        size = wintypes.DWORD(260)
+        if _kernel32.QueryFullProcessImageNameW(handle, 0, buf, ctypes.byref(size)):
+            import os
+            return os.path.basename(buf.value)
+        return None
+    finally:
+        _kernel32.CloseHandle(handle)
 
 def get_process_tcp_connections(pid) -> List[dict]:
     results = []
@@ -300,143 +309,4 @@ def get_process_tcp_connections(pid) -> List[dict]:
     except Exception:
         return []
 
-import threading
 
-WH_KEYBOARD_LL = 13
-WM_HOTKEY = 0x0312
-MOD_ALT = 0x0001
-MOD_CONTROL = 0x0002
-MOD_SHIFT = 0x0004
-MOD_WIN = 0x0008
-
-from constants import VIRTUAL_KEYS as _KEY_NAME_TO_VK, parse_hotkey
-
-class KBDLLHOOKSTRUCT(Structure):
-    _fields_ = [
-        ("vkCode", wintypes.DWORD),
-        ("scanCode", wintypes.DWORD),
-        ("flags", wintypes.DWORD),
-        ("time", wintypes.DWORD),
-        ("dwExtraInfo", ctypes.c_void_p),
-    ]
-
-LRESULT = ctypes.c_ssize_t
-LowLevelKeyboardProc = ctypes.WINFUNCTYPE(
-    LRESULT, wintypes.INT, wintypes.WPARAM, wintypes.LPARAM
-)
-
-class _HotkeyEvent:
-    def __init__(self, event_type='down'):
-        self.event_type = event_type
-
-class HotkeyManager:
-    _instance = None
-    _lock = threading.Lock()
-
-    def __new__(cls):
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = super().__new__(cls)
-                    cls._instance._initialized = False
-        return cls._instance
-
-    def __init__(self):
-        if self._initialized:
-            return
-        self._initialized = True
-        self._hook = None
-        self._proc = None
-        self._callbacks = {}
-        self._running = False
-        self._thread = None
-        self._hwnd = None
-        self._log = get_logger('hotkey')
-
-    def register(self, hotkey_str, callback, suppress=True):
-        vk, mods = self._parse_hotkey(hotkey_str)
-        key = (vk, mods)
-        if key not in self._callbacks:
-            self._callbacks[key] = []
-        self._callbacks[key].append((callback, suppress))
-
-    def unregister(self, hotkey_str):
-        vk, mods = self._parse_hotkey(hotkey_str)
-        self._callbacks.pop((vk, mods), None)
-
-    def unregister_all(self):
-        self._callbacks.clear()
-
-    def start(self):
-        if self._thread is not None and self._thread.is_alive():
-            return
-        self._running = True
-        self._thread = threading.Thread(target=self._hook_thread, daemon=True)
-        self._thread.start()
-
-    def stop(self):
-        self._running = False
-        if self._hwnd:
-            _user32.PostMessageW(self._hwnd, WM_CLOSE, 0, 0)
-            self._hwnd = None
-        if self._hook:
-            _user32.UnhookWindowsHookEx(self._hook)
-            self._hook = None
-
-    def _hook_thread(self):
-        self._proc = LowLevelKeyboardProc(self._hook_callback)
-        self._hook = _user32.SetWindowsHookExW(
-            WH_KEYBOARD_LL, self._proc,
-            _kernel32.GetModuleHandleW(None), 0
-        )
-        if not self._hook:
-            self._log.error("Failed to set WH_KEYBOARD_LL hook", exc_info=True)
-            return
-        # Настройка argtypes для GetMessageW/TranslateMessageW/DispatchMessageW
-        _user32.GetMessageW.restype = wintypes.BOOL
-        _user32.GetMessageW.argtypes = [ctypes.POINTER(wintypes.MSG), ctypes.c_void_p, wintypes.UINT, wintypes.UINT]
-        _user32.TranslateMessage.restype = wintypes.BOOL
-        _user32.TranslateMessage.argtypes = [ctypes.POINTER(wintypes.MSG)]
-        msg = wintypes.MSG()
-        while self._running:
-            ret = _user32.GetMessageW(ctypes.byref(msg), None, 0, 0)
-            if ret == 0:
-                break
-            if ret == -1:
-                break
-            _user32.TranslateMessage(ctypes.byref(msg))
-            _user32.DispatchMessageW(ctypes.byref(msg))
-        if self._hook:
-            _user32.UnhookWindowsHookEx(self._hook)
-            self._hook = None
-
-    def _hook_callback(self, nCode, wParam, lParam):
-        if nCode >= 0 and wParam in (WM_KEYDOWN, WM_SYSKEYDOWN, WM_KEYUP, WM_SYSKEYUP):
-            kb = ctypes.cast(lParam, POINTER(KBDLLHOOKSTRUCT))[0]
-            vk = kb.vkCode
-            mods = 0
-            if _user32.GetAsyncKeyState(0x11) & 0x8000:
-                mods |= MOD_CONTROL
-            if _user32.GetAsyncKeyState(0x10) & 0x8000:
-                mods |= MOD_SHIFT
-            if _user32.GetAsyncKeyState(0x12) & 0x8000:
-                mods |= MOD_ALT
-            if _user32.GetAsyncKeyState(0x5B) & 0x8000 or _user32.GetAsyncKeyState(0x5C) & 0x8000:
-                mods |= MOD_WIN
-            callbacks = self._callbacks.get((vk, mods))
-            if callbacks:
-                event_type = 'down' if wParam in (WM_KEYDOWN, WM_SYSKEYDOWN) else 'up'
-                event = _HotkeyEvent(event_type)
-                suppress = False
-                for cb, s in callbacks:
-                    try:
-                        cb(event)
-                    except Exception as e:
-                        self._log.error(f"Hotkey callback error: {e}", exc_info=True)
-                    if s:
-                        suppress = True
-                if suppress:
-                    return 1
-        return _user32.CallNextHookEx(None, nCode, wParam, lParam)
-
-    _parse_hotkey = staticmethod(parse_hotkey)

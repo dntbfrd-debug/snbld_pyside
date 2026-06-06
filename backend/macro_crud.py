@@ -15,7 +15,6 @@ import threading
 import time
 import heapq
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from backend.logger_manager import get_logger
@@ -24,48 +23,6 @@ if TYPE_CHECKING:
     from macros_core import Macro
 
 logger = get_logger('backend')
-
-
-@dataclass
-class CreateSimpleParams:
-    name: str
-    hotkey: str
-    steps: list
-
-
-@dataclass
-class CreateZoneParams:
-    name: str
-    hotkey: str
-    zone_rect: list
-    steps: list
-    trigger: str
-    poll_interval_ms: int
-
-
-@dataclass
-class CreateSkillParams:
-    name: str
-    hotkey: str
-    skill_id: str
-    steps: list
-    skill_hotkey: str
-    cooldown: float
-    skill_range: float
-    cast_time: float
-    castbar_swap_delay: float
-    zone_rect: list
-
-
-@dataclass
-class CreateBuffParams:
-    name: str
-    hotkey: str
-    buff_id: str
-    steps: list
-    duration: float
-    channeling_bonus: int
-    zone_rect: list
 
 
 class MacroCrud:
@@ -134,8 +91,13 @@ class MacroCrud:
         for field_name in required_fields:
             if field_name not in m_dict:
                 raise ValueError(f"Макрос '{m_dict.get('name', 'unknown')}' не содержит обязательного поля '{field_name}'")
+        name = m_dict.get("name", "").strip()
+        if not name:
+            raise ValueError("Имя макроса не может быть пустым")
         if not isinstance(m_dict["steps"], list):
             raise ValueError(f"Макрос '{m_dict['name']}': 'steps' должен быть списком")
+        if m_dict["type"] not in ("simple", "skill", "zone", "buff"):
+            raise ValueError(f"Неизвестный тип макроса: '{m_dict.get('type')}'")
         if m_dict["type"] == "zone":
             if "zone_rect" not in m_dict:
                 raise ValueError(f"Зональный макрос '{m_dict['name']}' не содержит 'zone_rect'")
@@ -144,8 +106,18 @@ class MacroCrud:
                 raise ValueError(f"Макрос '{m_dict['name']}': 'zone_rect' должен быть списком из 4 чисел")
             if not all(isinstance(x, (int, float)) for x in zone_rect):
                 raise ValueError(f"Макрос '{m_dict['name']}': 'zone_rect' должен содержать только числа")
+        with self._lock:
+            for existing in self._backend._macros:
+                if existing.name == name:
+                    raise ValueError(f"Макрос с именем '{name}' уже существует")
 
     def _create_macro_from_dict(self, data: dict):
+        if 'name' not in data or not isinstance(data.get('name'), str) or not data['name'].strip():
+            raise KeyError(f"Missing or invalid required field 'name': {data.get('name')!r}")
+        if 'type' not in data or not isinstance(data.get('type'), str):
+            raise KeyError(f"Missing or invalid required field 'type': {data.get('type')!r}")
+        if 'steps' not in data or not isinstance(data.get('steps'), list):
+            raise KeyError(f"Missing or invalid required field 'steps': {data.get('steps')!r}")
         try:
             macro_type = data.get("type", "simple")
             macro = None
@@ -317,6 +289,7 @@ class MacroCrud:
                     macro._connect_mouse_click(self._backend)
                     logger.info(f"[CRUD] Zone '{name}' создана с зоной {zone_rect}")
                 self._backend._macros.append(macro)
+                self._backend.save_macros()
                 macro.start()
                 self._backend._update_macros_dicts()
                 self._emit(f"Зональный макрос '{name}' создан", "success")
@@ -351,6 +324,8 @@ class MacroCrud:
                         if getattr(self._backend, '_macro_name_for_edit', None) == old_name:
                             self._backend._macro_for_edit = self.get_macro_for_edit_by_macro(new_macro)
                         self._backend._update_macros_dicts()
+                        if new_macro.hotkey:
+                            self._register_hotkey_for(new_macro)
                         self._emit(f"Зональный макрос '{new_name}' обновлён", "success")
                         return
                 self._emit("Макрос не найден", "error")
@@ -375,6 +350,8 @@ class MacroCrud:
                         if getattr(self._backend, '_macro_name_for_edit', None) == old_name:
                             self._backend._macro_for_edit = self.get_macro_for_edit_by_macro(new_macro)
                         self._backend._update_macros_dicts()
+                        if new_macro.hotkey:
+                            self._register_hotkey_for(new_macro)
                         self._emit(f"Макрос '{new_name}' обновлён", "success")
                         return
                 self._emit("Макрос не найден", "error")
@@ -441,6 +418,8 @@ class MacroCrud:
                         if getattr(self._backend, '_macro_name_for_edit', None) == old_name:
                             self._backend._macro_for_edit = self.get_macro_for_edit_by_macro(new_macro)
                         self._backend._update_macros_dicts()
+                        if new_macro.hotkey:
+                            self._register_hotkey_for(new_macro)
                         self._emit(f"Скилл-макрос '{new_name}' обновлён", "success")
                         return
                 self._emit("Макрос не найден", "error")
@@ -470,8 +449,8 @@ class MacroCrud:
                 self._backend._macros.append(macro)
                 self._backend.save_macros()
                 self._backend._update_macros_dicts()
-                if macro.hotkey and hasattr(self._backend, 'register_all_hotkeys'):
-                    self._backend.register_all_hotkeys()
+                if macro.hotkey:
+                    self._register_hotkey_for(macro)
                 self._emit(f"Бафф-макрос '{name}' создан", "success")
             except Exception as e:
                 logger.error(f"[CRUD] create_buff: {e}", exc_info=True)
@@ -511,8 +490,8 @@ class MacroCrud:
                         if getattr(self._backend, '_macro_name_for_edit', None) == old_name:
                             self._backend._macro_for_edit = self.get_macro_for_edit_by_macro(new_macro)
                         self._backend._update_macros_dicts()
-                        if hasattr(self._backend, 'register_all_hotkeys'):
-                            self._backend.register_all_hotkeys()
+                        if new_macro.hotkey:
+                            self._register_hotkey_for(new_macro)
                         self._emit(f"Бафф-макрос '{new_name}' обновлён", "success")
                         return
                 self._emit("Макрос не найден", "error")

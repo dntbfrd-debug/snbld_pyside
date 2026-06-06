@@ -104,6 +104,12 @@ class Macro:
         self.last_used = 0.0
         self.cooldown = 0.0
         self.cooldown_lock = threading.Lock()
+        self._finished_notified = False
+
+    def _sleep(self, seconds):
+        if self.stop_event.wait(seconds):
+            return False
+        return True
 
     def start(self):
         with self.start_lock:
@@ -140,11 +146,7 @@ class Macro:
                 self.thread.join(timeout=3.0)
                 if self.thread.is_alive():
                     _get_logger().warning(f"Поток макроса '{self.name}' не завершился, принудительно...")
-        if hasattr(self, 'app') and hasattr(self.app, 'dispatcher'):
-            try:
-                self.app.dispatcher.on_macro_finished(self.name)
-            except Exception:
-                pass
+        self._notify_finished()
         _get_logger().info(f" Макрос '{self.name}' остановлен")
 
     def _check_window(self):
@@ -269,12 +271,18 @@ class Macro:
             f"Macro._run must be implemented in subclass (type={self.type}, name={self.name})"
         )
 
-    def _safe_on_finished(self):
+    def _notify_finished(self):
+        if self._finished_notified:
+            return
+        self._finished_notified = True
         if hasattr(self, 'app') and getattr(self.app, 'dispatcher', None):
             try:
                 self.app.dispatcher.on_macro_finished(self.name)
             except Exception:
                 pass
+
+    def _safe_on_finished(self):
+        self._notify_finished()
 
 
 class SimpleMacro(Macro):
@@ -352,11 +360,7 @@ class ZoneMacro(Macro):
         finally:
             self.running.clear()
             self._disconnect_mouse_click()
-            if hasattr(self.app, 'dispatcher') and self.app.dispatcher:
-                try:
-                    self.app.dispatcher.on_macro_finished(self.name)
-                except Exception:
-                    pass
+            self._safe_on_finished()
             _get_logger().debug(f"[ZONE] Макрос '{self.name}' завершил работу")
 
     def on_mouse_click(self, x, y):
@@ -368,11 +372,15 @@ class ZoneMacro(Macro):
         if not self._is_point_in_rect(x, y, self.zone_rect):
             return
 
-        if self.app.global_stopped:
-            return
-
         if not self.running.is_set():
             return
+
+        now = time.time()
+        if now - getattr(self, '_last_zone_click_time', 0) < 0.2:
+            return
+        self._last_zone_click_time = now
+
+        dispatcher = self.app.dispatcher if hasattr(self.app, 'dispatcher') else None
 
         with self._schedule_lock:
             if self._scheduled:
@@ -381,7 +389,14 @@ class ZoneMacro(Macro):
 
         def launch():
             try:
+                if dispatcher:
+                    if not dispatcher.can_launch_zone(self):
+                        _get_logger().debug(f"[ZONE] {self.name}: отклонён диспетчером")
+                        return
+                    _get_logger().info(f"[ZONE] {self.name}: разрешён диспетчером")
                 self.run_steps_once()
+            except Exception as e:
+                _get_logger().error(f"[ZONE]  '{self.name}': ошибка: {e}", exc_info=True)
             finally:
                 with self._schedule_lock:
                     self._scheduled = False
@@ -439,7 +454,7 @@ class BuffMacro(SimpleMacro):
             setting_key = CALIBRATED_BUFF_CLICKS.get(self.buff_id)
             if setting_key:
                 if _click_calibrated_point(self.app, setting_key, "BUFF"):
-                    time.sleep(0.1)
+                    self._sleep(0.1)
 
             from macros.steps_executor import StepsExecutor
             executor = StepsExecutor(stop_event=self.stop_event)
@@ -492,6 +507,145 @@ class SkillMacro(SimpleMacro):
         self.step2_repeat_delay = step2_repeat_delay
         self.icon = icon
 
+    def _check_movement_state(self):
+        time_since_stop = self.app.movement_monitor.get_movement_delay()
+        if time_since_stop < 0.5:
+            _get_logger().debug(f"[SKILL] Пользователь двигался (возраст={time_since_stop*1000:.0f}мс), используем цикл")
+            return True
+        return False
+
+    def _try_approach(self):
+        check_distance = self.app.settings.get("check_distance", False)
+        fast_dist = self.app.fast_distance if hasattr(self.app, 'fast_distance') else self.app.target_distance
+        _get_logger().info(f"[SKILL] check_distance={check_distance}, skill_range={self.skill_range}, target_distance={fast_dist}")
+
+        if not (check_distance and self.skill_range > 0):
+            _get_logger().debug(f"[SKILL] Проверка дистанции отключена (check_distance={check_distance}) или skill_range={self.skill_range}")
+            return False
+
+        tolerance = self.app.settings.get("distance_tolerance", 1.0)
+        target_dist = max(0, self.skill_range - 0.2)
+        current = fast_dist
+
+        if current is None or current < 0.5:
+            _get_logger().warning(f"[SKILL] Макрос '{self.name}': расстояние не определено (fast_reader: {current})")
+            return False
+
+        if current <= self.skill_range + tolerance:
+            _get_logger().info(f"[SKILL] Дистанция {current:.1f}м в пределах дальности (нужно ≤{target_dist:.1f}м)")
+            return False
+
+        _get_logger().info(f"[SKILL] Макрос '{self.name}': цель слишком далеко ({current:.1f}м, нужно ≤{target_dist:.1f}), ПОДБЕГАЕМ")
+        key_down_sendinput('w')
+        try:
+            approach_start = time.time()
+            last_keydown_time = time.time()
+            while self.running.is_set() and not self.stop_event.is_set():
+                if not self._check_window():
+                    _get_logger().debug(f"[SKILL] Окно неактивно, прерывание подбегания")
+                    return None
+                if time.time() - last_keydown_time > 0.1:
+                    key_down_sendinput('w')
+                    last_keydown_time = time.time()
+                current_dist = self.app.fast_raw_distance if hasattr(self.app, 'fast_raw_distance') else (self.app.fast_distance if hasattr(self.app, 'fast_distance') else self.app.target_distance)
+                if current_dist is not None and current_dist <= target_dist:
+                    _get_logger().info(f"[SKILL] Подбежали до {current_dist:.1f}м за {time.time()-approach_start:.2f}с")
+                    break
+                self._sleep(0.03)
+        finally:
+            key_up_sendinput('w')
+        self._sleep(0.06)
+        if not self.running.is_set() or self.stop_event.is_set():
+            _get_logger().debug(f"[SKILL] Макрос '{self.name}' прерван во время подбегания")
+            return None
+        return True
+
+    def _handle_movement_inertia(self, approach_used, use_castbar_detection, movement_delay_enabled, user_was_moving):
+        if approach_used:
+            _get_logger().info(f"[SKILL] [АВТОДОБЕГ] Режим детекции каста (всегда)")
+        elif use_castbar_detection:
+            _get_logger().info(f"[SKILL] [РЕЖИМ 1] Детекция каста - поиск в цикле шагов")
+        elif movement_delay_enabled and user_was_moving:
+            delay_ms = self.app.settings.get("movement_delay_ms", 300)
+            if delay_ms > 0:
+                time_since_stop = self.app.movement_monitor.get_movement_delay()
+                if time_since_stop < delay_ms / 1000.0:
+                    sleep_time = (delay_ms / 1000.0) - time_since_stop
+                    _get_logger().debug(f"[SKILL] Ожидание инерции движения: {sleep_time*1000:.0f} мс")
+                    self._sleep(sleep_time)
+        else:
+            _get_logger().debug(f"[SKILL] [ИНФО] Режим не выбран (user_was_moving={user_was_moving})")
+
+    def _calculate_delays(self, steps):
+        step1_delay = steps[0][2] if len(steps[0]) > 2 else 90
+        step2_repeat_delay = self.step2_repeat_delay if self.step2_repeat_delay else 200
+
+        use_ping_delays = self.app.settings.get("use_ping_delays", False)
+        if use_ping_delays:
+            ping_comp = self.app.get_ping_compensation() * 1000
+            step1_delay = max(10, step1_delay - ping_comp)
+            step2_repeat_delay = max(10, step2_repeat_delay - ping_comp)
+            _get_logger().info(f"[SKILL] Режим авто задержек: step1={step1_delay:.0f}мс (пинг компенсация {ping_comp:.0f}мс)")
+        else:
+            _get_logger().info(f"[SKILL] Режим фиксированных задержек: step1={step1_delay:.0f}мс")
+
+        return step1_delay, step2_repeat_delay
+
+    def _execute_with_movement(self, executor, steps, step1_delay, use_castbar_detection, running_check):
+        if steps[0][0] == "key":
+            send_key(steps[0][1])
+            self._sleep(step1_delay / 1000.0)
+
+        middle_steps = steps[1:-1]
+
+        if use_castbar_detection and self.app.castbar_point:
+            first_middle = middle_steps[0]
+            executor.execute_step(first_middle[0], first_middle[1] if len(first_middle) > 1 else "", first_middle[2] if len(first_middle) > 2 else 0)
+            if self.app.dispatcher:
+                self.app.dispatcher.set_cast_lock(self)
+
+            _get_logger().debug(f"[SKILL] Ожидание кастбара (макс {max(2.0, self.cast_time):.1f} сек)...")
+            start_wait = time.time()
+            timeout = max(2.0, self.cast_time)
+            cast_detected = False
+
+            while time.time() - start_wait < timeout and self.running.is_set() and not self.stop_event.is_set():
+                if not self._check_window():
+                    _get_logger().warning(f"[SKILL] Окно потеряно во время ожидания кастбара")
+                    return False
+                if self.app.is_castbar_visible():
+                    _get_logger().debug(f"[SKILL] Полоска обнаружена через {time.time()-start_wait:.2f}с")
+                    cast_detected = True
+                    break
+                self._sleep(0.01)
+
+            if not cast_detected:
+                _get_logger().debug(f"[SKILL] Полоска не обнаружена за {timeout} сек")
+                return False
+
+            if len(middle_steps) > 1:
+                for step in middle_steps[1:]:
+                    if not running_check():
+                        break
+                    executor.execute_step(step[0], step[1] if len(step) > 1 else "", step[2] if len(step) > 2 else 0)
+        else:
+            for step in middle_steps:
+                if not running_check():
+                    break
+                executor.execute_step(step[0], step[1] if len(step) > 1 else "", step[2] if len(step) > 2 else 0)
+
+        step_last = steps[-1]
+        executor.execute_step(step_last[0], step_last[1] if len(step_last) > 1 else "", step_last[2] if len(step_last) > 2 else 0)
+        return True
+
+    def _execute_normal(self, executor, steps, running_check):
+        executor.execute_sequence(
+            steps=steps,
+            check_window=self._check_window,
+            running_check=running_check,
+            cast_lock_callback=lambda: self.app.dispatcher.set_cast_lock(self) if self.app.dispatcher else None
+        )
+
     def _run(self):
         _get_logger().debug(f"[SKILL] Начало выполнения макроса-скилла '{self.name}'")
         start_time = time.time()
@@ -499,63 +653,15 @@ class SkillMacro(SimpleMacro):
 
         try:
             self_steps = list(self.steps)
-            has_zone = bool(self.zone_rect)
 
-            _check_window_result = self._check_window()
-            if not _check_window_result:
+            if not self._check_window():
                 _get_logger().debug(f"[SKILL] Окно неактивно, прерывание")
                 return
 
-            approach_used = False
-            user_was_moving = False
-
-            time_since_stop = self.app.movement_monitor.get_movement_delay()
-            if time_since_stop < 0.5:
-                user_was_moving = True
-                _get_logger().debug(f"[SKILL] Пользователь двигался (возраст={time_since_stop*1000:.0f}мс), используем цикл")
-
-            check_distance = self.app.settings.get("check_distance", False)
-            fast_dist = self.app.fast_distance if hasattr(self.app, 'fast_distance') else self.app.target_distance
-            _get_logger().info(f"[SKILL] check_distance={check_distance}, skill_range={self.skill_range}, target_distance={fast_dist}")
-
-            if check_distance and self.skill_range > 0:
-                tolerance = self.app.settings.get("distance_tolerance", 1.0)
-                target_dist = max(0, self.skill_range - 0.2)
-                current = fast_dist
-
-                if current is None or current < 0.5:
-                    _get_logger().warning(f"[SKILL] Макрос '{self.name}': расстояние не определено (fast_reader: {current})")
-                elif current > self.skill_range + tolerance:
-                    _get_logger().info(f"[SKILL] Макрос '{self.name}': цель слишком далеко ({current:.1f}м, нужно ≤{target_dist:.1f}), ПОДБЕГАЕМ")
-                    approach_used = True
-                    key_down_sendinput('w')
-                    try:
-                        approach_start = time.time()
-                        last_keydown_time = time.time()
-                        while self.running.is_set() and not self.stop_event.is_set():
-                            if not self._check_window():
-                                _get_logger().debug(f"[SKILL] Окно неактивно, прерывание подбегания")
-                                break
-
-                            if time.time() - last_keydown_time > 0.1:
-                                key_down_sendinput('w')
-                                last_keydown_time = time.time()
-
-                            current_dist = self.app.fast_raw_distance if hasattr(self.app, 'fast_raw_distance') else (self.app.fast_distance if hasattr(self.app, 'fast_distance') else self.app.target_distance)
-                            if current_dist is not None and current_dist <= target_dist:
-                                _get_logger().info(f"[SKILL] Подбежали до {current_dist:.1f}м за {time.time()-approach_start:.2f}с")
-                                break
-                            time.sleep(0.03)
-                    finally:
-                        key_up_sendinput('w')
-                    time.sleep(0.06)
-                    if not self.running.is_set() or self.stop_event.is_set():
-                        _get_logger().debug(f"[SKILL] Макрос '{self.name}' прерван во время подбегания")
-                        return
-                else:
-                    _get_logger().info(f"[SKILL] Дистанция {current:.1f}м в пределах дальности (нужно ≤{target_dist:.1f}м)")
-            else:
-                _get_logger().debug(f"[SKILL] Проверка дистанции отключена (check_distance={check_distance}) или skill_range={self.skill_range}")
+            user_was_moving = self._check_movement_state()
+            approach_used = self._try_approach()
+            if approach_used is None:
+                return
 
             if len(self.steps) < 3:
                 _get_logger().error(f"[SKILL] Макрос '{self.name}' содержит менее 3 шагов, невозможно выполнить")
@@ -564,32 +670,9 @@ class SkillMacro(SimpleMacro):
             use_castbar_detection = self.app.settings.get("use_castbar_detection", False)
             movement_delay_enabled = self.app.settings.get("movement_delay_enabled", True)
 
-            if approach_used:
-                _get_logger().info(f"[SKILL] [АВТОДОБЕГ] Режим детекции каста (всегда)")
-            elif use_castbar_detection:
-                _get_logger().info(f"[SKILL] [РЕЖИМ 1] Детекция каста - поиск в цикле шагов")
-            elif movement_delay_enabled and user_was_moving:
-                delay_ms = self.app.settings.get("movement_delay_ms", 300)
-                if delay_ms > 0:
-                    time_since_stop = self.app.movement_monitor.get_movement_delay()
-                    if time_since_stop < delay_ms / 1000.0:
-                        sleep_time = (delay_ms / 1000.0) - time_since_stop
-                        _get_logger().debug(f"[SKILL] Ожидание инерции движения: {sleep_time*1000:.0f} мс")
-                        time.sleep(sleep_time)
-            else:
-                _get_logger().debug(f"[SKILL] [ИНФО] Режим не выбран (user_was_moving={user_was_moving})")
+            self._handle_movement_inertia(approach_used, use_castbar_detection, movement_delay_enabled, user_was_moving)
 
-            step1_delay = self_steps[0][2] if len(self_steps[0]) > 2 else 90
-            step2_repeat_delay = self.step2_repeat_delay if self.step2_repeat_delay else 200
-
-            use_ping_delays = self.app.settings.get("use_ping_delays", False)
-            if use_ping_delays:
-                ping_comp = self.app.get_ping_compensation() * 1000
-                step1_delay = max(10, step1_delay - ping_comp)
-                step2_repeat_delay = max(10, step2_repeat_delay - ping_comp)
-                _get_logger().info(f"[SKILL] Режим авто задержек: step1={step1_delay:.0f}мс (пинг компенсация {ping_comp:.0f}мс)")
-            else:
-                _get_logger().info(f"[SKILL] Режим фиксированных задержек: step1={step1_delay:.0f}мс")
+            step1_delay, step2_repeat_delay = self._calculate_delays(self_steps)
 
             from macros.steps_executor import StepsExecutor
             executor = StepsExecutor(stop_event=self.stop_event)
@@ -597,57 +680,10 @@ class SkillMacro(SimpleMacro):
                 return self.running.is_set() and not self.stop_event.is_set()
 
             if approach_used or user_was_moving:
-                if self_steps[0][0] == "key":
-                    send_key(self_steps[0][1])
-                    time.sleep(step1_delay / 1000.0)
-
-                middle_steps = self_steps[1:-1]
-
-                if use_castbar_detection and self.app.castbar_point:
-                    first_middle = middle_steps[0]
-                    executor.execute_step(first_middle[0], first_middle[1] if len(first_middle) > 1 else "", first_middle[2] if len(first_middle) > 2 else 0)
-                    if self.app.dispatcher:
-                        self.app.dispatcher.set_cast_lock(self)
-
-                    _get_logger().debug(f"[SKILL] Ожидание кастбара (макс {max(2.0, self.cast_time):.1f} сек)...")
-                    start_wait = time.time()
-                    timeout = max(2.0, self.cast_time)
-                    cast_detected = False
-
-                    while time.time() - start_wait < timeout and self.running.is_set() and not self.stop_event.is_set():
-                        if self.app.is_castbar_visible():
-                            _get_logger().debug(f"[SKILL] Полоска обнаружена через {time.time()-start_wait:.2f}с")
-                            cast_detected = True
-                            break
-                        time.sleep(0.01)
-
-                    if not cast_detected:
-                        _get_logger().debug(f"[SKILL] Полоска не обнаружена за {timeout} сек")
-                        return
-
-                    if len(middle_steps) > 1:
-                        for step in middle_steps[1:]:
-                            if not running_check():
-                                break
-                            executor.execute_step(step[0], step[1] if len(step) > 1 else "", step[2] if len(step) > 2 else 0)
-
-                else:
-                    for step in middle_steps:
-                        if not running_check():
-                            break
-                        executor.execute_step(step[0], step[1] if len(step) > 1 else "", step[2] if len(step) > 2 else 0)
-
-                step_last = self_steps[-1]
-                executor.execute_step(step_last[0], step_last[1] if len(step_last) > 1 else "", step_last[2] if len(step_last) > 2 else 0)
-
+                if not self._execute_with_movement(executor, self_steps, step1_delay, use_castbar_detection, running_check):
+                    return
             else:
-                steps_to_execute = self_steps
-                executor.execute_sequence(
-                    steps=steps_to_execute,
-                    check_window=self._check_window,
-                    running_check=running_check,
-                    cast_lock_callback=lambda: self.app.dispatcher.set_cast_lock(self) if self.app.dispatcher else None
-                )
+                self._execute_normal(executor, self_steps, running_check)
 
             try:
                 from backend.session_log import get_session_log

@@ -65,6 +65,84 @@ class MacroStorageMixin:
         self._macros_dicts = list(new_list)
         self.macrosChanged.emit()
 
+    def _validate_macros_json(self, data):
+        if not isinstance(data, dict):
+            raise ValueError("macros.json должен быть объектом (dict)")
+        if "macros" not in data:
+            raise ValueError("macros.json должен содержать ключ 'macros'")
+        if not isinstance(data["macros"], list):
+            raise ValueError("'macros' должен быть списком")
+
+    def load_macros(self):
+        import constants
+        macro_file = os.path.join(self.app_dir, constants.MACROS_JSON_FILE)
+        if not os.path.exists(macro_file):
+            self._macros = []
+            self._update_macros_dicts()
+            return
+        try:
+            with open(macro_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            self._validate_macros_json(data)
+            self._window_locked = data.get("window_locked", False)
+            self._target_window_title = data.get("target_window_title", "")
+            self.window_locked = self._window_locked
+            self.target_window_title = self._target_window_title
+            self.macrosChanged.emit()
+            self._macros = []
+            for m_dict in data.get("macros", []):
+                self._validate_macro_dict(m_dict)
+                macro = self._create_macro_from_dict(m_dict)
+                if macro is None:
+                    continue
+                if macro.type == "zone":
+                    macro._connect_mouse_click(self)
+                    macro.start()
+                    logger.info(f"[ZONE] Макрос '{macro.name}' запущен автоматически")
+                self._macros.append(macro)
+            self._update_macros_dicts()
+            logger.info(f"Загружено {len(self._macros)} макросов")
+        except Exception as e:
+            logger.error(f"Ошибка загрузки макросов: {e}")
+            self._macros = []
+            self._update_macros_dicts()
+
+    def save_macros(self):
+        logger.debug(f"[MACROS] save_macros вызван | _current_profile={getattr(self, '_current_profile', None)} | макросов={len(self._macros)}")
+        if getattr(self, '_current_profile', None):
+            logger.info(f"[MACROS] Сохранение в профиль: {self._current_profile}")
+            self.save_profile(self._current_profile)
+            logger.debug(f"[PROFILE] Макросы автосохранены в профиль: {self._current_profile}")
+        self._save_macros_to_file()
+
+    def _save_macros_to_file(self):
+        import constants
+        macro_file = os.path.join(self.app_dir, constants.MACROS_JSON_FILE)
+        macros_data = []
+        for m in self._macros:
+            try:
+                macros_data.append(self._macro_to_dict(m))
+            except Exception as e:
+                logger.error(f"[MACROS] Ошибка сериализации макроса '{m.name}': {e}", exc_info=True)
+        data = {
+            "window_locked": getattr(self, '_window_locked', False),
+            "target_window_title": getattr(self, '_target_window_title', ""),
+            "macros": macros_data
+        }
+        tmp_file = macro_file + ".tmp"
+        try:
+            with open(tmp_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            os.replace(tmp_file, macro_file)
+            logger.info(f"[MACROS] Сохранено {len(macros_data)} макросов в {macro_file}")
+        except Exception as e:
+            logger.error(f"[MACROS] Ошибка сохранения макросов: {e}")
+            try:
+                if os.path.exists(tmp_file):
+                    os.remove(tmp_file)
+            except Exception:
+                pass
+
     def recalculate_macro_delays(self):
         use_ping_delays = self._settings.get("use_ping_delays", False)
         if use_ping_delays:

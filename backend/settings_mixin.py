@@ -8,6 +8,31 @@ logger = get_logger('settings')
 
 
 class SettingsMixin:
+
+    def _validate_setting(self, key, value):
+        numeric_keys = {"ocrScale", "castbar_threshold", "castbar_size", "ocr_scale", "ocr_psm",
+                        "target_interval", "ping_check_interval", "average_ping",
+                        "global_step_delay", "first_step_delay", "cooldown_margin",
+                        "cast_lock_margin", "cast_finish_delay", "movement_delay_ms",
+                        "distance_tolerance", "window_opacity", "base_channeling"}
+        string_keys = {"swap_key_chant", "swap_key_pa", "castbar_point", "process_name",
+                       "server_ip", "start_all_hotkey", "stop_all_hotkey",
+                       "mob_area", "player_area", "target_window_title",
+                       "accent_color", "buff_8004_click_point"}
+        bool_keys = {"castbar_enabled", "movement_delay_enabled", "check_distance",
+                     "use_castbar_detection", "ocr_use_morph", "ping_auto",
+                     "window_locked", "window_manager_skip_activation",
+                     "force_sendinput", "use_fixed_delays", "use_ping_delays"}
+        if key in numeric_keys:
+            if not isinstance(value, (int, float)) or value <= 0:
+                raise ValueError(f"Invalid setting {key}: {value!r} (must be positive number)")
+        elif key in string_keys:
+            if not isinstance(value, str) or len(value) == 0:
+                raise ValueError(f"Invalid setting {key}: {value!r} (must be non-empty string)")
+        elif key in bool_keys:
+            if not isinstance(value, bool):
+                raise ValueError(f"Invalid setting {key}: {value!r} (must be bool)")
+
     def load_settings(self):
         from backend.settings_manager import SettingsManager
         settings_path = os.path.join(self.data_dir, 'settings.json')

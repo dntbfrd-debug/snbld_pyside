@@ -314,6 +314,7 @@ Item {
         if (macroData && macroData.type) {
             editMode = true
             editingMacro = macroData
+            backend.clear_macro_for_edit()
             var page = null
             var activeTab = null
             if (macroData.type === "skill") { page = "SkillEditForm.qml"; activeTab = skillTab }

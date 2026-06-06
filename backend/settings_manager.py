@@ -85,52 +85,39 @@ class SettingsManager:
                 self._settings = self.DEFAULTS.copy()
                 logger.info("Настройки по умолчанию загружены")
 
-    def _convert_settings_types(self) -> None:
-        for key in ("base_channeling", "movement_delay_ms", "ocr_scale", "first_step_delay"):
-            if key in self._settings:
-                try:
-                    self._settings[key] = int(self._settings[key])
-                except (ValueError, TypeError):
-                    self._settings[key] = self.DEFAULTS[key]
-
-        for key in ("cooldown_margin", "cast_lock_margin"):
-            if key in self._settings:
-                try:
-                    self._settings[key] = float(self._settings[key])
-                except (ValueError, TypeError):
-                    self._settings[key] = self.DEFAULTS[key]
-
-        for key in ("castbar_swap_delay", "global_step_delay"):
-            if key in self._settings:
-                try:
-                    self._settings[key] = float(self._settings[key])
-                except (ValueError, TypeError):
-                    self._settings[key] = self.DEFAULTS[key]
-
-        if "castbar_threshold" in self._settings:
+    @staticmethod
+    def _normalize(key: str, value: Any) -> Any:
+        if key in ("base_channeling", "movement_delay_ms", "ocr_scale", "first_step_delay", "castbar_threshold"):
             try:
-                self._settings["castbar_threshold"] = int(self._settings["castbar_threshold"])
+                return int(value)
             except (ValueError, TypeError):
-                self._settings["castbar_threshold"] = self.DEFAULTS["castbar_threshold"]
-
-        for key in ("use_castbar_detection", "castbar_enabled", "movement_delay_enabled", 
+                return SettingsManager.DEFAULTS.get(key, 0)
+        if key in ("cooldown_margin", "cast_lock_margin", "castbar_swap_delay", "global_step_delay"):
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                return SettingsManager.DEFAULTS.get(key, 0.0)
+        if key in ("use_castbar_detection", "castbar_enabled", "movement_delay_enabled",
                     "check_distance", "ocr_use_morph", "ping_auto"):
-            if key in self._settings:
-                val = self._settings[key]
-                if isinstance(val, str):
-                    self._settings[key] = val.lower() in ("true", "1", "yes")
-                elif not isinstance(val, bool):
-                    self._settings[key] = bool(val)
-
-        if "castbar_color" in self._settings:
-            color = self._settings["castbar_color"]
-            if isinstance(color, str):
+            if isinstance(value, str):
+                return value.lower() in ("true", "1", "yes")
+            if not isinstance(value, bool):
+                return bool(value)
+            return value
+        if key == "castbar_color":
+            if isinstance(value, str):
                 try:
-                    self._settings["castbar_color"] = [int(x) for x in color.split(',')]
+                    return [int(x) for x in value.split(',')]
                 except (ValueError, TypeError):
-                    self._settings["castbar_color"] = self.DEFAULTS["castbar_color"]
-            elif isinstance(color, list):
-                self._settings["castbar_color"] = [int(x) for x in color]
+                    return SettingsManager.DEFAULTS.get("castbar_color", [94, 123, 104])
+            if isinstance(value, list):
+                return [int(x) for x in value]
+        return value
+
+    def _convert_settings_types(self) -> None:
+        for key in list(self._settings.keys()):
+            if key in self.DEFAULTS:
+                self._settings[key] = self._normalize(key, self._settings[key])
 
     def save_settings(self) -> bool:
         with self._lock:
@@ -176,33 +163,7 @@ class SettingsManager:
 
     def set(self, key: str, value: Any, notify: bool = True) -> None:
         with self._lock:
-            if key in ("base_channeling", "movement_delay_ms", "ocr_scale", "first_step_delay"):
-                try:
-                    value = int(value)
-                except (ValueError, TypeError):
-                    value = 0
-            elif key in ("cooldown_margin", "cast_lock_margin"):
-                try:
-                    value = float(value)
-                except (ValueError, TypeError):
-                    value = 0.0
-            elif key in ("castbar_swap_delay", "global_step_delay"):
-                try:
-                    value = float(value)
-                except (ValueError, TypeError):
-                    value = 0.0
-            elif key in ("castbar_threshold",):
-                try:
-                    value = int(value)
-                except (ValueError, TypeError):
-                    value = 70
-            elif key in ("use_castbar_detection", "castbar_enabled"):
-                if isinstance(value, str):
-                    value = value.lower() in ("true", "1", "yes")
-            elif key in ("movement_delay_enabled", "check_distance", "ocr_use_morph", "ping_auto"):
-                if isinstance(value, str):
-                    value = value.lower() in ("true", "1", "yes")
-
+            value = self._normalize(key, value)
             old_value = self._settings.get(key)
             self._settings[key] = value
 
